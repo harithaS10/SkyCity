@@ -1,0 +1,450 @@
+import React, { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { api } from '@/lib/api';
+import type { Department, CustomRole } from '@/lib/api';
+import { format, parseISO } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
+import {
+  UserPlus,
+  Trash2,
+  Users,
+  Shield,
+  User,
+  Search,
+  MoreVertical,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+const UserManagement: React.FC = () => {
+  const [users, setUsers] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    username: '',
+    email: '',
+    password: '',
+    role: 'user',
+    departmentId: '',
+    roleId: '',
+  });
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.users.getAll();
+      if (response.success && response.data) {
+        setUsers(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    // Load departments and custom roles for the create form
+    api.departments.getAll().then(r => { if (r.success && r.data) setDepartments(r.data); }).catch(() => {});
+    api.roles.getAll().then(r => { if (r.success && r.data) setCustomRoles(r.data); }).catch(() => {});
+  }, []);
+
+  const filteredUsers = users.filter(
+    (user) =>
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleCreateUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.username || !newUser.password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      const payload: any = { ...newUser };
+      if (newUser.departmentId) payload.departmentId = parseInt(newUser.departmentId, 10);
+      if (newUser.roleId) payload.roleId = parseInt(newUser.roleId, 10);
+      const response = await api.users.create(payload);
+      if (response.success) {
+        toast.success(`User ${newUser.name} created successfully`);
+        setNewUser({ name: '', username: '', email: '', password: '', role: 'user', departmentId: '', roleId: '' });
+        setIsCreateDialogOpen(false);
+        fetchUsers();
+      } else {
+        toast.error(response.message || "Failed to create user");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error creating user");
+    }
+  };
+
+  const handleToggleEnabled = async (userId: number) => {
+    try {
+      const response = await api.users.toggleStatus(userId);
+      if (response.success) {
+        toast.success("User status updated");
+        fetchUsers();
+      }
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!userId) {
+      toast.error("Invalid user ID");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to delete this user? This will also delete all their reports and work allocations.")) return;
+
+    try {
+      const response = await api.users.delete(userId);
+      if (response.success) {
+        toast.success(response.message || "User deleted");
+        fetchUsers();
+      } else {
+        toast.error(response.message || "Failed to delete user");
+      }
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toast.error(error.message || "Failed to delete user");
+    }
+  };
+
+  const handleRoleChange = async (userId: number, role: string) => {
+    try {
+      const response = await api.users.update(userId, { role });
+      if (response.success) {
+        toast.success('Role updated successfully');
+        fetchUsers();
+      }
+    } catch (error) {
+      toast.error("Failed to update role");
+    }
+  };
+
+  const totalUserCount = users.length;
+  const adminCount = users.filter((u) => u.role === 'admin').length;
+  const activeCount = users.filter((u) => u.status === 'active').length;
+
+  // Header Styling Variables - MATCHING YOUR IMAGE
+  const headerBg = "bg-primary"; // Using the brand blue from the main header
+  const headerText = "text-white font-semibold last:border-r-0 h-11";
+  const cellBorder = "border-r border-slate-200 last:border-r-0";
+  return (
+    <DashboardLayout>
+      <div className="space-y-6 animate-fade-in">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">User Management</h1>
+            <p className="text-muted-foreground">Create, manage, and configure user accounts</p>
+          </div>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <UserPlus className="h-4 w-4" />
+                Create User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card">
+              <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                <DialogDescription>
+                  Add a new user to the system. They will be able to log in immediately.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {/* Form Inputs... */}
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    placeholder="John Doe"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser((prev) => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    placeholder="johndoe"
+                    value={newUser.username}
+                    onChange={(e) => setNewUser((prev) => ({ ...prev, username: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="john@company.com"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser((prev) => ({ ...prev, email: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Min. 6 characters"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser((prev) => ({ ...prev, password: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value: string) =>
+                      setNewUser((prev) => ({ ...prev, role: value }))
+                    }
+                  >
+                    <SelectTrigger className="bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card">
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="manager">Manager / Supervisor</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Department dropdown */}
+                {departments.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="departmentId">Department <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                    <Select
+                      value={newUser.departmentId || 'none'}
+                      onValueChange={v => setNewUser(p => ({ ...p, departmentId: v === 'none' ? '' : v }))}
+                    >
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card">
+                        <SelectItem value="none">— No Department —</SelectItem>
+                        {departments.map(d => (
+                          <SelectItem key={d.id} value={d.id.toString()}>{d.departmentName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Custom Role dropdown */}
+                {customRoles.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="roleId">Custom Role <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                    <Select
+                      value={newUser.roleId || 'none'}
+                      onValueChange={v => setNewUser(p => ({ ...p, roleId: v === 'none' ? '' : v }))}
+                    >
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Select custom role" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card">
+                        <SelectItem value="none">— No Custom Role —</SelectItem>
+                        {customRoles.map(r => (
+                          <SelectItem key={r.id} value={r.id.toString()}>{r.roleName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateUser}>Create User</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Stats Section */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{totalUserCount}</p>
+                <p className="text-sm text-muted-foreground">Total Users</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100/50">
+                <Shield className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{adminCount}</p>
+                <p className="text-sm text-muted-foreground">Administrators</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100/50">
+                <User className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{activeCount}</p>
+                <p className="text-sm text-muted-foreground">Active Users</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Users Table */}
+        <Card className="overflow-hidden border-none shadow-md">
+          <CardHeader className="bg-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <CardTitle className="text-lg">All Users</CardTitle>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
+              <Table className="border-x">
+                <TableHeader className={`${headerBg} hover:${headerBg}`}>
+                  <TableRow className="hover:bg-transparent border-none">
+                    <TableHead className={headerText}>User</TableHead>
+                    <TableHead className={headerText}>Role</TableHead>
+                    <TableHead className={headerText}>Status</TableHead>
+                    <TableHead className={headerText}>Created</TableHead>
+                    <TableHead className="text-right text-white font-semibold px-4 h-11">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id} className="hover:bg-slate-50/50">
+                      <TableCell className={cellBorder}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
+                            <User className="h-4 w-4 text-slate-500" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className={cellBorder}>
+                        <Select
+                          value={user.role}
+                          onValueChange={(value: string) =>
+                            handleRoleChange(user.id, value)
+                          }
+                        >
+                          <SelectTrigger className="w-32 h-8 bg-background border-slate-200">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card">
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className={cellBorder}>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={user.status === 'active'}
+                            onCheckedChange={() => handleToggleEnabled(user.id)}
+                          />
+                          <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className="px-2 py-0 text-[10px]">
+                            {user.status === 'active' ? 'Active' : 'Disabled'}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className={`${cellBorder} text-slate-500 text-sm`}>
+                        {format(parseISO(user.createdAt), 'MMM dd, yyyy')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-card">
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="text-destructive cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default UserManagement;

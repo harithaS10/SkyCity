@@ -1,0 +1,246 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using SkycityBackend.Interfaces;
+
+namespace SkycityBackend.Models;
+
+public class Association : ISoftDelete
+{
+    public int Id { get; set; }
+    public string AssociationName { get; set; } = string.Empty;
+    public int AdminId { get; set; }
+    public string? LogoUrl { get; set; }
+    public string ThemeColor { get; set; } = "#3B82F6";
+    public string Slug { get; set; } = string.Empty;
+    public string? Address { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = false;
+}
+
+public class Property : ISoftDelete
+{
+    public int Id { get; set; }
+    public int AssociationId { get; set; }
+    public string PropertyName { get; set; } = string.Empty;
+    public string? Address { get; set; }
+    public int TotalUnits { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+
+    [ForeignKey("AssociationId")]
+    public Association? Association { get; set; }
+}
+
+public class Building : ISoftDelete
+{
+    public int Id { get; set; }
+    public int PropertyId { get; set; }
+    public string BuildingName { get; set; } = string.Empty;
+    public int Floors { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+
+    [ForeignKey("PropertyId")]
+    public Property? Property { get; set; }
+}
+
+public class Unit : ISoftDelete
+{
+    public int Id { get; set; }
+    public int BuildingId { get; set; }
+    public string UnitNumber { get; set; } = string.Empty;
+    public int FloorNumber { get; set; }
+    public decimal Area { get; set; }
+    public int? ResidentId { get; set; }
+    public bool IsOccupied { get; set; } = false;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+
+    [ForeignKey("BuildingId")]
+    public Building? Building { get; set; }
+}
+
+public class ComplaintCategory : ISoftDelete
+{
+    public bool IsDeleted { get; set; } = false;
+    public int Id { get; set; }
+    public int AssociationId { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
+    public string? Department { get; set; } // Maintenance, Security, Housekeeping, etc.
+    public int EstimatedTime { get; set; } // Hours
+    public bool IsActive { get; set; } = true;
+}
+
+public class Complaint : ISoftDelete
+{
+    public int Id { get; set; }
+    public string ComplaintNumber { get; set; } = string.Empty;
+    public int ResidentId { get; set; }
+    public int UnitId { get; set; }
+    public int CategoryId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Priority { get; set; } = "Medium"; // Low, Medium, High, Urgent
+    public string Status { get; set; } = "Open"; // Open, Assigned, In Progress, Resolved, Closed
+    public int? AssignedTo { get; set; }
+    public int? AssignedBy { get; set; }
+    public DateTime? AssignedAt { get; set; }
+    public string? Resolution { get; set; }
+    public string? ResolutionNotes { get; set; }
+    public int? Rating { get; set; }
+    public string? Feedback { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ResolvedAt { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public bool IsDeleted { get; set; } = false;
+
+    [ForeignKey("ResidentId")]
+    public User? Resident { get; set; }
+    [ForeignKey("UnitId")]
+    public Unit? Unit { get; set; }
+    [ForeignKey("CategoryId")]
+    public ComplaintCategory? Category { get; set; }
+    [ForeignKey("AssignedTo")]
+    public User? AssignedStaff { get; set; }
+    [ForeignKey("AssignedBy")]
+    public User? AssistingManager { get; set; }
+}
+
+public class ComplaintAttachment : ISoftDelete
+{
+    public bool IsDeleted { get; set; } = false;
+    public int Id { get; set; }
+    public int ComplaintId { get; set; }
+    public string? FileName { get; set; }
+    public string? FilePath { get; set; }
+    public string? FileType { get; set; }
+    public int UploadedBy { get; set; }
+    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class WorkOrder : ISoftDelete
+{
+    public int Id { get; set; }
+    public string WorkOrderNumber { get; set; } = string.Empty;
+    public int ComplaintId { get; set; }
+    public int VendorId { get; set; }
+    public string? Description { get; set; }
+    public decimal? EstimatedCost { get; set; }
+    public decimal? ActualCost { get; set; }
+    public string Status { get; set; } = "Pending"; // Pending, Approved, In Progress, Completed, Rejected
+    public int? ApprovedBy { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+
+    [ForeignKey("ComplaintId")]
+    public Complaint? Complaint { get; set; }
+
+    public string? WorkTitle { get; set; }
+
+    [ForeignKey("VendorId")]
+    public User? Vendor { get; set; }
+}
+
+public class Bill : ISoftDelete
+{
+    public int Id { get; set; }
+    public int UnitId { get; set; }
+    public string BillNumber { get; set; } = string.Empty;
+    public string? BillType { get; set; } // Maintenance, Water, Electricity, etc.
+    public decimal Amount { get; set; }
+    public decimal Tax { get; set; }
+    public decimal TotalAmount { get; set; }
+    public DateTime DueDate { get; set; }
+    public string Status { get; set; } = "Pending"; // Pending, Paid, Overdue
+    public DateTime? PaidAt { get; set; }
+    public string? PaymentReference { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+
+    [ForeignKey("UnitId")]
+    public Unit? Unit { get; set; }
+}
+
+public class Notification : ISoftDelete
+{
+    public bool IsDeleted { get; set; } = false;
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string? Title { get; set; }
+    public string? Message { get; set; }
+    public string? Type { get; set; }
+    public int ReferenceId { get; set; }
+    public bool IsRead { get; set; } = false;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AuditLog : ISoftDelete
+{
+    public bool IsDeleted { get; set; } = false;
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public int AssociationId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public string Module { get; set; } = string.Empty;
+    public int? RecordId { get; set; }
+    public string? OldValue { get; set; }
+    public string? NewValue { get; set; }
+    public string? IPAddress { get; set; }
+    public string? UserAgent { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+}
+
+public enum UserRole
+{
+    super_admin,
+    admin,
+    sub_admin,
+    property_manager,
+    facility_manager,
+    staff,
+    vendor,
+    resident,
+    accountant,
+    helpdesk
+}
+
+public class User : ISoftDelete
+{
+    public bool IsDeleted { get; set; } = false;
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public UserRole Role { get; set; } = UserRole.resident; 
+    public int? AssociationId { get; set; }
+    public int? PropertyId { get; set; }
+    public int? BuildingId { get; set; }
+    public int? UnitId { get; set; }
+    public string? Phone { get; set; }
+    public string? Address { get; set; }
+    public string? ProfilePicture { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime? LastLoginAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [ForeignKey("AssociationId")]
+    public Association? Association { get; set; }
+}
+
+public class RoleDefinition : ISoftDelete
+{
+    public bool IsDeleted { get; set; } = false;
+    public int Id { get; set; }
+    public string RoleName { get; set; } = string.Empty;
+    public string RoleType { get; set; } = string.Empty; // super_admin, admin, etc.
+    public int PermissionLevel { get; set; } = 0;
+    public bool CanCreateUsers { get; set; } = false;
+    public bool CanAssignComplaints { get; set; } = false;
+    public bool CanApproveWorkOrders { get; set; } = false;
+    public bool CanViewFinancials { get; set; } = false;
+}

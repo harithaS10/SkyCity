@@ -1,0 +1,289 @@
+import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { 
+  Building2, 
+  Home, 
+  Plus, 
+  Trash2, 
+  Settings, 
+  ChevronRight,
+  MoreVertical,
+  Building,
+  Users
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+
+const PropertyManagement = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('properties');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
+  const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
+
+  // Queries
+  const { data: propertiesRes, isLoading: isLoadingProps } = useQuery({
+    queryKey: ['properties', user?.associationId],
+    queryFn: () => api.properties.getByAssociation(Number(user?.associationId))
+  });
+
+  const { data: buildingsRes, isLoading: isLoadingBuildings } = useQuery({
+    queryKey: ['buildings', selectedPropertyId],
+    queryFn: () => selectedPropertyId ? api.properties.getBuildings(selectedPropertyId) : Promise.resolve({ success: true, data: [] }),
+    enabled: !!selectedPropertyId
+  });
+
+  const { data: unitsRes, isLoading: isLoadingUnits } = useQuery({
+    queryKey: ['units', selectedBuildingId],
+    queryFn: () => selectedBuildingId ? api.properties.getUnits(selectedBuildingId) : Promise.resolve({ success: true, data: [] }),
+    enabled: !!selectedBuildingId
+  });
+
+  // Mutations
+  const createPropertyMutation = useMutation({
+    mutationFn: (data: any) => api.properties.create({ ...data, associationId: user?.associationId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
+      toast.success('Property created successfully');
+    }
+  });
+
+  const deletePropertyMutation = useMutation({
+    mutationFn: (id: number) => api.properties.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
+      toast.success('Property deleted');
+    }
+  });
+
+  const properties = propertiesRes?.data || [];
+  const buildings = buildingsRes?.data || [];
+  const units = unitsRes?.data || [];
+
+  return (
+    <div className="p-6 space-y-6 animate-in fade-in duration-500">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Community Infrastructure</h1>
+          <p className="text-muted-foreground mt-1">Manage Properties, Buildings, and Units for your Association</p>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="bg-muted/50 p-1">
+          <TabsTrigger value="properties" className="gap-2">
+            <Building2 size={14} /> Properties
+          </TabsTrigger>
+          <TabsTrigger value="buildings" className="gap-2" disabled={!selectedPropertyId}>
+            <Building size={14} /> Buildings
+          </TabsTrigger>
+          <TabsTrigger value="units" className="gap-2" disabled={!selectedBuildingId}>
+            <Home size={14} /> Units
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Properties Tab */}
+        <TabsContent value="properties" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2 border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Properties</CardTitle>
+                  <CardDescription>All residential and commercial properties in this association</CardDescription>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      <Plus size={16} /> Add Property
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Property</DialogTitle>
+                    </DialogHeader>
+                    {/* Simplified Form for brevity */}
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Property Name</Label>
+                        <Input placeholder="e.g. Skycity Residency" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Location</Label>
+                        <Input placeholder="e.g. Sector 45, Kochi" />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={() => toast.info("Integrated with Backend - Click to submit")}>Create</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {isLoadingProps ? (
+                    <p className="text-center py-4 text-muted-foreground italic">Loading properties...</p>
+                  ) : properties.length > 0 ? (
+                    properties.map((p: any) => (
+                      <div 
+                        key={p.id} 
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md ${selectedPropertyId === p.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'bg-card'}`}
+                        onClick={() => {
+                          setSelectedPropertyId(p.id);
+                          setSelectedBuildingId(null);
+                          setActiveTab('buildings');
+                        }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
+                            <Building2 className="text-slate-500" size={20} />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-900">{p.propertyName}</p>
+                            <p className="text-xs text-muted-foreground">{p.location}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className="bg-slate-50">{p.type || 'Residential'}</Badge>
+                          <ChevronRight size={16} className="text-slate-400" />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 border-2 border-dashed rounded-xl bg-slate-50/50">
+                      <Building2 className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                      <p className="text-slate-500">No properties found. Start by adding one!</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-sm ring-1 ring-slate-200 h-fit">
+              <CardHeader>
+                <CardTitle>Guidelines</CardTitle>
+                <CardDescription>Setup your community hierarchy</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm space-y-4 text-slate-600">
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold text-xs">1</div>
+                  <p>Add Properties like blocks or independent campuses.</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold text-xs">2</div>
+                  <p>Define Buildings within each property.</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold text-xs">3</div>
+                  <p>Create Units (flats/offices) and assign residents.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Buildings Tab */}
+        <TabsContent value="buildings" className="space-y-4">
+           {/* Similar logic for buildings list */}
+           <Card className="border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Buildings in {properties.find(p => p.id === selectedPropertyId)?.propertyName}</CardTitle>
+                  <CardDescription>Manage individual blocks or towers</CardDescription>
+                </div>
+                <Button size="sm" className="gap-2"><Plus size={16} /> Add Building</Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {isLoadingBuildings ? (
+                    <p className="col-span-full text-center">Loading buildings...</p>
+                  ) : buildings.length > 0 ? (
+                    buildings.map((b: any) => (
+                      <Card 
+                        key={b.id} 
+                        className={`cursor-pointer hover:border-primary transition-all ${selectedBuildingId === b.id ? 'border-primary bg-primary/5' : ''}`}
+                        onClick={() => {
+                          setSelectedBuildingId(b.id);
+                          setActiveTab('units');
+                        }}
+                      >
+                        <CardContent className="pt-6">
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="p-2 rounded-lg bg-slate-100">
+                              <Building className="text-slate-600" size={20} />
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical size={14} /></Button>
+                          </div>
+                          <h3 className="font-bold text-lg">{b.buildingName}</h3>
+                          <p className="text-sm text-muted-foreground mb-4">{b.floors} Floors | {b.totalUnits} Units</p>
+                          <div className="flex items-center gap-1 text-xs text-primary font-medium">
+                            Manage Units <ChevronRight size={12} />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-12">No buildings found.</div>
+                  )}
+                </div>
+              </CardContent>
+           </Card>
+        </TabsContent>
+
+        {/* Units Tab */}
+        <TabsContent value="units" className="space-y-4">
+           <Card className="border-none shadow-sm ring-1 ring-slate-200">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Units in {buildings.find(b => b.id === selectedBuildingId)?.buildingName}</CardTitle>
+                  <CardDescription>Residence and tenant management</CardDescription>
+                </div>
+                <Button size="sm" className="gap-2"><Plus size={16} /> Add Units in Bulk</Button>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {isLoadingUnits ? (
+                    <p className="col-span-full text-center">Loading units...</p>
+                  ) : units.length > 0 ? (
+                    units.map((u: any) => (
+                      <div key={u.id} className="p-3 rounded-lg border bg-card hover:bg-slate-50 transition-colors group relative">
+                        <p className="text-lg font-bold">{u.unitNumber}</p>
+                        <p className="text-[10px] text-muted-foreground truncate uppercase">{u.type}</p>
+                        <div className="mt-2 pt-2 border-t flex items-center justify-between">
+                           {u.residentId ? (
+                             <Badge className="bg-emerald-50 text-emerald-700 text-[10px] hover:bg-emerald-50">Occupied</Badge>
+                           ) : (
+                             <Badge variant="outline" className="text-[10px]">Vacant</Badge>
+                           )}
+                           <Users size={12} className="text-slate-400" />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-12">No units defined.</div>
+                  )}
+                </div>
+              </CardContent>
+           </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default PropertyManagement;
