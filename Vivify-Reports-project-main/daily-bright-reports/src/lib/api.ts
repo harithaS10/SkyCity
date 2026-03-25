@@ -8,6 +8,16 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.vivifysoft.in/SkyCity';
 
+export interface AdminTenant {
+  id: number;
+  companyName: string;
+  email: string;
+  themeColor?: string;
+  status: 'active' | 'inactive';
+  userCount?: number;
+  reportCount?: number;
+}
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -368,6 +378,70 @@ export const api = {
       (await apiClient.post(`/workallocations/request-change`, data, { params: { id } })).data,
   },
   
+  // Super Admin
+  superAdmin: {
+    getAllAdmins: async (): Promise<ApiResponse<AdminTenant[]>> => {
+      const response = await apiClient.get('/association');
+      const data = response.data;
+      // Backend returns paginated: { success, data: { items: [...] } }
+      const items = data?.data?.items ?? data?.data ?? [];
+      return {
+        success: data.success,
+        message: data.message,
+        data: items.map((a: any) => ({
+          id: a.id,
+          companyName: a.associationName,
+          email: a.email ?? '',
+          themeColor: a.themeColor,
+          status: a.isActive ? 'active' : 'inactive',
+          userCount: a.userCount ?? 0,
+          reportCount: a.reportCount ?? 0,
+        })),
+      };
+    },
+    createAdmin: async (data: {
+      name: string;
+      companyName: string;
+      email: string;
+      password: string;
+      themeColor?: string;
+    }): Promise<ApiResponse<any>> => {
+      // 1. Create the association
+      const assocRes = await apiClient.post('/association', {
+        associationName: data.companyName,
+        slug: data.companyName.toLowerCase().replace(/\s+/g, '-'),
+        themeColor: data.themeColor ?? '#6366f1',
+        email: data.email,
+      });
+      if (!assocRes.data.success) return assocRes.data;
+      const associationId = assocRes.data.data?.id;
+      // 2. Register the admin user
+      const userRes = await apiClient.post('/auth/register', {
+        username: data.email,
+        password: data.password,
+        fullName: data.name,
+        role: 1, // admin
+        associationId,
+      });
+      return userRes.data;
+    },
+    updateAdmin: async (id: number, data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.put(`/association/${id}`, {
+        associationName: data.companyName,
+        themeColor: data.themeColor,
+      });
+      return response.data;
+    },
+    deleteAdmin: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete(`/association/${id}`);
+      return response.data;
+    },
+    toggleAdminStatus: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.patch(`/association/${id}/toggle-status`);
+      return response.data;
+    },
+  },
+
   // Legacy Clients & Works
   clients: {
     getAll: async () => (await apiClient.get('/clients')).data,
