@@ -23,7 +23,6 @@ public class AssociationController : ControllerBase
         _auditService = auditService;
     }
 
-    [ResponseCache(Duration = 300, VaryByQueryKeys = new[] { "page", "pageSize" })]
     [HttpGet]
     public async Task<ActionResult> GetAssociations([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {

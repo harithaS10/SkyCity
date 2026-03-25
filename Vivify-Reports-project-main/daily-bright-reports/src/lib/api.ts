@@ -384,7 +384,7 @@ export const api = {
       const response = await apiClient.get('/association');
       const data = response.data;
       // Backend returns paginated: { success, data: { items: [...] } }
-      const items = data?.data?.items ?? data?.data ?? [];
+      const items = data?.data?.items ?? data?.data?.Items ?? data?.data ?? [];
       return {
         success: data.success,
         message: data.message,
