@@ -11,7 +11,7 @@ namespace SkycityBackend.Controllers;
 
 [Authorize(Roles = "super_admin")]
 [ApiController]
-[Route("api/[controller]")]
+[Route("association")]
 public class AssociationController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -69,10 +69,10 @@ public class AssociationController : ControllerBase
         var association = new Association
         {
             AssociationName = dto.AssociationName,
-            AdminId = dto.AdminId,
+            AdminId = dto.AdminId ?? 0,
             LogoUrl = dto.LogoUrl,
-            ThemeColor = dto.ThemeColor,
-            Slug = dto.Slug,
+            ThemeColor = dto.ThemeColor ?? "#3B82F6",
+            Slug = dto.Slug ?? dto.AssociationName.ToLower().Replace(" ", "-"),
             Address = dto.Address,
             Phone = dto.Phone,
             Email = dto.Email,
@@ -81,11 +81,16 @@ public class AssociationController : ControllerBase
         };
 
         _context.Associations.Add(association);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("UNIQUE") == true || ex.InnerException?.Message.Contains("duplicate") == true)
+        {
+            return Conflict(new ApiResponse { Success = false, Message = "An association with this name or slug already exists." });
+        }
 
-        await _auditService.LogChangeAsync<Association>("Create", "Association", association);
-
-        return CreatedAtAction(nameof(GetAssociation), new { id = association.Id }, new ApiResponse<Association> { Data = association });
+        return CreatedAtAction(nameof(GetAssociation), new { id = association.Id }, new ApiResponse<Association> { Data = association, Success = true });
     }
 
     [HttpPut("{id}")]
@@ -100,8 +105,8 @@ public class AssociationController : ControllerBase
 
         var oldState = new { association.AssociationName, association.IsActive };
 
-        association.AssociationName = dto.AssociationName;
-        association.AdminId = dto.AdminId;
+        association.AssociationName = dto.AssociationName ?? association.AssociationName;
+        association.AdminId = dto.AdminId ?? association.AdminId;
         association.LogoUrl = dto.LogoUrl;
         association.ThemeColor = dto.ThemeColor;
         association.Slug = dto.Slug;
@@ -130,5 +135,18 @@ public class AssociationController : ControllerBase
         await _auditService.LogChangeAsync<Association>("Delete", "Association", association);
 
         return Ok(new ApiResponse { Message = "Deleted successfully" });
+    }
+
+    [HttpPatch("{id}/toggle-status")]
+    public async Task<IActionResult> ToggleStatus(int id)
+    {
+        var association = await _context.Associations.FindAsync(id);
+        if (association == null)
+            return NotFound(new ApiResponse { Success = false, Message = "Not Found" });
+
+        association.IsActive = !association.IsActive;
+        await _context.SaveChangesAsync();
+
+        return Ok(new ApiResponse { Success = true, Message = $"Status set to {(association.IsActive ? "active" : "inactive")}" });
     }
 }

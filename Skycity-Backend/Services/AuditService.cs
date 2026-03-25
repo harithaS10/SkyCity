@@ -23,11 +23,14 @@ public class AuditService : IAuditService
         var associationId = _httpContextAccessor.HttpContext?.User.FindFirst("AssociationId")?.Value;
         
         if (string.IsNullOrEmpty(userId)) return;
-        
+
+        // Skip audit log if AssociationId is 0 or missing (e.g. super_admin has no association)
+        if (!int.TryParse(associationId, out var assocIdParsed) || assocIdParsed == 0) return;
+
         var auditLog = new AuditLog
         {
             UserId = int.Parse(userId),
-            AssociationId = associationId != null ? int.Parse(associationId) : 0,
+            AssociationId = assocIdParsed,
             Action = action,
             Module = module,
             RecordId = recordId,

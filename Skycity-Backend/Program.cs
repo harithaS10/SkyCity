@@ -22,7 +22,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHttpContextAccessor();
 
 // Database
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=103.230.85.44;Database=Employeesreport;User Id=sa;Password=V9%2f+?b$H%9d;MultipleActiveResultSets=true;TrustServerCertificate=True;";
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -43,11 +43,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// CORS
+// Configure CORS to allow the React Frontend to communicate with this Backend
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
-        builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "https://vivifysoft.in",
+            "https://www.vivifysoft.in",
+            "https://api.vivifysoft.in",
+            "https://vivifysoft.com",
+            "https://www.vivifysoft.com",
+            "https://api.vivifysoft.com"
+            )
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials()
+              .SetIsOriginAllowed(origin => true);
+    });
 });
 
 // Response Caching
@@ -65,15 +80,47 @@ builder.Services.AddResponseCompression(options =>
 
 var app = builder.Build();
 
-// Configure pipeline
+// Global exception handler - returns exact error details
+app.UseExceptionHandler(errApp =>
+{
+    errApp.Run(async context =>
+    {
+        var ex = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = ex?.Error?.Message,
+            type = ex?.Error?.GetType()?.Name,
+            stackTrace = ex?.Error?.StackTrace,
+            inner = ex?.Error?.InnerException?.Message
+        });
+    });
+});
+
+// Configure pipeline - Swagger enabled temporarily for debugging
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Skycity API v1"));
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Skycity API v1"));
 }
 
-app.UseCors("AllowAll");
+app.UseCors("AllowFrontend");
 app.UseResponseCaching();
+
+// Handle OPTIONS preflight globally
+app.Use(async (context, next) =>
+{
+    if (context.Request.Method == "OPTIONS")
+    {
+        context.Response.StatusCode = 204;
+        await context.Response.CompleteAsync();
+        return;
+    }
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<TenantFilter>();

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SkycityBackend.Interfaces;
 using SkycityBackend.Models;
 
 namespace SkycityBackend.Data;
@@ -38,6 +39,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Username)
             .IsUnique();
+
+        // Store Role enum as string to match NVARCHAR column in DB
+        modelBuilder.Entity<User>()
+            .Property(u => u.Role)
+            .HasConversion<string>();
 
         // Foreign key relationships and cascade behavior
         modelBuilder.Entity<Property>()
