@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -14,7 +13,7 @@ using BCrypt.Net;
 namespace SkycityBackend.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("auth")]
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -32,7 +31,7 @@ public class AuthController : ControllerBase
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Username == request.Username);
 
-        if (user == null || !BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user == null || user.PasswordHash != request.Password)
             return Unauthorized(new ApiResponse { Success = false, Message = "Invalid credentials" });
 
         var token = GenerateJwtToken(user);
@@ -40,14 +39,14 @@ public class AuthController : ControllerBase
         user.LastLoginAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        return Ok(new ApiResponse<object> 
-        { 
+        return Ok(new ApiResponse<object>
+        {
             Success = true,
             Message = "Login successful",
-            Data = new 
-            { 
-                Token = token, 
-                User = new { user.Id, user.Username, user.FullName, role = user.Role.ToString(), user.AssociationId, user.UnitId } 
+            Data = new
+            {
+                Token = token,
+                User = new { user.Id, user.Username, user.FullName, role = user.Role.ToString(), user.AssociationId, user.UnitId }
             }
         });
     }
@@ -61,7 +60,7 @@ public class AuthController : ControllerBase
         var user = new User
         {
             Username = dto.Username,
-            PasswordHash = BCrypt.HashPassword(dto.Password),
+            PasswordHash = dto.Password,
             FullName = dto.FullName,
             Role = dto.Role,
             AssociationId = dto.AssociationId,
@@ -99,7 +98,7 @@ public class AuthController : ControllerBase
             issuer: null,
             audience: null,
             claims: claims,
-            expires: DateTime.Now.AddDays(1),
+            expires: DateTime.UtcNow.AddDays(1),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
@@ -108,10 +107,10 @@ public class AuthController : ControllerBase
 
 public record LoginRequest(string Username, string Password);
 public record UserRegistrationDto(
-    string Username, 
-    string Password, 
-    string FullName, 
-    UserRole Role, 
+    string Username,
+    string Password,
+    string FullName,
+    UserRole Role,
     int? AssociationId = null,
     int? PropertyId = null,
     int? BuildingId = null,
