@@ -109,7 +109,7 @@ const Analytics: React.FC = () => {
         ]);
 
         if (usersRes.success && usersRes.data) {
-          setUsers(usersRes.data.filter(u => u.role === 'user'));
+          setUsers(usersRes.data.map((u: any) => ({ ...u, name: u.fullName })));
         }
         if (worksRes.success && worksRes.data) {
           setAvailableWorks(worksRes.data);
@@ -1004,7 +1004,22 @@ const Analytics: React.FC = () => {
                               {(report.entries || []).map((e: any) => e.workTitle).join(', ')}
                             </p>
                           </TableCell>
-                          <TableCell className="border-r border-slate-200 last:border-r-0"></TableCell>
+                          <TableCell className="border-r border-slate-200 last:border-r-0">
+                            {report.complaints?.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {report.complaints.slice(0, 2).map((c: any) => (
+                                  <Badge key={c.id} variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">
+                                    {c.complaintNumber}
+                                  </Badge>
+                                ))}
+                                {report.complaints.length > 2 && (
+                                  <Badge variant="outline" className="text-[10px]">+{report.complaints.length - 2}</Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-right border-r border-slate-200 last:border-r-0">
                             {hasPending ? (
                               <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-bold px-3">Pending Items</Badge>

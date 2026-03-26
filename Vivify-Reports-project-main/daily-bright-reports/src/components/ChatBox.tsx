@@ -854,7 +854,9 @@ export function ChatBox() {
   // Load users + groups when open
   useEffect(() => {
     if (!user || !open) return;
-    api.chat.getUsers().then(res => { if (res.success && res.data) setUsers(res.data); }).catch(() => {});
+    api.chat.getUsers().then(res => { 
+      if (res.success && res.data) setUsers(res.data.map((u: any) => ({ ...u, name: u.fullName }))); 
+    }).catch(() => {});
     api.chat.getUnread().then(res => {
       if (res.success && res.data) {
         const map: Record<number, number> = {};

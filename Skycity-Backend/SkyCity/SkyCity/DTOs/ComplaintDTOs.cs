@@ -5,7 +5,7 @@ namespace SkycityBackend.DTOs;
 public class CreateComplaintDto
 {
     [Required] public int ResidentId { get; set; }
-    [Required] public int UnitId { get; set; }
+    public int? UnitId { get; set; }
     [Required] public int CategoryId { get; set; }
     [Required] [StringLength(255)] public string Title { get; set; } = string.Empty;
     [StringLength(5000)] public string? Description { get; set; }

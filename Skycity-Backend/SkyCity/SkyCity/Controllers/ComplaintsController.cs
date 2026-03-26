@@ -11,7 +11,7 @@ namespace SkycityBackend.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("complaints")]
 public class ComplaintsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -54,6 +54,7 @@ public class ComplaintsController : ControllerBase
         
         return Ok(new ApiResponse<dynamic>
         {
+            Success = true,
             Data = new
             {
                 Total = total,
@@ -93,14 +94,15 @@ public class ComplaintsController : ControllerBase
         var complaint = new Complaint
         {
             ResidentId = dto.ResidentId,
-            UnitId = dto.UnitId,
+            UnitId = dto.UnitId > 0 ? dto.UnitId : null,
             CategoryId = dto.CategoryId,
             Title = dto.Title,
             Description = dto.Description,
             Priority = dto.Priority,
             ComplaintNumber = $"CMP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}",
             Status = "Open",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = true
         };
 
         _context.Complaints.Add(complaint);
@@ -122,7 +124,7 @@ public class ComplaintsController : ControllerBase
             "complaint_created",
             complaint.Id);
         
-        return CreatedAtAction(nameof(GetComplaint), new { id = complaint.Id }, new ApiResponse<Complaint> { Data = complaint });
+        return CreatedAtAction(nameof(GetComplaint), new { id = complaint.Id }, new ApiResponse<Complaint> { Success = true, Data = complaint });
     }
 
     [Authorize(Roles = "helpdesk,property_manager,admin")]

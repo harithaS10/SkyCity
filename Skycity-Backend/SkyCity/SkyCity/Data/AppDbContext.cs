@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<Building> Buildings { get; set; }
     public DbSet<Unit> Units { get; set; }
     public DbSet<ComplaintCategory> ComplaintCategories { get; set; }
+    public DbSet<SubCategory> SubCategories { get; set; }
+    public DbSet<Product> Products { get; set; }
     public DbSet<Complaint> Complaints { get; set; }
     public DbSet<ComplaintAttachment> ComplaintAttachments { get; set; }
     public DbSet<WorkOrder> WorkOrders { get; set; }
@@ -27,6 +29,13 @@ public class AppDbContext : DbContext
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
     public DbSet<RoleDefinition> Roles { get; set; }
+    public DbSet<Department> Departments { get; set; }
+    public DbSet<WorkCategory> WorkCategories { get; set; }
+    public DbSet<WorkAllocation> WorkAllocations { get; set; }
+    public DbSet<ChatMessage> ChatMessages { get; set; }
+    public DbSet<ChatGroup> ChatGroups { get; set; }
+    public DbSet<ChatGroupMember> ChatGroupMembers { get; set; }
+    public DbSet<Client> Clients { get; set; }
 
     public int? CurrentAssociationId => _httpContextAccessor.HttpContext?.Items["AssociationId"] as int?;
     public bool IsSuperAdmin => _httpContextAccessor.HttpContext?.User.IsInRole("super_admin") ?? false;
@@ -82,13 +91,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Bill>().HasIndex(b => b.UnitId);
         modelBuilder.Entity<AuditLog>().HasIndex(a => a.AssociationId);
 
-        // Global Query Filters for Soft Delete
+        // Global Query Filters: IsDeleted=false means active/visible, IsDeleted=true means excluded
         modelBuilder.Entity<User>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Association>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Property>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Building>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Unit>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<ComplaintCategory>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<SubCategory>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<Product>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<Complaint>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<ComplaintAttachment>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<WorkOrder>().HasQueryFilter(e => !e.IsDeleted);
@@ -96,6 +107,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Notification>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<AuditLog>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<RoleDefinition>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<Client>().HasQueryFilter(e => !e.IsDeleted);
     }
 
     public override int SaveChanges()
@@ -117,7 +129,7 @@ public class AppDbContext : DbContext
             if (entry.Entity is ISoftDelete entity && entry.State == EntityState.Deleted)
             {
                 entry.State = EntityState.Modified;
-                entity.IsDeleted = true;
+                entity.IsDeleted = false; // false = deleted/excluded
             }
         }
     }

@@ -101,6 +101,7 @@ const WorkAllocationPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [availableWorks, setAvailableWorks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAllocating, setIsAllocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isWorkPopoverOpen, setIsWorkPopoverOpen] = useState(false);
@@ -127,13 +128,18 @@ const WorkAllocationPage: React.FC = () => {
     try {
       const [allocationsRes, usersRes, worksRes] = await Promise.all([
         api.allocations.getAll(),
-        api.users.getAll(),
-        api.works.getActive()
+        api.users?.getAll().catch(() => ({ success: true, data: [] })) ?? Promise.resolve({ success: true, data: [] }),
+        api.categories.getAll()
       ]);
 
       if (allocationsRes.success) setAllocations(allocationsRes.data || []);
-      if (usersRes.success) setUsers(usersRes.data?.filter(u => u.role === 'user' && u.status === 'active') || []);
-      if (worksRes.success) setAvailableWorks(worksRes.data || []);
+      if (usersRes.success) setUsers((usersRes.data || []).filter((u: any) => u.isActive !== false).map((u: any) => ({ ...u, name: u.fullName })));
+      if (worksRes.success) setAvailableWorks((worksRes.data || []).map((c: any) => ({
+        id: c.id,
+        workTitle: c.categoryName,
+        workCode: c.id.toString(),
+        workType: c.department || 'General'
+      })));
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -160,7 +166,7 @@ const WorkAllocationPage: React.FC = () => {
       toast.error('Please fill in all required fields');
       return;
     }
-
+    setIsAllocating(true);
     try {
       const payload = {
         ...newAllocation,
@@ -171,16 +177,8 @@ const WorkAllocationPage: React.FC = () => {
 
       const response = await api.allocations.create(payload);
       if (response.success) {
-        // Refresh data to get the new multiple allocations
         fetchData();
-        setNewAllocation({
-          title: '',
-          description: '',
-          assignedToIds: [],
-          workId: '',
-          dueDate: '',
-          priority: 'medium',
-        });
+        setNewAllocation({ title: '', description: '', assignedToIds: [], workId: '', dueDate: '', priority: 'medium' });
         setUserDescriptions({});
         setIsCreateDialogOpen(false);
         toast.success(response.message || 'Work tasks allocated successfully');
@@ -189,6 +187,8 @@ const WorkAllocationPage: React.FC = () => {
       }
     } catch (error: any) {
       toast.error(error.message || 'An error occurred');
+    } finally {
+      setIsAllocating(false);
     }
   };
 
@@ -297,14 +297,14 @@ const WorkAllocationPage: React.FC = () => {
                 Allocate New Work
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Allocate Work</DialogTitle>
                 <DialogDescription>
                   Create a new work assignment for an employee.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0">
                 <div className="space-y-2">
                   <Label htmlFor="workId">Work Category *</Label>
                   <Popover open={isWorkPopoverOpen} onOpenChange={setIsWorkPopoverOpen}>
@@ -493,11 +493,13 @@ const WorkAllocationPage: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <DialogFooter className="flex-shrink-0 pt-2 border-t">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isAllocating}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateAllocation}>Allocate Work</Button>
+                <Button onClick={handleCreateAllocation} disabled={isAllocating}>
+                  {isAllocating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Allocating...</> : 'Allocate Work'}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

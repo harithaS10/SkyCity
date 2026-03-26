@@ -11,7 +11,7 @@ namespace SkycityBackend.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("property")]
 public class PropertyController : ControllerBase
 {
     private readonly AppDbContext _context;

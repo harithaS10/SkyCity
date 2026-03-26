@@ -360,7 +360,138 @@ export const api = {
   // Admin Methods
   admin: {
     getDashboardStats: async () => (await apiClient.get('/dashboard/stats')).data,
-    getAllReports: async (params: any) => (await apiClient.get('/reports', { params })).data,
+    getAllReports: async (params: any) => {
+      const response = await apiClient.get('/reports', { params });
+      const [usersRes, complaintsRes] = await Promise.all([
+        apiClient.get('/users'),
+        apiClient.get('/complaints', { params }).catch(() => ({ data: { data: { items: [] } } })),
+      ]);
+      const raw = response.data;
+      const userList = usersRes.data?.data ?? [];
+      const userMap: Record<number, string> = {};
+      userList.forEach((u: any) => { userMap[u.id] = u.fullName; });
+
+      const complaints = complaintsRes.data?.data?.items ?? complaintsRes.data?.data ?? [];
+
+      const items = (raw?.data ?? []).map((a: any) => {
+        const userComplaints = complaints.filter((c: any) => c.residentId === a.assignedTo);
+        return {
+          id: a.id,
+          userId: a.assignedTo,
+          userName: userMap[a.assignedTo] || 'Unknown',
+          date: a.createdAt,
+          workTitle: a.title,
+          description: a.description,
+          status: a.status,
+          dueDate: a.dueDate,
+          complaints: userComplaints,
+          entries: [{
+            workTitle: a.title,
+            description: a.description,
+            status: a.status,
+            hoursSpent: 0,
+          }],
+        };
+      });
+      return { success: true, data: items };
+    },
+    getAnalytics: async (params: any): Promise<ApiResponse<any>> => {
+      try {
+        const [allocRes, usersRes] = await Promise.all([
+          apiClient.get('/workallocations/all'),
+          apiClient.get('/users'),
+        ]);
+        const allocs = allocRes.data?.data ?? [];
+        const users = usersRes.data?.data ?? [];
+
+        // Filter by date range
+        const start = params.startDate ? new Date(params.startDate) : null;
+        const end = params.endDate ? new Date(params.endDate) : null;
+        const filtered = allocs.filter((a: any) => {
+          if (!start || !end) return true;
+          const d = new Date(a.createdAt);
+          return d >= start && d <= end;
+        });
+
+        // Build analytics
+        const userMap: Record<number, string> = {};
+        users.forEach((u: any) => { userMap[u.id] = u.fullName; });
+
+        const productivity = users.map((u: any) => ({
+          userId: u.id,
+          userName: u.fullName,
+          completed: filtered.filter((a: any) => a.assignedTo === u.id && a.status === 'completed').length,
+          pending: filtered.filter((a: any) => a.assignedTo === u.id && a.status !== 'completed').length,
+        })).filter(u => u.completed + u.pending > 0);
+
+        const workDist: Record<string, number> = {};
+        filtered.forEach((a: any) => {
+          const key = a.title || 'Unknown';
+          workDist[key] = (workDist[key] || 0) + 1;
+        });
+        const workDistribution = Object.entries(workDist)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+
+        return {
+          success: true,
+          data: {
+            type: 'standard',
+            totalUsers: users.length,
+            reportsCount: filtered.length,
+            workDensity: filtered.filter((a: any) => a.status === 'in-progress').length,
+            entriesPerReport: users.length > 0 ? Math.round(filtered.length / users.length) : 0,
+            productivity,
+            workDistribution,
+            data: [], // trendData — empty for now
+          }
+        };
+      } catch {
+        return { success: false, data: null };
+      }
+    },
+  },
+
+  // Users
+  users: {
+    getAll: async (role?: string): Promise<ApiResponse<any[]>> => {
+      const params = role ? { role } : {};
+      const response = await apiClient.get('/users', { params });
+      return response.data;
+    },
+    getById: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.get(`/users/${id}`);
+      return response.data;
+    },
+    create: async (data: any): Promise<ApiResponse<any>> => {
+      // Map role string to enum index
+      const roleMap: Record<string, number> = {
+        super_admin: 0, admin: 1, sub_admin: 2, property_manager: 3,
+        facility_manager: 4, staff: 5, vendor: 6, resident: 7,
+        accountant: 8, helpdesk: 9, user: 7
+      };
+      const response = await apiClient.post('/auth/register', {
+        username: data.username || data.email,
+        password: data.password,
+        fullName: data.name || data.fullName,
+        role: roleMap[data.role] ?? 7,
+        associationId: data.associationId,
+      });
+      return response.data;
+    },
+    toggleStatus: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.patch(`/users/${id}/toggle-status`);
+      return response.data;
+    },
+    update: async (id: number, data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.put(`/users/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete(`/users/${id}`);
+      return response.data;
+    },
   },
 
   // Legacy Work Allocations
@@ -368,16 +499,105 @@ export const api = {
     getAll: async () => (await apiClient.get('/workallocations/all')).data,
     getMyTasks: async () => (await apiClient.get('/workallocations/my-tasks')).data,
     getLiveActivities: async () => (await apiClient.get('/workallocations/live')).data,
+    create: async (data: any) => (await apiClient.post('/workallocations', data)).data,
     updateStatus: async (id: number, status: string, duration?: string) => 
       (await apiClient.post(`/workallocations/${id}/status`, { status, duration })).data,
     delete: async (id: number) => (await apiClient.post(`/workallocations/${id}/delete`, {})).data,
     updateProgress: async (id: number, progressNote: string) => 
       (await apiClient.post(`/workallocations/${id}/progress`, { progressNote })).data,
     selfAssign: async (data: any) => (await apiClient.post('/workallocations/self-assign', data)).data,
+    reassign: async (id: number, newUserId: number, reason?: string) =>
+      (await apiClient.post(`/workallocations/${id}/reassign`, { newUserId, reason })).data,
+    approveRequest: async (id: number) =>
+      (await apiClient.post(`/workallocations/${id}/approve-request`, {})).data,
+    denyRequest: async (id: number) =>
+      (await apiClient.post(`/workallocations/${id}/deny-request`, {})).data,
     requestChange: async (id: number, data: any) => 
       (await apiClient.post(`/workallocations/request-change`, data, { params: { id } })).data,
   },
   
+  // Products
+  products: {
+    getAll: async (params?: { categoryId?: number; search?: string }): Promise<ApiResponse<any[]>> => {
+      const response = await apiClient.get('/products', { params });
+      return response.data;
+    },
+    getById: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.get(`/products/${id}`);
+      return response.data;
+    },
+    create: async (data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post('/products', data);
+      return response.data;
+    },
+    update: async (id: number, data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.put(`/products/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete(`/products/${id}`);
+      return response.data;
+    },
+    uploadImage: async (file: File): Promise<ApiResponse<string>> => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiClient.post('/products/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    },
+  },
+
+  // Categories (Complaint Categories)
+  categories: {
+    getAll: async (): Promise<ApiResponse<any[]>> => {
+      const response = await apiClient.get('/categories');
+      return response.data;
+    },
+    getById: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.get(`/categories/${id}`);
+      return response.data;
+    },
+    create: async (data: { categoryName: string; department?: string; estimatedTime?: number; associationId?: number }): Promise<ApiResponse<any>> => {
+      const storedUser = localStorage.getItem('user');
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const response = await apiClient.post('/categories', {
+        ...data,
+        associationId: data.associationId ?? user?.associationId,
+      });
+      return response.data;
+    },
+    update: async (id: number, data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.put(`/categories/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete(`/categories/${id}`);
+      return response.data;
+    },
+  },
+
+  // SubCategories
+  subCategories: {
+    getAll: async (categoryId?: number): Promise<ApiResponse<any[]>> => {
+      const params = categoryId ? { categoryId } : {};
+      const response = await apiClient.get('/subcategories', { params });
+      return response.data;
+    },
+    create: async (data: { categoryId: number; subCategoryName: string; description?: string }): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post('/subcategories', data);
+      return response.data;
+    },
+    update: async (id: number, data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.put(`/subcategories/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete(`/subcategories/${id}`);
+      return response.data;
+    },
+  },
+
   // Super Admin
   superAdmin: {
     getAllAdmins: async (): Promise<ApiResponse<AdminTenant[]>> => {
@@ -451,6 +671,7 @@ export const api = {
   },
   works: {
     getActive: async () => (await apiClient.get('/works')).data,
+    getAll: async () => (await apiClient.get('/works')).data,
     create: async (data: any) => (await apiClient.post('/works', data)).data,
   },
   
@@ -463,11 +684,11 @@ export const api = {
     send: async (data: any) => (await apiClient.post('/chat/send', data)).data,
   },
   groups: {
-    getMyGroups: async () => (await apiClient.get('/groups')).data,
-    getGroup: async (id: number) => (await apiClient.get(`/groups/${id}`)).data,
-    create: async (data: any) => (await apiClient.post('/groups', data)).data,
+    getMyGroups: async () => (await apiClient.get('/chat/groups')).data,
+    getGroup: async (id: number) => (await apiClient.get(`/chat/groups/${id}`)).data,
+    create: async (data: any) => (await apiClient.post('/chat/groups', data)).data,
     sendMessage: async (id: number, message: string) => 
-      (await apiClient.post(`/groups/${id}/messages`, { message })).data,
+      (await apiClient.post(`/chat/groups/${id}/messages`, { message })).data,
   }
 };
 

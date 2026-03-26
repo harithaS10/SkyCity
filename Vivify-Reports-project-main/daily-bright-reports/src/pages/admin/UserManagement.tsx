@@ -72,7 +72,11 @@ const UserManagement: React.FC = () => {
     try {
       const response = await api.users.getAll();
       if (response.success && response.data) {
-        setUsers(response.data);
+        setUsers(response.data.map((u: any) => ({
+          ...u,
+          name: u.fullName || u.name || '',
+          email: u.email || u.username || '',
+        })));
       }
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -91,8 +95,8 @@ const UserManagement: React.FC = () => {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      (user.fullName || user.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.email || user.username || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleCreateUser = async () => {
@@ -397,9 +401,16 @@ const UserManagement: React.FC = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-card">
-                            <SelectItem value="user">User</SelectItem>
-                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="super_admin">Super Admin</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="sub_admin">Sub Admin</SelectItem>
+                            <SelectItem value="property_manager">Property Manager</SelectItem>
+                            <SelectItem value="facility_manager">Facility Manager</SelectItem>
+                            <SelectItem value="staff">Staff</SelectItem>
+                            <SelectItem value="vendor">Vendor</SelectItem>
+                            <SelectItem value="resident">Resident</SelectItem>
+                            <SelectItem value="accountant">Accountant</SelectItem>
+                            <SelectItem value="helpdesk">Helpdesk</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>

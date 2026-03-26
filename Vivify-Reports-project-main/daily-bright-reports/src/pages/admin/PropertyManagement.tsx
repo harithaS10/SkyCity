@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { 
   Building2, 
   Home, 
@@ -36,6 +37,10 @@ const PropertyManagement = () => {
   const [activeTab, setActiveTab] = useState('properties');
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
+  const [propDialogOpen, setPropDialogOpen] = useState(false);
+  const [propForm, setPropForm] = useState({ propertyName: '', address: '', totalUnits: '' });
+  const [buildingDialogOpen, setBuildingDialogOpen] = useState(false);
+  const [buildingForm, setBuildingForm] = useState({ buildingName: '', floors: '' });
 
   // Queries
   const { data: propertiesRes, isLoading: isLoadingProps } = useQuery({
@@ -55,13 +60,26 @@ const PropertyManagement = () => {
     enabled: !!selectedBuildingId
   });
 
-  // Mutations
   const createPropertyMutation = useMutation({
     mutationFn: (data: any) => api.properties.create({ ...data, associationId: user?.associationId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       toast.success('Property created successfully');
-    }
+      setPropDialogOpen(false);
+      setPropForm({ propertyName: '', address: '', totalUnits: '' });
+    },
+    onError: () => toast.error('Failed to create property')
+  });
+
+  const createBuildingMutation = useMutation({
+    mutationFn: (data: any) => api.properties.createBuilding({ ...data, propertyId: selectedPropertyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buildings'] });
+      toast.success('Building created successfully');
+      setBuildingDialogOpen(false);
+      setBuildingForm({ buildingName: '', floors: '' });
+    },
+    onError: () => toast.error('Failed to create building')
   });
 
   const deletePropertyMutation = useMutation({
@@ -72,11 +90,12 @@ const PropertyManagement = () => {
     }
   });
 
-  const properties = propertiesRes?.data || [];
+  const properties = (propertiesRes?.data as any)?.items ?? propertiesRes?.data ?? [];
   const buildings = buildingsRes?.data || [];
   const units = unitsRes?.data || [];
 
   return (
+    <DashboardLayout>
     <div className="p-6 space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
@@ -107,7 +126,7 @@ const PropertyManagement = () => {
                   <CardTitle>Properties</CardTitle>
                   <CardDescription>All residential and commercial properties in this association</CardDescription>
                 </div>
-                <Dialog>
+                <Dialog open={propDialogOpen} onOpenChange={setPropDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-2">
                       <Plus size={16} /> Add Property
@@ -117,19 +136,44 @@ const PropertyManagement = () => {
                     <DialogHeader>
                       <DialogTitle>Add New Property</DialogTitle>
                     </DialogHeader>
-                    {/* Simplified Form for brevity */}
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label>Property Name</Label>
-                        <Input placeholder="e.g. Skycity Residency" />
+                        <Input
+                          placeholder="e.g. Skycity Residency"
+                          value={propForm.propertyName}
+                          onChange={e => setPropForm(f => ({ ...f, propertyName: e.target.value }))}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label>Location</Label>
-                        <Input placeholder="e.g. Sector 45, Kochi" />
+                        <Label>Address</Label>
+                        <Input
+                          placeholder="e.g. Sector 45, Kochi"
+                          value={propForm.address}
+                          onChange={e => setPropForm(f => ({ ...f, address: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Total Units</Label>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 50"
+                          value={propForm.totalUnits}
+                          onChange={e => setPropForm(f => ({ ...f, totalUnits: e.target.value }))}
+                        />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button onClick={() => toast.info("Integrated with Backend - Click to submit")}>Create</Button>
+                      <Button
+                        disabled={!propForm.propertyName || createPropertyMutation.isPending}
+                        onClick={() => createPropertyMutation.mutate({
+                          propertyName: propForm.propertyName,
+                          address: propForm.address,
+                          totalUnits: Number(propForm.totalUnits) || 0
+                        })}
+                      >
+                        {createPropertyMutation.isPending ? 'Creating...' : 'Create'}
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -206,7 +250,46 @@ const PropertyManagement = () => {
                   <CardTitle>Buildings in {properties.find(p => p.id === selectedPropertyId)?.propertyName}</CardTitle>
                   <CardDescription>Manage individual blocks or towers</CardDescription>
                 </div>
-                <Button size="sm" className="gap-2"><Plus size={16} /> Add Building</Button>
+                <Dialog open={buildingDialogOpen} onOpenChange={setBuildingDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2"><Plus size={16} /> Add Building</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Building</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Building Name</Label>
+                        <Input
+                          placeholder="e.g. Tower A"
+                          value={buildingForm.buildingName}
+                          onChange={e => setBuildingForm(f => ({ ...f, buildingName: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Floors</Label>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 10"
+                          value={buildingForm.floors}
+                          onChange={e => setBuildingForm(f => ({ ...f, floors: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        disabled={!buildingForm.buildingName || createBuildingMutation.isPending}
+                        onClick={() => createBuildingMutation.mutate({
+                          buildingName: buildingForm.buildingName,
+                          floors: Number(buildingForm.floors) || 0
+                        })}
+                      >
+                        {createBuildingMutation.isPending ? 'Creating...' : 'Create'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -283,6 +366,7 @@ const PropertyManagement = () => {
         </TabsContent>
       </Tabs>
     </div>
+    </DashboardLayout>
   );
 };
 

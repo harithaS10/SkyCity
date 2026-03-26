@@ -67,7 +67,9 @@ public class AuthController : ControllerBase
             PropertyId = dto.PropertyId,
             BuildingId = dto.BuildingId,
             UnitId = dto.UnitId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = true,  // true = active/visible in this system
+            IsActive = true
         };
 
         _context.Users.Add(user);

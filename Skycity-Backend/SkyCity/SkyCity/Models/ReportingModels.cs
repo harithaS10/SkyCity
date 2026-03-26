@@ -69,9 +69,10 @@ public class ComplaintCategory : ISoftDelete
     public int Id { get; set; }
     public int AssociationId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
-    public string? Department { get; set; } // Maintenance, Security, Housekeeping, etc.
-    public int EstimatedTime { get; set; } // Hours
+    public string? Department { get; set; }
+    public int EstimatedTime { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class Complaint : ISoftDelete
@@ -79,7 +80,7 @@ public class Complaint : ISoftDelete
     public int Id { get; set; }
     public string ComplaintNumber { get; set; } = string.Empty;
     public int ResidentId { get; set; }
-    public int UnitId { get; set; }
+    public int? UnitId { get; set; }
     public int CategoryId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
@@ -232,6 +233,109 @@ public class User : ISoftDelete
     public Association? Association { get; set; }
 }
 
+public class Product : ISoftDelete
+{
+    public int Id { get; set; }
+    public int CategoryId { get; set; }
+    public int? SubCategoryId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+
+    [ForeignKey("CategoryId")]
+    public ComplaintCategory? Category { get; set; }
+
+    [ForeignKey("SubCategoryId")]
+    public SubCategory? SubCategory { get; set; }
+}
+
+public class SubCategory : ISoftDelete
+{
+    public int Id { get; set; }
+    public int CategoryId { get; set; }
+    public string SubCategoryName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDeleted { get; set; } = false;
+
+    [ForeignKey("CategoryId")]
+    public ComplaintCategory? Category { get; set; }
+}
+
+public class WorkAllocation
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int WorkId { get; set; }
+    public int AssignedTo { get; set; }
+    public int AssignedBy { get; set; }
+    public int AssociationId { get; set; }
+    public string Priority { get; set; } = "medium";
+    public string Status { get; set; } = "pending";
+    public DateTime DueDate { get; set; }
+    public string? ProgressNote { get; set; }
+    public string? RequestStatus { get; set; }
+    public DateTime? RequestedDueDate { get; set; }
+    public string? RequestedDescription { get; set; }
+    public string? ReassignReason { get; set; }
+    public int? ReassignedFrom { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class Department
+{
+    public int Id { get; set; }
+    public string DepartmentName { get; set; } = string.Empty;
+    public int AssociationId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class ChatMessage
+{
+    public int Id { get; set; }
+    public int SenderId { get; set; }
+    public int? ReceiverId { get; set; }
+    public int? GroupId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string Type { get; set; } = "text";
+    public string? Payload { get; set; }
+    public bool IsRead { get; set; } = false;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class ChatGroup
+{
+    public int Id { get; set; }
+    public string GroupName { get; set; } = string.Empty;
+    public int CreatedBy { get; set; }
+    public int AssociationId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public List<ChatGroupMember> Members { get; set; } = new();
+}
+
+public class ChatGroupMember
+{
+    public int Id { get; set; }
+    public int GroupId { get; set; }
+    public int UserId { get; set; }
+}
+
+public class WorkCategory
+{
+    public int Id { get; set; }
+    public string WorkCode { get; set; } = string.Empty;
+    public string WorkTitle { get; set; } = string.Empty;
+    public string WorkType { get; set; } = "Standard";
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public class RoleDefinition : ISoftDelete
 {
     public bool IsDeleted { get; set; } = false;
@@ -243,4 +347,18 @@ public class RoleDefinition : ISoftDelete
     public bool CanAssignComplaints { get; set; } = false;
     public bool CanApproveWorkOrders { get; set; } = false;
     public bool CanViewFinancials { get; set; } = false;
+}
+
+public class Client : ISoftDelete
+{
+    public int Id { get; set; }
+    public int AssociationId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Company { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public string? LogoUrl { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = false;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
