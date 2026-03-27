@@ -18,6 +18,21 @@ export interface AdminTenant {
   reportCount?: number;
 }
 
+export type PermissionSet = { view: boolean; create: boolean; edit: boolean; delete: boolean; };
+export type RolePermissions = {
+  reports?: PermissionSet;
+  tasks?: PermissionSet;
+  users?: PermissionSet;
+  analytics?: PermissionSet;
+  chat?: PermissionSet;
+  export?: boolean;
+};
+export interface CustomRole {
+  id: number;
+  roleName: string;
+  permissions: RolePermissions;
+}
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -42,6 +57,10 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
+      // Redirect to login if not already there
+      if (!window.location.hash.includes('/login')) {
+        window.location.hash = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -204,6 +223,10 @@ export const api = {
       const response = await apiClient.delete(`/property/unit/${id}`);
       return response.data;
     },
+    createUnitsBulk: async (data: { buildingId: number; fromFloor: number; toFloor: number; unitsPerFloor: number }): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post('/property/units/bulk', data);
+      return response.data;
+    },
   },
 
   // Complaints
@@ -306,6 +329,10 @@ export const api = {
       const response = await apiClient.get('/tasks/my-tasks');
       return response.data;
     },
+    getUserTasks: async (userId: number): Promise<ApiResponse<any[]>> => {
+      const response = await apiClient.get('/tasks', { params: { assignedTo: userId } });
+      return response.data;
+    },
     getReminders: async (): Promise<ApiResponse<any[]>> => {
       const response = await apiClient.get('/tasks/reminders');
       return response.data;
@@ -352,6 +379,10 @@ export const api = {
       return response.data;
     },
     create: async (data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post('/reports', data);
+      return response.data;
+    },
+    submit: async (data: any): Promise<ApiResponse<any>> => {
       const response = await apiClient.post('/reports', data);
       return response.data;
     }
@@ -673,6 +704,8 @@ export const api = {
     getActive: async () => (await apiClient.get('/works')).data,
     getAll: async () => (await apiClient.get('/works')).data,
     create: async (data: any) => (await apiClient.post('/works', data)).data,
+    update: async (id: number, data: any) => (await apiClient.put(`/works/${id}`, data)).data,
+    delete: async (id: number) => (await apiClient.delete(`/works/${id}`)).data,
   },
   
   // Chat & Groups

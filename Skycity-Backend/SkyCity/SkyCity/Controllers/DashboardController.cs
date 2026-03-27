@@ -11,7 +11,7 @@ namespace SkycityBackend.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("dashboard")]
 public class DashboardController : ControllerBase
 {
     private readonly AppDbContext _context;

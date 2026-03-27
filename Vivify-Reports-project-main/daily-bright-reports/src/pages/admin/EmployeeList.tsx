@@ -59,9 +59,10 @@ const EmployeeList: React.FC = () => {
     try {
       const response = await api.users.getAll();
       if (response.success && response.data) {
-        // Filter only active users with 'user' role (employees)
+        // Filter staff/employee roles (exclude super_admin, admin, resident)
+        const staffRoles = ['staff', 'helpdesk', 'property_manager', 'facility_manager', 'vendor', 'sub_admin', 'accountant'];
         const activeEmployees = response.data.filter(
-          (user: Employee) => user.role === 'user' && user.status === 'active'
+          (user: Employee) => staffRoles.includes(user.role) && (user.isActive !== false)
         );
         setEmployees(activeEmployees);
         
@@ -80,37 +81,28 @@ const EmployeeList: React.FC = () => {
     try {
       const statsPromises = employees.map(async (employee) => {
         try {
-          const response = await api.tasks.getUserTasks(employee.id);
+          const getUserTasks = (api.tasks as any).getUserTasks;
+          if (typeof getUserTasks !== 'function') {
+            return { employeeId: employee.id, stats: { totalTasks: 0, completedTasks: 0, pendingTasks: 0, completionRate: 0 } };
+          }
+          const response = await getUserTasks(employee.id);
           if (response.success && response.data) {
             const tasks = response.data;
             const totalTasks = tasks.length;
             const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
             const pendingTasks = tasks.filter((t: any) => t.status === 'pending').length;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-            
-            return {
-              employeeId: employee.id,
-              stats: { totalTasks, completedTasks, pendingTasks, completionRate }
-            };
+            return { employeeId: employee.id, stats: { totalTasks, completedTasks, pendingTasks, completionRate } };
           }
-        } catch (error) {
-          console.error(`Error fetching stats for employee ${employee.id}:`, error);
-        }
-        return {
-          employeeId: employee.id,
-          stats: { totalTasks: 0, completedTasks: 0, pendingTasks: 0, completionRate: 0 }
-        };
+        } catch {}
+        return { employeeId: employee.id, stats: { totalTasks: 0, completedTasks: 0, pendingTasks: 0, completionRate: 0 } };
       });
 
       const results = await Promise.all(statsPromises);
       const statsMap: Record<number, EmployeeStats> = {};
-      results.forEach(({ employeeId, stats }) => {
-        statsMap[employeeId] = stats;
-      });
+      results.forEach(({ employeeId, stats }) => { statsMap[employeeId] = stats; });
       setEmployeeStats(statsMap);
-    } catch (error) {
-      console.error("Error fetching employee stats:", error);
-    }
+    } catch {}
   };
 
   useEffect(() => {
@@ -118,9 +110,9 @@ const EmployeeList: React.FC = () => {
   }, []);
 
   const filteredEmployees = employees.filter((employee) =>
-    employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    employee.username.toLowerCase().includes(searchQuery.toLowerCase())
+    (employee.fullName ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (employee.email ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (employee.username ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleViewTasks = (employeeId: number, employeeName: string) => {
@@ -130,7 +122,7 @@ const EmployeeList: React.FC = () => {
   };
 
   const totalEmployees = employees.length;
-  const activeEmployees = employees.filter(emp => emp.status === 'active').length;
+  const activeEmployees = employees.filter(emp => emp.isActive !== false).length;
   const avgCompletionRate = employees.length > 0 
     ? Math.round(
         Object.values(employeeStats).reduce((sum, stats) => sum + stats.completionRate, 0) / employees.length
@@ -251,7 +243,7 @@ const EmployeeList: React.FC = () => {
                               <User className="h-5 w-5 text-primary" />
                             </div>
                             <div>
-                              <p className="font-medium">{employee.name}</p>
+                              <p className="font-medium">{employee.fullName}</p>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Mail className="h-3 w-3" />
                                 {employee.email}
@@ -292,7 +284,7 @@ const EmployeeList: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
-                            onClick={() => handleViewTasks(employee.id, employee.name)}
+                            onClick={() => handleViewTasks(employee.id, employee.fullName)}
                             size="sm"
                             className="gap-2"
                           >

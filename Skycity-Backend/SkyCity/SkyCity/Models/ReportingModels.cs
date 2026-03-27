@@ -17,7 +17,7 @@ public class Association : ISoftDelete
     public string? Email { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true; // true = active/visible
 }
 
 public class Property : ISoftDelete
@@ -28,7 +28,7 @@ public class Property : ISoftDelete
     public string? Address { get; set; }
     public int TotalUnits { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
 
     [ForeignKey("AssociationId")]
     public Association? Association { get; set; }
@@ -41,7 +41,7 @@ public class Building : ISoftDelete
     public string BuildingName { get; set; } = string.Empty;
     public int Floors { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
 
     [ForeignKey("PropertyId")]
     public Property? Property { get; set; }
@@ -57,7 +57,7 @@ public class Unit : ISoftDelete
     public int? ResidentId { get; set; }
     public bool IsOccupied { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
 
     [ForeignKey("BuildingId")]
     public Building? Building { get; set; }
@@ -65,7 +65,7 @@ public class Unit : ISoftDelete
 
 public class ComplaintCategory : ISoftDelete
 {
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
     public int Id { get; set; }
     public int AssociationId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
@@ -84,8 +84,8 @@ public class Complaint : ISoftDelete
     public int CategoryId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
-    public string Priority { get; set; } = "Medium"; // Low, Medium, High, Urgent
-    public string Status { get; set; } = "Open"; // Open, Assigned, In Progress, Resolved, Closed
+    public string Priority { get; set; } = "Medium";
+    public string Status { get; set; } = "Open";
     public int? AssignedTo { get; set; }
     public int? AssignedBy { get; set; }
     public DateTime? AssignedAt { get; set; }
@@ -96,7 +96,7 @@ public class Complaint : ISoftDelete
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ResolvedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
 
     [ForeignKey("ResidentId")]
     public User? Resident { get; set; }
@@ -112,7 +112,7 @@ public class Complaint : ISoftDelete
 
 public class ComplaintAttachment : ISoftDelete
 {
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
     public int Id { get; set; }
     public int ComplaintId { get; set; }
     public string? FileName { get; set; }
@@ -131,18 +131,16 @@ public class WorkOrder : ISoftDelete
     public string? Description { get; set; }
     public decimal? EstimatedCost { get; set; }
     public decimal? ActualCost { get; set; }
-    public string Status { get; set; } = "Pending"; // Pending, Approved, In Progress, Completed, Rejected
+    public string Status { get; set; } = "Pending";
     public int? ApprovedBy { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
+    public string? WorkTitle { get; set; }
 
     [ForeignKey("ComplaintId")]
     public Complaint? Complaint { get; set; }
-
-    public string? WorkTitle { get; set; }
-
     [ForeignKey("VendorId")]
     public User? Vendor { get; set; }
 }
@@ -152,16 +150,16 @@ public class Bill : ISoftDelete
     public int Id { get; set; }
     public int UnitId { get; set; }
     public string BillNumber { get; set; } = string.Empty;
-    public string? BillType { get; set; } // Maintenance, Water, Electricity, etc.
+    public string? BillType { get; set; }
     public decimal Amount { get; set; }
     public decimal Tax { get; set; }
     public decimal TotalAmount { get; set; }
     public DateTime DueDate { get; set; }
-    public string Status { get; set; } = "Pending"; // Pending, Paid, Overdue
+    public string Status { get; set; } = "Pending";
     public DateTime? PaidAt { get; set; }
     public string? PaymentReference { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
 
     [ForeignKey("UnitId")]
     public Unit? Unit { get; set; }
@@ -169,7 +167,7 @@ public class Bill : ISoftDelete
 
 public class Notification : ISoftDelete
 {
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
     public int Id { get; set; }
     public int UserId { get; set; }
     public string? Title { get; set; }
@@ -182,7 +180,7 @@ public class Notification : ISoftDelete
 
 public class AuditLog : ISoftDelete
 {
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
     public int Id { get; set; }
     public int UserId { get; set; }
     public int AssociationId { get; set; }
@@ -212,12 +210,12 @@ public enum UserRole
 
 public class User : ISoftDelete
 {
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
-    public UserRole Role { get; set; } = UserRole.resident; 
+    public UserRole Role { get; set; } = UserRole.resident;
     public int? AssociationId { get; set; }
     public int? PropertyId { get; set; }
     public int? BuildingId { get; set; }
@@ -244,11 +242,10 @@ public class Product : ISoftDelete
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
 
     [ForeignKey("CategoryId")]
     public ComplaintCategory? Category { get; set; }
-
     [ForeignKey("SubCategoryId")]
     public SubCategory? SubCategory { get; set; }
 }
@@ -261,7 +258,7 @@ public class SubCategory : ISoftDelete
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
 
     [ForeignKey("CategoryId")]
     public ComplaintCategory? Category { get; set; }
@@ -338,15 +335,16 @@ public class WorkCategory
 
 public class RoleDefinition : ISoftDelete
 {
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
     public int Id { get; set; }
     public string RoleName { get; set; } = string.Empty;
-    public string RoleType { get; set; } = string.Empty; // super_admin, admin, etc.
+    public string RoleType { get; set; } = string.Empty;
     public int PermissionLevel { get; set; } = 0;
     public bool CanCreateUsers { get; set; } = false;
     public bool CanAssignComplaints { get; set; } = false;
     public bool CanApproveWorkOrders { get; set; } = false;
     public bool CanViewFinancials { get; set; } = false;
+    public string? PermissionsJson { get; set; }
 }
 
 public class Client : ISoftDelete
@@ -359,6 +357,23 @@ public class Client : ISoftDelete
     public string? Phone { get; set; }
     public string? LogoUrl { get; set; }
     public bool IsActive { get; set; } = true;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class StaffTask : ISoftDelete
+{
+    public int Id { get; set; }
+    public int AssociationId { get; set; }
+    public int AssignedTo { get; set; }
+    public int AssignedBy { get; set; }
+    public string TaskName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Priority { get; set; } = "medium";
+    public string Status { get; set; } = "pending";
+    public bool IsRecurring { get; set; } = false;
+    public DateTime DueDate { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public bool IsDeleted { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

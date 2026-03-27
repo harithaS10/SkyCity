@@ -62,6 +62,8 @@ const WorkManagement: React.FC = () => {
   const [selectedWork, setSelectedWork] = useState<any | null>(null);
   const [newWork, setNewWork] = useState({ workCode: '', workTitle: '', workType: 'Standard' });
 
+  const [isCreating, setIsCreating] = useState(false);
+
   const fetchWorks = async () => {
     setIsLoading(true);
     try {
@@ -92,19 +94,21 @@ const WorkManagement: React.FC = () => {
       toast.error('Please fill in all fields');
       return;
     }
-
+    setIsCreating(true);
     try {
       const response = await api.works.create(newWork);
       if (response.success) {
         toast.success('Work type created successfully');
+        setWorks(prev => [...prev, response.data]);
         setNewWork({ workCode: '', workTitle: '', workType: 'Standard' });
         setIsCreateDialogOpen(false);
-        fetchWorks();
       } else {
         toast.error(response.message || "Failed to create work type");
       }
     } catch (error: any) {
       toast.error(error.message || "Error creating work type");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -221,7 +225,9 @@ const WorkManagement: React.FC = () => {
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateWork}>Create Work Type</Button>
+                <Button onClick={handleCreateWork} disabled={isCreating}>
+                  {isCreating ? 'Creating...' : 'Create Work Type'}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

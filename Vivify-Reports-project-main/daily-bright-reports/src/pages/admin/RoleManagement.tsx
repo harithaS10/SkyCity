@@ -66,21 +66,35 @@ const RoleManagement: React.FC = () => {
     setCanExportPerm(false);
   };
 
+  const [isCreating, setIsCreating] = useState(false);
+
   const handleCreate = async () => {
     if (!roleName.trim()) { toast.error('Role name is required'); return; }
+    setIsCreating(true);
     try {
       const res = await api.roles.create({ roleName: roleName.trim(), permissions: { ...perms, export: canExportPerm } });
       if (res.success) { toast.success(`Role "${roleName}" created`); resetForm(); setIsCreateOpen(false); load(); }
       else toast.error(res.message || 'Failed');
     } catch (e: any) { toast.error(e.message); }
+    finally { setIsCreating(false); }
   };
 
   const handleUpdate = async () => {
     if (!editTarget) return;
+    const payload = { roleName: roleName.trim(), permissions: { ...perms, export: canExportPerm } };
     try {
-      const res = await api.roles.update(editTarget.id, { roleName: roleName.trim(), permissions: { ...perms, export: canExportPerm } });
-      if (res.success) { toast.success('Role updated'); setEditTarget(null); resetForm(); load(); }
-      else toast.error(res.message || 'Failed');
+      const res = await api.roles.update(editTarget.id, payload);
+      if (res.success) {
+        toast.success('Role updated');
+        // Update local state immediately so re-opening edit shows correct checkboxes
+        setRoles(prev => prev.map(r =>
+          r.id === editTarget.id
+            ? { ...r, roleName: roleName.trim(), permissions: payload.permissions }
+            : r
+        ));
+        setEditTarget(null);
+        resetForm();
+      } else toast.error(res.message || 'Failed');
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -96,11 +110,12 @@ const RoleManagement: React.FC = () => {
   const openEdit = (r: CustomRole) => {
     setEditTarget(r);
     setRoleName(r.roleName);
-    setPerms(r.permissions || defaultPermissions());
+    const hasPerms = r.permissions && Object.keys(r.permissions).some(k => k !== 'export');
+    setPerms(hasPerms ? r.permissions : defaultPermissions());
     setCanExportPerm(r.permissions?.export ?? false);
   };
 
-  const PermissionsGrid = () => (
+  const renderPermissionsGrid = () => (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead className="bg-slate-50">
@@ -120,6 +135,7 @@ const RoleManagement: React.FC = () => {
                 return (
                   <td key={k} className="px-3 py-2 text-center">
                     <button
+                      type="button"
                       onClick={() => togglePerm(m, k)}
                       className={cn(
                         'h-6 w-6 rounded border-2 flex items-center justify-center mx-auto transition-colors',
@@ -173,12 +189,12 @@ const RoleManagement: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Permissions</Label>
-                  <PermissionsGrid />
+                  {renderPermissionsGrid()}
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => { setIsCreateOpen(false); resetForm(); }}>Cancel</Button>
-                <Button onClick={handleCreate}>Create Role</Button>
+                <Button onClick={handleCreate} disabled={isCreating}>{isCreating ? 'Creating...' : 'Create Role'}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -194,7 +210,7 @@ const RoleManagement: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Permissions</Label>
-                  <PermissionsGrid />
+                  {renderPermissionsGrid()}
                 </div>
               </div>
               <DialogFooter>
@@ -237,17 +253,18 @@ const RoleManagement: React.FC = () => {
                   ) : roles.length === 0 ? (
                     <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">No custom roles yet. Create your first role.</TableCell></TableRow>
                   ) : roles.map(r => {
-                    const p = r.permissions;
+                    const p = r.permissions ?? {};
+                    const hasAny = (mod: any) => mod && Object.values(mod).some(Boolean);
                     const tick = (v?: boolean) => v
-                      ? <Check className="h-4 w-4 text-emerald-500 mx-auto" />
-                      : <X className="h-4 w-4 text-slate-300 mx-auto" />;
+                      ? <Check className="h-6 w-6 text-emerald-500 mx-auto stroke-[3]" />
+                      : <X className="h-6 w-6 text-slate-300 mx-auto stroke-[3]" />;
                     return (
                       <TableRow key={r.id} className="hover:bg-slate-50/50">
                         <TableCell className="font-medium">{r.roleName}</TableCell>
-                        <TableCell className="text-center">{tick(p.reports?.view)}</TableCell>
-                        <TableCell className="text-center">{tick(p.tasks?.view)}</TableCell>
-                        <TableCell className="text-center">{tick(p.users?.view)}</TableCell>
-                        <TableCell className="text-center">{tick(p.analytics?.view)}</TableCell>
+                        <TableCell className="text-center">{tick(hasAny(p.reports))}</TableCell>
+                        <TableCell className="text-center">{tick(hasAny(p.tasks))}</TableCell>
+                        <TableCell className="text-center">{tick(hasAny(p.users))}</TableCell>
+                        <TableCell className="text-center">{tick(hasAny(p.analytics))}</TableCell>
                         <TableCell className="text-center">{tick(p.export)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>

@@ -28,10 +28,20 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult> Login([FromBody] LoginRequest request)
     {
+        // IgnoreQueryFilters to find users regardless of IsDeleted state (handles legacy data)
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == request.Username);
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Username == request.Username && u.IsActive);
 
-        if (user == null || user.PasswordHash != request.Password)
+        if (user == null)
+            return Unauthorized(new ApiResponse { Success = false, Message = "Invalid credentials" });
+
+        // Support both plain-text (legacy) and BCrypt hashed passwords
+        bool passwordValid = user.PasswordHash.StartsWith("$2")
+            ? BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)
+            : user.PasswordHash == request.Password;
+
+        if (!passwordValid)
             return Unauthorized(new ApiResponse { Success = false, Message = "Invalid credentials" });
 
         var token = GenerateJwtToken(user);
@@ -68,7 +78,7 @@ public class AuthController : ControllerBase
             BuildingId = dto.BuildingId,
             UnitId = dto.UnitId,
             CreatedAt = DateTime.UtcNow,
-            IsDeleted = true,  // true = active/visible in this system
+            IsDeleted = true,  // true = active/visible
             IsActive = true
         };
 
@@ -100,7 +110,7 @@ public class AuthController : ControllerBase
             issuer: null,
             audience: null,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(1),
+            expires: DateTime.UtcNow.AddDays(7),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

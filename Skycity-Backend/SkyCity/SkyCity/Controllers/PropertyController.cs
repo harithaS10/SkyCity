@@ -151,6 +151,35 @@ public class PropertyController : ControllerBase
     }
 
     [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [HttpPost("units/bulk")]
+    public async Task<ActionResult> CreateUnitsBulk([FromBody] BulkCreateUnitsDto dto)
+    {
+        if (dto.BuildingId <= 0 || dto.UnitsPerFloor <= 0 || dto.FromFloor < 1 || dto.ToFloor < dto.FromFloor)
+            return BadRequest(new ApiResponse { Success = false, Message = $"Invalid parameters: buildingId={dto.BuildingId}, fromFloor={dto.FromFloor}, toFloor={dto.ToFloor}, unitsPerFloor={dto.UnitsPerFloor}" });
+
+        var units = new List<Unit>();
+        for (int floor = dto.FromFloor; floor <= dto.ToFloor; floor++)
+        {
+            for (int u = 1; u <= dto.UnitsPerFloor; u++)
+            {
+                var unitNumber = $"{floor}{u:D2}"; // e.g. 101, 102, 201...
+                units.Add(new Unit
+                {
+                    BuildingId = dto.BuildingId,
+                    UnitNumber = unitNumber,
+                    FloorNumber = floor,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        _context.Units.AddRange(units);
+        await _context.SaveChangesAsync();
+
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = new { Created = units.Count }, Message = $"{units.Count} units created" });
+    }
+
+    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
     [HttpPost("unit")]
     public async Task<ActionResult> CreateUnit([FromBody] CreateUnitDto dto)
     {

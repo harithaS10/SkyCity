@@ -18,7 +18,8 @@ public class RolesController : ControllerBase
     public async Task<ActionResult> GetAll()
     {
         var items = await _context.Roles.ToListAsync();
-        return Ok(new ApiResponse<dynamic> { Success = true, Data = items });
+        var result = items.Select(r => ToDto(r));
+        return Ok(new ApiResponse<object> { Success = true, Data = result });
     }
 
     [HttpPost]
@@ -28,15 +29,16 @@ public class RolesController : ControllerBase
         {
             RoleName = dto.RoleName,
             RoleType = dto.RoleType ?? dto.RoleName.ToLower().Replace(" ", "_"),
-            PermissionLevel = dto.PermissionLevel ?? 0,
-            CanCreateUsers = dto.CanCreateUsers,
-            CanAssignComplaints = dto.CanAssignComplaints,
-            CanApproveWorkOrders = dto.CanApproveWorkOrders,
-            CanViewFinancials = dto.CanViewFinancials,
+            PermissionLevel = 0,
+            CanCreateUsers = dto.Permissions?.ContainsKey("users") == true,
+            CanAssignComplaints = dto.Permissions?.ContainsKey("tasks") == true,
+            CanApproveWorkOrders = dto.Permissions?.ContainsKey("reports") == true,
+            CanViewFinancials = dto.Permissions?.ContainsKey("analytics") == true,
+            PermissionsJson = System.Text.Json.JsonSerializer.Serialize(dto.Permissions ?? new()),
         };
         _context.Roles.Add(role);
         await _context.SaveChangesAsync();
-        return Ok(new ApiResponse<RoleDefinition> { Success = true, Data = role });
+        return Ok(new ApiResponse<object> { Success = true, Data = ToDto(role) });
     }
 
     [HttpPut("{id}")]
@@ -46,14 +48,19 @@ public class RolesController : ControllerBase
         if (role == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
         role.RoleName = dto.RoleName;
         role.RoleType = dto.RoleType ?? role.RoleType;
-        role.PermissionLevel = dto.PermissionLevel ?? role.PermissionLevel;
-        role.CanCreateUsers = dto.CanCreateUsers;
-        role.CanAssignComplaints = dto.CanAssignComplaints;
-        role.CanApproveWorkOrders = dto.CanApproveWorkOrders;
-        role.CanViewFinancials = dto.CanViewFinancials;
+        role.PermissionsJson = System.Text.Json.JsonSerializer.Serialize(dto.Permissions ?? new());
         await _context.SaveChangesAsync();
-        return Ok(new ApiResponse { Success = true, Message = "Updated" });
+        return Ok(new ApiResponse<object> { Success = true, Data = ToDto(role) });
     }
+
+    private static object ToDto(RoleDefinition r) => new
+    {
+        r.Id,
+        r.RoleName,
+        permissions = string.IsNullOrEmpty(r.PermissionsJson)
+            ? new object()
+            : System.Text.Json.JsonSerializer.Deserialize<object>(r.PermissionsJson)
+    };
 
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
@@ -70,9 +77,5 @@ public class RoleDto
 {
     public string RoleName { get; set; } = string.Empty;
     public string? RoleType { get; set; }
-    public int? PermissionLevel { get; set; }
-    public bool CanCreateUsers { get; set; }
-    public bool CanAssignComplaints { get; set; }
-    public bool CanApproveWorkOrders { get; set; }
-    public bool CanViewFinancials { get; set; }
+    public Dictionary<string, object>? Permissions { get; set; }
 }

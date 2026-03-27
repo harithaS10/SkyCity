@@ -34,6 +34,13 @@ public class ComplaintsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var assocIdStr = User.FindFirst("AssociationId")?.Value;
+        int.TryParse(userIdStr, out var userId);
+        int.TryParse(assocIdStr, out var assocId);
+        var isSuperAdmin = User.IsInRole("super_admin");
+        var isAdmin = User.IsInRole("admin") || User.IsInRole("sub_admin") || User.IsInRole("property_manager") || User.IsInRole("helpdesk");
+
         var query = _context.Complaints
             .Include(c => c.Resident)
             .Include(c => c.Category)
@@ -41,28 +48,32 @@ public class ComplaintsController : ControllerBase
             .ThenInclude(u => u!.Building)
             .ThenInclude(b => b!.Property)
             .AsQueryable();
-        
+
+        // Scope by association — join via resident's associationId or category
+        if (!isSuperAdmin && assocId > 0)
+            query = query.Where(c =>
+                c.Resident!.AssociationId == assocId ||
+                _context.ComplaintCategories.IgnoreQueryFilters()
+                    .Any(cat => cat.Id == c.CategoryId && cat.AssociationId == assocId));
+
+        // Staff/resident: only see their own complaints or ones assigned to them
+        if (!isSuperAdmin && !isAdmin && userId > 0)
+            query = query.Where(c => c.ResidentId == userId || c.AssignedTo == userId);
+
         if (!string.IsNullOrEmpty(status))
             query = query.Where(c => c.Status == status);
-        
+
         var total = await query.CountAsync();
         var items = await query
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
-        
+
         return Ok(new ApiResponse<dynamic>
         {
             Success = true,
-            Data = new
-            {
-                Total = total,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling(total / (double)pageSize),
-                Items = items
-            }
+            Data = new { Total = total, Page = page, PageSize = pageSize, TotalPages = (int)Math.Ceiling(total / (double)pageSize), Items = items }
         });
     }
 
@@ -84,7 +95,7 @@ public class ComplaintsController : ControllerBase
         return Ok(new ApiResponse<Complaint> { Data = complaint });
     }
 
-    [Authorize(Roles = "resident,helpdesk,property_manager,admin")]
+    [Authorize(Roles = "resident,staff,helpdesk,property_manager,admin,sub_admin")]
     [HttpPost]
     public async Task<ActionResult> CreateComplaint([FromBody] CreateComplaintDto dto)
     {
@@ -102,7 +113,7 @@ public class ComplaintsController : ControllerBase
             ComplaintNumber = $"CMP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}",
             Status = "Open",
             CreatedAt = DateTime.UtcNow,
-            IsDeleted = true
+            IsDeleted = true, // true = active/visible
         };
 
         _context.Complaints.Add(complaint);
@@ -124,7 +135,7 @@ public class ComplaintsController : ControllerBase
             "complaint_created",
             complaint.Id);
         
-        return CreatedAtAction(nameof(GetComplaint), new { id = complaint.Id }, new ApiResponse<Complaint> { Success = true, Data = complaint });
+        return Ok(new ApiResponse<Complaint> { Success = true, Data = complaint });
     }
 
     [Authorize(Roles = "helpdesk,property_manager,admin")]

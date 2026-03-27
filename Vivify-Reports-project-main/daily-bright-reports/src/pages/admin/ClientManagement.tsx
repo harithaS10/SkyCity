@@ -89,9 +89,9 @@ const ClientManagement: React.FC = () => {
 
   const filteredClients = clients.filter(
     (client) =>
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchQuery.toLowerCase())
+      (client.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.company ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.email ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleCreateClient = async () => {
@@ -167,7 +167,7 @@ const ClientManagement: React.FC = () => {
                 Add Client
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card animate-scale-in">
+            <DialogContent className="bg-card animate-scale-in max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Client</DialogTitle>
                 <DialogDescription>
@@ -331,7 +331,7 @@ const ClientManagement: React.FC = () => {
                           <div className="flex items-center gap-3">
                             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden p-1.5 transition-transform group-hover:scale-105">
                               {client.logoUrl ? (
-                                <img src={client.logoUrl} alt={client.name} className="h-full w-full object-contain" />
+                                <img src={client.logoUrl} alt={client.name} className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
                                 <Building2 className="h-6 w-6 text-slate-400" />
                               )}
@@ -415,7 +415,7 @@ const ClientManagement: React.FC = () => {
 
         {/* Edit Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="bg-card animate-scale-in">
+          <DialogContent className="bg-card animate-scale-in max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Client</DialogTitle>
               <DialogDescription>

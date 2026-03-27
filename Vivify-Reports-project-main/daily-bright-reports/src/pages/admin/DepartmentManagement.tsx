@@ -24,6 +24,7 @@ const DepartmentManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [editTarget, setEditTarget] = useState<Department | null>(null);
   const [deptName, setDeptName] = useState('');
 
@@ -43,13 +44,16 @@ const DepartmentManagement: React.FC = () => {
 
   const handleCreate = async () => {
     if (!deptName.trim()) { toast.error('Department name is required'); return; }
+    setIsCreating(true);
     try {
       const res = await api.departments.create({ departmentName: deptName.trim() });
       if (res.success) {
         toast.success(`Department "${deptName}" created`);
-        setDeptName(''); setIsCreateOpen(false); load();
+        if (res.data) setDepts(prev => [...prev, res.data]);
+        setDeptName(''); setIsCreateOpen(false);
       } else toast.error(res.message || 'Failed');
     } catch (e: any) { toast.error(e.message); }
+    finally { setIsCreating(false); }
   };
 
   const handleUpdate = async () => {
@@ -101,7 +105,7 @@ const DepartmentManagement: React.FC = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreate}>Create</Button>
+                <Button onClick={handleCreate} disabled={isCreating}>{isCreating ? 'Creating...' : 'Create'}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

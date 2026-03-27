@@ -41,6 +41,8 @@ const PropertyManagement = () => {
   const [propForm, setPropForm] = useState({ propertyName: '', address: '', totalUnits: '' });
   const [buildingDialogOpen, setBuildingDialogOpen] = useState(false);
   const [buildingForm, setBuildingForm] = useState({ buildingName: '', floors: '' });
+  const [bulkUnitDialogOpen, setBulkUnitDialogOpen] = useState(false);
+  const [bulkUnitForm, setBulkUnitForm] = useState({ fromFloor: '1', toFloor: '', unitsPerFloor: '' });
 
   // Queries
   const { data: propertiesRes, isLoading: isLoadingProps } = useQuery({
@@ -80,6 +82,20 @@ const PropertyManagement = () => {
       setBuildingForm({ buildingName: '', floors: '' });
     },
     onError: () => toast.error('Failed to create building')
+  });
+
+  const createUnitsBulkMutation = useMutation({
+    mutationFn: (data: any) => {
+      if (!selectedBuildingId) throw new Error('No building selected');
+      return api.properties.createUnitsBulk({ ...data, buildingId: selectedBuildingId });
+    },
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['units'] });
+      toast.success(res.message || 'Units created successfully');
+      setBulkUnitDialogOpen(false);
+      setBulkUnitForm({ fromFloor: '1', toFloor: '', unitsPerFloor: '' });
+    },
+    onError: (err: any) => toast.error(err?.message || 'Failed to create units')
   });
 
   const deletePropertyMutation = useMutation({
@@ -336,7 +352,72 @@ const PropertyManagement = () => {
                   <CardTitle>Units in {buildings.find(b => b.id === selectedBuildingId)?.buildingName}</CardTitle>
                   <CardDescription>Residence and tenant management</CardDescription>
                 </div>
-                <Button size="sm" className="gap-2"><Plus size={16} /> Add Units in Bulk</Button>
+                <Dialog open={bulkUnitDialogOpen} onOpenChange={setBulkUnitDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2"><Plus size={16} /> Add Units in Bulk</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Units in Bulk</DialogTitle>
+                      <DialogDescription>
+                        Auto-generate units for a floor range. e.g. floors 1–5, 4 units/floor → 101–504.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>From Floor</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            placeholder="1"
+                            value={bulkUnitForm.fromFloor}
+                            onChange={e => setBulkUnitForm(f => ({ ...f, fromFloor: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>To Floor</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            placeholder="10"
+                            value={bulkUnitForm.toFloor}
+                            onChange={e => setBulkUnitForm(f => ({ ...f, toFloor: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Units per Floor</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="4"
+                          value={bulkUnitForm.unitsPerFloor}
+                          onChange={e => setBulkUnitForm(f => ({ ...f, unitsPerFloor: e.target.value }))}
+                        />
+                      </div>
+                      {bulkUnitForm.toFloor && bulkUnitForm.unitsPerFloor && (
+                        <p className="text-sm text-muted-foreground bg-slate-50 rounded-lg p-3">
+                          This will create <span className="font-semibold text-foreground">
+                            {(Number(bulkUnitForm.toFloor) - Number(bulkUnitForm.fromFloor) + 1) * Number(bulkUnitForm.unitsPerFloor)}
+                          </span> units across floors {bulkUnitForm.fromFloor}–{bulkUnitForm.toFloor}.
+                        </p>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        disabled={!bulkUnitForm.toFloor || !bulkUnitForm.unitsPerFloor || createUnitsBulkMutation.isPending}
+                        onClick={() => createUnitsBulkMutation.mutate({
+                          fromFloor: Number(bulkUnitForm.fromFloor),
+                          toFloor: Number(bulkUnitForm.toFloor),
+                          unitsPerFloor: Number(bulkUnitForm.unitsPerFloor)
+                        })}
+                      >
+                        {createUnitsBulkMutation.isPending ? 'Creating...' : 'Create Units'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">

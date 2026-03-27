@@ -26,3 +26,11 @@ public class CreateUnitDto
     public int? ResidentId { get; set; }
     public bool IsOccupied { get; set; }
 }
+
+public class BulkCreateUnitsDto
+{
+    [Required] public int BuildingId { get; set; }
+    [Required] public int FromFloor { get; set; }
+    [Required] public int ToFloor { get; set; }
+    [Required] public int UnitsPerFloor { get; set; }
+}

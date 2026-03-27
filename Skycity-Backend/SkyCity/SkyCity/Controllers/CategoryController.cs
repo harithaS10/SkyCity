@@ -18,16 +18,19 @@ public class CategoryController : ControllerBase
     [HttpGet]
     public async Task<ActionResult> GetAll()
     {
-        var items = await _context.ComplaintCategories
+        var assocIdStr = User.FindFirst("AssociationId")?.Value;
+        var isSuperAdmin = User.IsInRole("super_admin");
+
+        var query = _context.ComplaintCategories.AsQueryable();
+
+        if (!isSuperAdmin && int.TryParse(assocIdStr, out var assocId) && assocId > 0)
+            query = query.Where(c => c.AssociationId == assocId);
+
+        var items = await query
             .OrderBy(c => c.CategoryName)
             .Select(c => new {
-                c.Id,
-                c.CategoryName,
-                c.Department,
-                c.EstimatedTime,
-                c.IsActive,
-                c.AssociationId,
-                c.CreatedAt,
+                c.Id, c.CategoryName, c.Department,
+                c.EstimatedTime, c.IsActive, c.AssociationId, c.CreatedAt,
                 ProductCount = 0
             })
             .ToListAsync();
