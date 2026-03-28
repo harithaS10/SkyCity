@@ -226,7 +226,7 @@ const App = () => (
                 <Route
                   path="/admin/work-allocation"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <ProtectedRoute allowedRoles={['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff']}>
                       <WorkAllocation />
                     </ProtectedRoute>
                   }

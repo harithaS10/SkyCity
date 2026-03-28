@@ -211,14 +211,22 @@ const UserDashboard: React.FC = () => {
     : 0;
 
   const today = new Date().toISOString().split('T')[0];
-  const todayReport = reports.find((r: any) => format(parseISO(r.date || r.Date), 'yyyy-MM-dd') === today);
+  const todayReport = reports.find((r: any) => {
+    const d = r.date || r.Date;
+    if (!d) return false;
+    try { return format(parseISO(d), 'yyyy-MM-dd') === today; } catch { return false; }
+  });
 
   const weeklyData = [];
   for (let i = 6; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     const dateStr = format(date, 'yyyy-MM-dd');
-    const report = reports.find((r: any) => format(parseISO(r.date || r.Date), 'yyyy-MM-dd') === dateStr);
+    const report = reports.find((r: any) => {
+      const d = r.date || r.Date;
+      if (!d) return false;
+      try { return format(parseISO(d), 'yyyy-MM-dd') === dateStr; } catch { return false; }
+    });
     weeklyData.push({
       day: date.toLocaleDateString('en-US', { weekday: 'short' }),
       entries: report?.entries?.length || 0,
@@ -888,7 +896,11 @@ const AdminDashboard: React.FC = () => {
     const dateStr = format(date, 'yyyy-MM-dd');
 
     // Count total entries across all reports for this day
-    const dayReports = allReports.filter((r: any) => format(parseISO(r.date || r.Date), 'yyyy-MM-dd') === dateStr);
+    const dayReports = allReports.filter((r: any) => {
+      const d = r.date || r.Date;
+      if (!d) return false;
+      try { return format(parseISO(d), 'yyyy-MM-dd') === dateStr; } catch { return false; }
+    });
     const dailyEntries = dayReports.reduce((acc, r) => acc + (r.entries?.length || 0), 0);
 
     weeklyData.push({

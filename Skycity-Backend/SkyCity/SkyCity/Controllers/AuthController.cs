@@ -28,13 +28,25 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult> Login([FromBody] LoginRequest request)
     {
-        // IgnoreQueryFilters to find users regardless of IsDeleted state (handles legacy data)
-        var user = await _context.Users
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.Username == request.Username && u.IsActive);
+        // IgnoreQueryFilters to find users regardless of IsDeleted state
+        User? user;
+        try
+        {
+            user = await _context.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.Username == request.Username);
+        }
+        catch (InvalidOperationException)
+        {
+            // Enum conversion failure — bad Role value in DB
+            return Unauthorized(new ApiResponse { Success = false, Message = "Account has an invalid role. Contact administrator." });
+        }
 
         if (user == null)
             return Unauthorized(new ApiResponse { Success = false, Message = "Invalid credentials" });
+
+        if (!user.IsActive)
+            return Unauthorized(new ApiResponse { Success = false, Message = "Account is inactive. Contact your administrator." });
 
         // Support both plain-text (legacy) and BCrypt hashed passwords
         bool passwordValid = user.PasswordHash.StartsWith("$2")

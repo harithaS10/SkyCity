@@ -206,7 +206,15 @@ const EmployeeTaskAssignment: React.FC = () => {
     }
   };
 
-  const dailyTasks = tasks.filter(task => !task.isRecurring);
+  const handleStatusChange = async (taskId: number, newStatus: string) => {
+    try {
+      const res = await api.tasks.updateStatus(taskId, newStatus);
+      if (res.success) {
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+        toast.success('Status updated');
+      } else toast.error(res.message || 'Failed to update status');
+    } catch (e: any) { toast.error(e.message); }
+  };
   const monthlyTasks = tasks.filter(task => task.isRecurring);
 
   const priorityColors: Record<string, string> = {
@@ -487,9 +495,16 @@ const EmployeeTaskAssignment: React.FC = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge className={statusColors[task.status]}>
-                              {task.status.replace('_', ' ')}
-                            </Badge>
+                            <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v)}>
+                              <SelectTrigger className={`h-7 text-xs w-32 ${statusColors[task.status]}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">To Do</SelectItem>
+                                <SelectItem value="in_progress">In Progress</SelectItem>
+                                <SelectItem value="completed">Done</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
@@ -539,9 +554,16 @@ const EmployeeTaskAssignment: React.FC = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge className={statusColors[task.status]}>
-                              {task.status.replace('_', ' ')}
-                            </Badge>
+                            <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v)}>
+                              <SelectTrigger className={`h-7 text-xs w-32 ${statusColors[task.status]}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">To Do</SelectItem>
+                                <SelectItem value="in_progress">In Progress</SelectItem>
+                                <SelectItem value="completed">Done</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
