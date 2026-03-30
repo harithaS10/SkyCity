@@ -714,11 +714,19 @@ export const api = {
     getHistory: async (userId: number, page = 1) => 
       (await apiClient.get(`/chat/history/${userId}`, { params: { page, pageSize: 50 } })).data,
     getUnread: async () => (await apiClient.get('/chat/unread')).data,
-    send: async (data: any) => (await apiClient.post('/chat/send', data)).data,
+    send: async (receiverIdOrData: any, message?: string, type?: string, payload?: string) => {
+      const data = typeof receiverIdOrData === 'object'
+        ? receiverIdOrData
+        : { receiverId: receiverIdOrData, message, type: type ?? 'text', payload };
+      return (await apiClient.post('/chat/send', data)).data;
+    },
+    markRead: async (userId: number) => (await apiClient.post(`/chat/mark-read/${userId}`)).data,
+    deleteMessage: async (messageId: number) => (await apiClient.delete(`/chat/messages/${messageId}`)).data,
   },
   groups: {
     getMyGroups: async () => (await apiClient.get('/chat/groups')).data,
     getGroup: async (id: number) => (await apiClient.get(`/chat/groups/${id}`)).data,
+    getMessages: async (id: number) => (await apiClient.get(`/chat/groups/${id}/messages`)).data,
     create: async (data: any) => (await apiClient.post('/chat/groups', data)).data,
     sendMessage: async (id: number, message: string) => 
       (await apiClient.post(`/chat/groups/${id}/messages`, { message })).data,

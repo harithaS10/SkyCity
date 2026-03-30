@@ -11,6 +11,7 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getInitials(name: string) {
+  if (!name) return '?';
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
@@ -19,16 +20,21 @@ function avatarColor(name: string) {
     'bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500',
     'bg-rose-500', 'bg-cyan-500', 'bg-pink-500', 'bg-indigo-500',
   ];
+  if (!name) return colors[0];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
 }
 
 function dateLabel(dateStr: string) {
-  const d = new Date(dateStr);
-  if (isToday(d)) return 'Today';
-  if (isYesterday(d)) return 'Yesterday';
-  return format(d, 'dd MMM yyyy');
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    if (isToday(d)) return 'Today';
+    if (isYesterday(d)) return 'Yesterday';
+    return format(d, 'dd MMM yyyy');
+  } catch { return ''; }
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -613,7 +619,9 @@ function MessageList({
   const grouped: Array<{ type: 'separator'; label: string } | { type: 'msg'; msg: ChatMsg }> = [];
   let lastDate: Date | null = null;
   messages.forEach(msg => {
+    if (!msg.createdAt) { grouped.push({ type: 'msg', msg }); return; }
     const d = new Date(msg.createdAt);
+    if (isNaN(d.getTime())) { grouped.push({ type: 'msg', msg }); return; }
     if (!lastDate || !isSameDay(d, lastDate)) {
       grouped.push({ type: 'separator', label: dateLabel(msg.createdAt) });
       lastDate = d;
@@ -882,7 +890,6 @@ export function ChatBox() {
     api.chat.getHistory(selectedUser.id).then(res => {
       if (res.success && res.data) setDmMessages(res.data as ChatMsg[]);
     }).catch(() => {}).finally(() => setLoadingHistory(false));
-    markRead(selectedUser.id);
     api.chat.markRead(selectedUser.id).catch(() => {});
     setUnreadMap(prev => ({ ...prev, [selectedUser.id]: 0 }));
     setTimeout(() => inputRef.current?.focus(), 100);
@@ -1041,7 +1048,7 @@ export function ChatBox() {
         await sendMessage(selectedUser.id, text);
       } else {
         const res = await api.chat.send(selectedUser.id, text);
-        if (res.success && res.data) setDmMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...res.data } : m));
+        if (res.success && res.data) setDmMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...optimisticMsg, ...res.data } : m));
       }
     } catch { setDmMessages(prev => prev.filter(m => m.id !== optimisticMsg.id)); }
   };
@@ -1064,7 +1071,7 @@ export function ChatBox() {
         // REST fallback — replace optimistic with confirmed server message
         const res = await api.groups.sendMessage(selectedGroup.id, text);
         if (res.success && res.data) {
-          setGroupMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...res.data } : m));
+          setGroupMessages(prev => prev.map(m => m.id === optimisticMsg.id ? { ...optimisticMsg, ...res.data } : m));
         }
       }
     } catch {
@@ -1172,7 +1179,7 @@ export function ChatBox() {
                   {connected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block" />}
                 </div>
                 <div className="flex items-center gap-1">
-                  {user.role === 'admin' && (
+                  {['admin', 'super_admin', 'sub_admin', 'property_manager'].includes(user.role) && (
                     <button onClick={() => setShowCreateGroup(true)} title="Create Group"
                       className="h-9 w-9 lg:h-7 lg:w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
                       <Plus className="h-4 w-4 lg:h-3.5 lg:w-3.5" />

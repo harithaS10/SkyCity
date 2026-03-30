@@ -51,7 +51,11 @@ public class ChatController : ControllerBase
             .OrderBy(m => m.CreatedAt)
             .Select(m => new {
                 m.Id, m.SenderId, m.ReceiverId, m.Message,
-                m.Type, m.Payload, m.IsRead, m.CreatedAt
+                m.Type, m.Payload, m.IsRead, m.CreatedAt,
+                senderName = _context.Users.IgnoreQueryFilters()
+                    .Where(u => u.Id == m.SenderId)
+                    .Select(u => u.FullName)
+                    .FirstOrDefault()
             })
             .ToListAsync();
 
@@ -74,6 +78,33 @@ public class ChatController : ControllerBase
             .ToListAsync();
 
         return Ok(new ApiResponse<dynamic> { Success = true, Data = unread });
+    }
+
+    // Delete a message — admin can delete any, user can only delete their own
+    [HttpDelete("messages/{messageId}")]
+    public async Task<ActionResult> DeleteMessage(int messageId)
+    {
+        var msg = await _context.ChatMessages.FindAsync(messageId);
+        if (msg == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        var isAdmin = User.IsInRole("super_admin") || User.IsInRole("admin");
+        if (!isAdmin && msg.SenderId != CurrentUserId)
+            return Forbid();
+
+        _context.ChatMessages.Remove(msg);
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse { Success = true, Message = "Deleted" });
+    }
+
+    // Mark DMs from a user as read
+    [HttpPost("mark-read/{userId}")]
+    public async Task<ActionResult> MarkRead(int userId)
+    {
+        await _context.ChatMessages
+            .Where(m => m.SenderId == userId && m.ReceiverId == CurrentUserId && !m.IsRead)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true));
+
+        return Ok(new ApiResponse { Success = true, Message = "Marked as read" });
     }
 
     // Send a DM
@@ -105,10 +136,9 @@ public class ChatController : ControllerBase
 
         var groups = await _context.ChatGroups
             .Where(g => memberGroupIds.Contains(g.Id) || g.CreatedBy == CurrentUserId)
-            .Include(g => g.Members)
             .Select(g => new {
                 g.Id, g.GroupName, g.CreatedBy, g.CreatedAt,
-                memberCount = g.Members.Count
+                memberCount = _context.ChatGroupMembers.Count(m => m.GroupId == g.Id)
             })
             .ToListAsync();
 
@@ -120,10 +150,24 @@ public class ChatController : ControllerBase
     public async Task<ActionResult> GetGroup(int groupId)
     {
         var group = await _context.ChatGroups
-            .Include(g => g.Members)
             .FirstOrDefaultAsync(g => g.Id == groupId);
         if (group == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
-        return Ok(new ApiResponse<dynamic> { Success = true, Data = group });
+
+        var memberIds = await _context.ChatGroupMembers
+            .Where(m => m.GroupId == groupId)
+            .Select(m => m.UserId)
+            .ToListAsync();
+
+        var memberDetails = await _context.Users.IgnoreQueryFilters()
+            .Where(u => memberIds.Contains(u.Id))
+            .Select(u => new { userId = u.Id, name = u.FullName, role = u.Role.ToString() })
+            .ToListAsync();
+
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = new {
+            group.Id, group.GroupName, group.CreatedBy, group.CreatedAt,
+            memberCount = memberIds.Count,
+            members = memberDetails
+        }});
     }
 
     [HttpGet("groups/{groupId}/messages")]
@@ -135,12 +179,21 @@ public class ChatController : ControllerBase
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .OrderBy(m => m.CreatedAt)
+            .Select(m => new {
+                m.Id, m.SenderId, m.ReceiverId, m.GroupId,
+                m.Message, m.Type, m.Payload, m.IsRead, m.CreatedAt,
+                senderName = _context.Users.IgnoreQueryFilters()
+                    .Where(u => u.Id == m.SenderId)
+                    .Select(u => u.FullName)
+                    .FirstOrDefault()
+            })
             .ToListAsync();
 
         return Ok(new ApiResponse<dynamic> { Success = true, Data = messages });
     }
 
-    // Create group
+    // Create group — admin/manager only
+    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
     [HttpPost("groups")]
     public async Task<ActionResult> CreateGroup([FromBody] CreateGroupDto dto)
     {
@@ -160,7 +213,10 @@ public class ChatController : ControllerBase
         _context.ChatGroupMembers.AddRange(members);
         await _context.SaveChangesAsync();
 
-        return Ok(new ApiResponse<ChatGroup> { Success = true, Data = group });
+        return Ok(new ApiResponse<object> { Success = true, Data = new {
+            group.Id, group.GroupName, group.CreatedBy, group.CreatedAt,
+            memberCount = members.Count
+        }});
     }
 
     // Send group message

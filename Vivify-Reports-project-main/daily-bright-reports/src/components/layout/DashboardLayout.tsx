@@ -1,4 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
+
+class ChatErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: any) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: any) { console.error('ChatBox error:', error); }
+  render() {
+    if (this.state.hasError) {
+      // Show a minimal fallback button so users can still see the chat icon
+      return (
+        <button
+          onClick={() => this.setState({ hasError: false })}
+          className="fixed bottom-5 right-4 z-[200] flex h-12 w-12 items-center justify-center rounded-full shadow-lg bg-violet-600 text-white hover:bg-violet-700"
+          aria-label="Open chat"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranding } from '@/contexts/BrandingContext';
@@ -331,11 +352,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                         : 'text-primary-foreground/90 hover:bg-white/10 hover:text-white dark:text-slate-600 dark:hover:bg-slate-100 dark:hover:text-slate-900'
                     )}
                     onClick={() => {
-                      if (item.href === '/chat') {
-                        window.dispatchEvent(new CustomEvent('toggle-chatbox'));
-                      } else {
-                        navigate(item.href);
-                      }
+                      navigate(item.href);
                     }}
                   >
                     <span className="relative z-10 flex items-center gap-1">
@@ -493,13 +510,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                     )}
                     onClick={() => {
-                      if (item.href === '/chat') {
-                        window.dispatchEvent(new CustomEvent('toggle-chatbox'));
-                        setIsMobileMenuOpen(false);
-                      } else {
-                        navigate(item.href);
-                        setIsMobileMenuOpen(false);
-                      }
+                      navigate(item.href);
+                      setIsMobileMenuOpen(false);
                     }}
                   >
                     <div className="flex items-center gap-3 sm:gap-2">
@@ -583,7 +595,9 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       </main>
 
       {/* Floating Chat Box */}
-      <ChatBox />
+      <ChatErrorBoundary>
+        <ChatBox />
+      </ChatErrorBoundary>
     </div>
   );
 };

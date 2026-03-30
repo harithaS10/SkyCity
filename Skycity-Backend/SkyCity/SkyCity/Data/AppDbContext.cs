@@ -86,6 +86,13 @@ public class AppDbContext : DbContext
             .HasForeignKey(c => c.AssignedTo)
             .OnDelete(DeleteBehavior.NoAction);
 
+        // ChatGroup → ChatGroupMember relationship (explicit FK to avoid EF naming issues)
+        modelBuilder.Entity<ChatGroup>()
+            .HasMany(g => g.Members)
+            .WithOne()
+            .HasForeignKey(m => m.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Multi-tenant indexing (AssociationId/AdminId based)
         modelBuilder.Entity<Property>().HasIndex(p => p.AssociationId);
         modelBuilder.Entity<Complaint>().HasIndex(c => c.ResidentId);
