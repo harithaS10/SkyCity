@@ -6,7 +6,7 @@ import { useChat, ChatMsg, TaskStatusUpdate } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Users, MessageSquare, Search, Plus, X, Check } from 'lucide-react';
+import { Send, Users, MessageSquare, Search, Plus, X, Check, Paperclip } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
@@ -57,10 +57,14 @@ const GroupChat: React.FC = () => {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [lightbox, setLightbox] = useState<{src: string; name: string} | null>(null);
+  const [attachPreview, setAttachPreview] = useState<{dataUrl: string; fileName: string; fileType: string} | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = ['admin','super_admin','sub_admin','property_manager'].includes(user?.role ?? '');
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
   const [showMembers, setShowMembers] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -154,40 +158,49 @@ const GroupChat: React.FC = () => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [dmMessages, groupMessages]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('File too large (max 10MB)'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachPreview({ dataUrl: reader.result as string, fileName: file.name, fileType: file.type });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleSend = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() && !attachPreview) return;
     const t = text.trim();
+    const attach = attachPreview;
     setText('');
+    setAttachPreview(null);
     setSending(true);
+    const msgType = attach ? (attach.fileType.startsWith('image/') ? 'image' : 'file') : 'text';
+    const payload = attach ? JSON.stringify({ dataUrl: attach.dataUrl, fileName: attach.fileName, fileType: attach.fileType }) : undefined;
+    const displayMsg = attach ? (t || attach.fileName) : t;
     try {
       if (selectedUser) {
         const optimistic: ChatMsg = {
           id: Date.now(), senderId: user!.id, senderName: user!.fullName || user!.username,
-          receiverId: selectedUser.id, message: t, type: 'text',
-          createdAt: new Date().toISOString(), isRead: false,
+          receiverId: selectedUser.id, message: displayMsg, type: msgType,
+          payload: payload ?? null, createdAt: new Date().toISOString(), isRead: false,
         };
         setDmMessages(prev => [...prev, optimistic]);
-        if (chat.connected) {
-          await chat.sendMessage(selectedUser.id, t);
-        } else {
-          const res = await api.chat.send(selectedUser.id, t);
-          if (res.success && res.data)
-            setDmMessages(prev => prev.map(m => m.id === optimistic.id ? { ...optimistic, ...res.data } : m));
-        }
+        const res = await api.chat.send(selectedUser.id, displayMsg, msgType, payload);
+        if (res.success && res.data)
+          setDmMessages(prev => prev.map(m => m.id === optimistic.id ? { ...optimistic, ...res.data } : m));
       } else if (selectedGroup) {
         const optimistic: ChatMsg = {
           id: Date.now(), senderId: user!.id, senderName: user!.fullName || user!.username,
-          groupId: selectedGroup.id, receiverId: null, message: t, type: 'text',
-          createdAt: new Date().toISOString(), isRead: false,
+          groupId: selectedGroup.id, receiverId: null, message: displayMsg, type: msgType,
+          payload: payload ?? null, createdAt: new Date().toISOString(), isRead: false,
         };
         setGroupMessages(prev => [...prev, optimistic]);
-        if (chat.connected) {
-          await chat.sendGroupMessage(selectedGroup.id, t);
-        } else {
-          const res = await api.groups.sendMessage(selectedGroup.id, t);
-          if (res.success && res.data)
-            setGroupMessages(prev => prev.map(m => m.id === optimistic.id ? { ...optimistic, ...res.data } : m));
-        }
+        const res = await api.groups.sendMessage(selectedGroup.id, displayMsg, msgType, payload);
+        if (res.success && res.data)
+          setGroupMessages(prev => prev.map(m => m.id === optimistic.id ? { ...optimistic, ...res.data } : m));
       }
     } catch { } finally { setSending(false); }
   };
@@ -211,7 +224,7 @@ const GroupChat: React.FC = () => {
       <div className="flex h-[calc(100vh-5rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
 
         {/* Sidebar */}
-        <aside className="w-72 shrink-0 border-r border-gray-100 flex flex-col">
+        <aside className={cn('shrink-0 border-r border-gray-100 flex flex-col bg-white', 'w-full md:w-72', mobileView === 'chat' ? 'hidden md:flex' : 'flex')}>
           {/* Tabs */}
           <div className="flex border-b border-gray-100">
             <button onClick={() => setTab('dm')} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'dm' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
@@ -236,7 +249,7 @@ const GroupChat: React.FC = () => {
               filteredUsers.length === 0 ? (
                 <p className="p-4 text-xs text-gray-400">No users found.</p>
               ) : filteredUsers.map(u => (
-                <button key={u.id} onClick={() => { setSelectedUser(u); setSelectedGroup(null); }}
+        <button key={u.id} onClick={() => { setSelectedUser(u); setSelectedGroup(null); setMobileView('chat'); }}
                   className={cn('w-full text-left px-3 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors', selectedUser?.id === u.id ? 'bg-primary/5 border-r-2 border-primary' : '')}>
                   <div className={cn('h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0', avatarColor(u.name))}>
                     {getInitials(u.name)}
@@ -259,7 +272,7 @@ const GroupChat: React.FC = () => {
                 {filteredGroups.length === 0 ? (
                   <p className="p-4 text-xs text-gray-400">No groups yet.</p>
                 ) : filteredGroups.map(g => (
-                  <button key={g.id} onClick={() => { setSelectedGroup(g); setSelectedUser(null); }}
+                  <button key={g.id} onClick={() => { setSelectedGroup(g); setSelectedUser(null); setMobileView('chat'); }}
                     className={cn('w-full text-left px-3 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors', selectedGroup?.id === g.id ? 'bg-primary/5 border-r-2 border-primary' : '')}>
                     <div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
                       <Users className="h-4 w-4 text-white" />
@@ -279,7 +292,7 @@ const GroupChat: React.FC = () => {
         </aside>
 
         {/* Chat area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={cn('flex-1 flex flex-col min-w-0', mobileView === 'list' ? 'hidden md:flex' : 'flex')}>
           {!selectedUser && !selectedGroup ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-2">
               <MessageSquare className="h-10 w-10 opacity-30" />
@@ -289,6 +302,10 @@ const GroupChat: React.FC = () => {
             <>
               {/* Header */}
               <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 bg-white">
+                {/* Back button — mobile only */}
+                <button onClick={() => setMobileView('list')} className="md:hidden h-8 w-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
                 {selectedUser ? (
                   <>
                     <div className={cn('h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold', avatarColor(selectedUser.name))}>
@@ -370,7 +387,30 @@ const GroupChat: React.FC = () => {
                         {!isOwn && msg.senderName && (
                           <p className="text-[10px] font-semibold text-primary mb-0.5">{msg.senderName}</p>
                         )}
-                        <p className="leading-relaxed">{msg.message}</p>
+                        {msg.type === 'image' && msg.payload ? (() => {
+                          try {
+                            const p = JSON.parse(msg.payload);
+                            return (
+                              <img
+                                src={p.dataUrl} alt={p.fileName}
+                                className="max-w-[220px] max-h-[200px] rounded-lg object-cover mb-1 cursor-pointer hover:opacity-90"
+                                onClick={() => setLightbox({ src: p.dataUrl, name: p.fileName })}
+                              />
+                            );
+                          } catch { return null; }
+                        })() : msg.type === 'file' && msg.payload ? (() => {
+                          try {
+                            const p = JSON.parse(msg.payload);
+                            return (
+                              <a href={p.dataUrl} download={p.fileName} className={cn('flex items-center gap-2 px-3 py-2 rounded-lg mb-1 text-xs font-medium', isOwn ? 'bg-white/20 hover:bg-white/30' : 'bg-slate-100 hover:bg-slate-200')}>
+                                <Paperclip className="h-4 w-4 shrink-0" />
+                                <span className="truncate max-w-[160px]">{p.fileName}</span>
+                              </a>
+                            );
+                          } catch { return null; }
+                        })() : null}
+                        {msg.message && msg.type !== 'image' && <p className="leading-relaxed">{msg.message}</p>}
+                        {msg.type === 'image' && msg.message && msg.payload && (() => { try { const p = JSON.parse(msg.payload); return p.fileName !== msg.message ? <p className="leading-relaxed text-xs mt-0.5">{msg.message}</p> : null; } catch { return null; } })()}
                         <p className={cn('text-[10px] mt-1', isOwn ? 'text-white/70 text-right' : 'text-gray-400')}>{timeLabel(msg.createdAt)}</p>
                       </div>
                       {canDelete && (
@@ -389,23 +429,61 @@ const GroupChat: React.FC = () => {
               </div>
 
               {/* Input */}
-              <div className="px-4 py-3 border-t border-gray-100 bg-white flex gap-2">
-                <Input
-                  ref={inputRef}
-                  value={text}
-                  onChange={e => setText(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                  placeholder="Type a message…"
-                  className="flex-1 text-sm"
-                />
-                <Button onClick={handleSend} disabled={!text.trim() || sending} size="sm" className="shrink-0 bg-primary">
-                  <Send className="h-4 w-4" />
-                </Button>
+              <div className="px-4 py-3 border-t border-gray-100 bg-white">
+                {attachPreview && (
+                  <div className="mb-2 flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
+                    {attachPreview.fileType.startsWith('image/') ? (
+                      <img src={attachPreview.dataUrl} alt={attachPreview.fileName} className="h-10 w-10 object-cover rounded" />
+                    ) : (
+                      <Paperclip className="h-5 w-5 text-slate-500 shrink-0" />
+                    )}
+                    <span className="text-xs text-slate-600 truncate flex-1">{attachPreview.fileName}</span>
+                    <button onClick={() => setAttachPreview(null)} className="text-slate-400 hover:text-red-500">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" />
+                  <button onClick={() => fileInputRef.current?.click()} className="h-9 w-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:text-primary hover:border-primary transition-colors shrink-0">
+                    <Paperclip className="h-4 w-4" />
+                  </button>
+                  <Input
+                    ref={inputRef}
+                    value={text}
+                    onChange={e => setText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                    placeholder="Type a message…"
+                    className="flex-1 text-sm"
+                  />
+                  <Button onClick={handleSend} disabled={(!text.trim() && !attachPreview) || sending} size="sm" className="shrink-0 bg-primary">
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </>
           )}
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 z-[500] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <div className="relative max-w-4xl max-h-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setLightbox(null)} className="absolute -top-10 right-0 text-white hover:text-gray-300">
+              <X className="h-6 w-6" />
+            </button>
+            <img src={lightbox.src} alt={lightbox.name} className="max-w-full max-h-[85vh] rounded-lg object-contain" />
+            <a
+              href={lightbox.src} download={lightbox.name}
+              className="mt-3 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white text-sm py-2 px-4 rounded-lg transition-colors"
+              onClick={e => e.stopPropagation()}
+            >
+              <Paperclip className="h-4 w-4" /> Download {lightbox.name}
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Members Dialog */}
       <Dialog open={showMembers} onOpenChange={setShowMembers}>

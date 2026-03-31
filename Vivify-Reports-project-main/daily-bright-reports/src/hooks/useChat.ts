@@ -28,8 +28,9 @@ export interface ChatMsg {
   receiverId: number | null;
   groupId?: number | null;
   message: string;
-  type: 'text' | 'task' | 'system';
+  type: 'text' | 'task' | 'system' | 'image' | 'file';
   taskPayload?: string;
+  payload?: string | null;
   createdAt: string;
   isRead: boolean;
 }

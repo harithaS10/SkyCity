@@ -728,8 +728,8 @@ export const api = {
     getGroup: async (id: number) => (await apiClient.get(`/chat/groups/${id}`)).data,
     getMessages: async (id: number) => (await apiClient.get(`/chat/groups/${id}/messages`)).data,
     create: async (data: any) => (await apiClient.post('/chat/groups', data)).data,
-    sendMessage: async (id: number, message: string) => 
-      (await apiClient.post(`/chat/groups/${id}/messages`, { message })).data,
+    sendMessage: async (id: number, message: string, type?: string, payload?: string) => 
+      (await apiClient.post(`/chat/groups/${id}/messages`, { message, type: type ?? 'text', payload })).data,
   }
 };
 

@@ -80,6 +80,29 @@ public class ChatController : ControllerBase
         return Ok(new ApiResponse<dynamic> { Success = true, Data = unread });
     }
 
+    // Upload file attachment for chat
+    [HttpPost("upload")]
+    public async Task<ActionResult> UploadFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new ApiResponse { Success = false, Message = "No file provided" });
+
+        if (file.Length > 10 * 1024 * 1024) // 10MB limit
+            return BadRequest(new ApiResponse { Success = false, Message = "File too large (max 10MB)" });
+
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        var base64 = Convert.ToBase64String(ms.ToArray());
+        var dataUrl = $"data:{file.ContentType};base64,{base64}";
+
+        return Ok(new ApiResponse<object> { Success = true, Data = new {
+            dataUrl,
+            fileName = file.FileName,
+            fileType = file.ContentType,
+            fileSize = file.Length
+        }});
+    }
+
     // Delete a message — admin can delete any, user can only delete their own
     [HttpDelete("messages/{messageId}")]
     public async Task<ActionResult> DeleteMessage(int messageId)

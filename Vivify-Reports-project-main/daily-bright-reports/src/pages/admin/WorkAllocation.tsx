@@ -567,7 +567,81 @@ const WorkAllocationPage: React.FC = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+                {/* Mobile card view */}
+                <div className="lg:hidden divide-y">
+                  {filteredAllocations.map((allocation) => (
+                    <div key={allocation.id} className={cn("p-4 space-y-3", allocation.requestStatus === 'pending' && "bg-amber-50/50")}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-primary leading-tight truncate">{allocation.title}</p>
+                          {allocation.workTitle && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 border inline-block mt-1">{allocation.workTitle}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Badge variant="outline" className={cn("px-2 py-0 h-5 font-bold uppercase text-[10px]", priorityColors[allocation.priority])}>
+                            {allocation.priority}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold shrink-0">
+                          {getUserName(allocation.assignedTo).charAt(0)}
+                        </div>
+                        <span className="text-sm font-medium">{getUserName(allocation.assignedTo)}</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold border", statusColors[allocation.status])}>
+                          {statusIcons[allocation.status]}
+                          <span className="capitalize">{allocation.status.replace('-', ' ')}</span>
+                        </div>
+                        <span className={cn("text-xs font-semibold", isOverdue(allocation.dueDate, allocation.status) ? 'text-destructive' : 'text-slate-600')}>
+                          Due: {format(new Date(allocation.dueDate), 'MMM dd, yyyy')}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <Button
+                          variant="link"
+                          className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"
+                          onClick={() => openReassignDialog(allocation)}
+                        >
+                          Reassign
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Allocation?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently remove this assigned work for {getUserName(allocation.assignedTo)}. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteAllocation(allocation.id)}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table view */}
+                <div className="hidden lg:block overflow-x-auto">
                 <Table className="border-x">
                   <TableHeader className="bg-primary hover:bg-primary">
                     <TableRow className="hover:bg-transparent border-none">
@@ -703,7 +777,8 @@ const WorkAllocationPage: React.FC = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
