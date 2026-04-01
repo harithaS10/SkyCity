@@ -203,67 +203,6 @@ const Login: React.FC = () => {
                 </div>
               </div>
 
-              {/* Role Dropdown */}
-              <div className="space-y-2">
-                <Label htmlFor="role">Sign in as</Label>
-                <Select
-                  value={selectedRole}
-                  onValueChange={(v) => setSelectedRole(v as UserRole)}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger id="role" className="h-11 bg-background/50">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card">
-                    {ROLE_OPTIONS.map((r) => (
-                      <SelectItem key={r.value} value={r.value}>
-                        {r.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Department Dropdown — shown only for manager / user */}
-              {needsDepartment && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label htmlFor="department">
-                    Department{' '}
-                    <span className="text-muted-foreground text-xs font-normal">
-                      (optional)
-                    </span>
-                  </Label>
-                  <Select
-                    value={selectedDepartmentId?.toString() ?? 'none'}
-                    onValueChange={(v) =>
-                      setSelectedDepartmentId(
-                        v === 'none' ? undefined : parseInt(v, 10)
-                      )
-                    }
-                    disabled={isLoading || loadingDepts}
-                  >
-                    <SelectTrigger
-                      id="department"
-                      className="h-11 bg-background/50"
-                    >
-                      <SelectValue
-                        placeholder={
-                          loadingDepts ? 'Loading...' : 'Select department'
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card">
-                      <SelectItem value="none">— No Department —</SelectItem>
-                      {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.id.toString()}>
-                          {d.departmentName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
               <Button
                 type="submit"
                 className="w-full h-11 text-base font-semibold transition-all duration-300 active:scale-[0.98] shadow-lg shadow-primary/20"

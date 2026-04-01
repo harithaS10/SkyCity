@@ -71,7 +71,7 @@ const AdminManagement: React.FC = () => {
     try {
       const res = await api.superAdmin.updateAdmin(editTarget.id, {
         name: form.name, companyName: form.companyName,
-        themeColor: form.themeColor,
+        email: form.email, themeColor: form.themeColor,
       });
       if (res.success) {
         toast.success('Admin updated');
@@ -85,8 +85,10 @@ const AdminManagement: React.FC = () => {
     if (!confirm(`Delete admin "${name}"? This will affect all their users.`)) return;
     try {
       const res = await api.superAdmin.deleteAdmin(id);
-      if (res.success) { toast.success('Admin deleted'); load(); }
-      else toast.error(res.message || 'Failed');
+      if (res.success) {
+        toast.success('Admin deleted');
+        setTenants(prev => prev.filter(t => t.id !== id));
+      } else toast.error(res.message || 'Failed');
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -174,6 +176,7 @@ const AdminManagement: React.FC = () => {
               <div className="space-y-4 py-4">
                 {[
                   { id: 'eName', label: 'Full Name', ph: 'John Doe', field: 'name' },
+                  { id: 'eEmail', label: 'Email', ph: 'admin@company.com', field: 'email' },
                   { id: 'eCompany', label: 'Company Name', ph: 'Acme Corp', field: 'companyName' },
                 ].map(({ id, label, ph, field }) => (
                   <div key={id} className="space-y-2">
@@ -186,15 +189,6 @@ const AdminManagement: React.FC = () => {
                     />
                   </div>
                 ))}
-                <div className="space-y-2">
-                  <Label>Brand Color</Label>
-                  <div className="flex items-center gap-3">
-                    <input type="color" value={form.themeColor}
-                      onChange={e => setForm(p => ({ ...p, themeColor: e.target.value }))}
-                      className="h-10 w-16 rounded border cursor-pointer" />
-                    <span className="text-sm text-muted-foreground">{form.themeColor}</span>
-                  </div>
-                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
@@ -236,16 +230,16 @@ const AdminManagement: React.FC = () => {
               <Table>
                 <TableHeader className={headerBg}>
                   <TableRow className="hover:bg-transparent border-none">
-                    {['Company', 'Contact', 'Users', 'Status', 'Brand', 'Actions'].map(h => (
+                    {['Company', 'Contact', 'Users', 'Actions'].map(h => (
                       <TableHead key={h} className={headerText}>{h}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Loading...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground">Loading...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                    <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
                       {tenants.length === 0 ? 'No admin tenants yet. Create one to get started.' : 'No results found.'}
                     </TableCell></TableRow>
                   ) : filtered.map(t => (
@@ -262,42 +256,20 @@ const AdminManagement: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium text-sm">{t.name}</p>
+                        <p className="font-medium text-sm">{t.adminName || t.name}</p>
                         <p className="text-xs text-muted-foreground">{t.email}</p>
+                        {t.adminPhone && <p className="text-xs text-muted-foreground">{t.adminPhone}</p>}
                       </TableCell>
                       <TableCell><span className="font-semibold">{t.userCount ?? '—'}</span></TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch checked={t.status === 'active'} onCheckedChange={() => handleToggle(t.id)} />
-                          <Badge variant={t.status === 'active' ? 'default' : 'secondary'} className="px-2 py-0 text-[10px]">
-                            {t.status === 'active' ? 'Active' : 'Inactive'}
-                          </Badge>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(t)} title="Edit">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleDelete(t.id, t.companyName)} title="Delete">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-5 w-5 rounded-full border shadow-sm"
-                            style={{ backgroundColor: t.themeColor || '#6366f1' }}
-                          />
-                          <span className="text-xs text-muted-foreground">{t.themeColor || '—'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-card">
-                            <DropdownMenuItem onClick={() => openEdit(t)} className="cursor-pointer">
-                              <Pencil className="mr-2 h-4 w-4" />Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDelete(t.id, t.companyName)} className="text-destructive cursor-pointer">
-                              <Trash2 className="mr-2 h-4 w-4" />Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}

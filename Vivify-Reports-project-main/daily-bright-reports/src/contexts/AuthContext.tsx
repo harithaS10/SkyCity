@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, RolePermissions } from '@/lib/api';
 import { User, UserRole } from '@/types';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  // Role helper flags
+  permissions: RolePermissions;
   isSuperAdmin: boolean;
   isAdmin: boolean;
   isManager: boolean;
@@ -14,15 +14,10 @@ interface AuthContextType {
   isResident: boolean;
   isHelpdesk: boolean;
   canExport: boolean;
-  login: (
-    credentials: LoginCredentials
-  ) => Promise<{ success: boolean; error?: string }>;
+  hasPermission: (module: string, action?: 'view' | 'create' | 'edit' | 'delete') => boolean;
+  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  updateBranding: (branding: {
-    associationName?: string;
-    logoUrl?: string;
-    themeColor?: string;
-  }) => void;
+  updateBranding: (branding: { associationName?: string; logoUrl?: string; themeColor?: string }) => void;
 }
 
 export interface LoginCredentials {
@@ -37,13 +32,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [permissions, setPermissions] = useState<RolePermissions>({});
+
+  const loadRolePermissions = async (role: string, associationId?: number) => {
+    // Admin/super_admin have full access — no need to fetch
+    if (['admin', 'super_admin', 'sub_admin'].includes(role)) {
+      setPermissions({ reports: { view: true, create: true, edit: true, delete: true }, tasks: { view: true, create: true, edit: true, delete: true }, users: { view: true, create: true, edit: true, delete: true }, analytics: { view: true, create: true, edit: true, delete: true }, chat: { view: true, create: true, edit: true, delete: true }, export: true });
+      return;
+    }
+    try {
+      const res = await api.roles.getAll();
+      if (res.success && res.data) {
+        // Find a custom role matching this user's role name (case-insensitive)
+        const match = res.data.find((r: any) => r.roleName?.toLowerCase() === role?.toLowerCase());
+        if (match?.permissions) setPermissions(match.permissions);
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     // Restore session from localStorage
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
+      const u = JSON.parse(storedUser);
+      setUser(u);
+      loadRolePermissions(u.role, u.associationId);
     }
     setIsLoading(false);
   }, []);
@@ -77,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(mappedUser);
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(mappedUser));
+        await loadRolePermissions(mappedUser.role, mappedUser.associationId);
         setIsLoading(false);
         return { success: true };
       } else {
@@ -119,15 +134,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const isVendor = user?.role === 'vendor';
   const isResident = user?.role === 'resident';
   const isHelpdesk = user?.role === 'helpdesk';
-  
-  // Only admin, super_admin, and managers (sometimes) can export data
-  const canExport = isSuperAdmin || isAdmin || (user?.role as any) === 'accountant';
+  const canExport = isSuperAdmin || isAdmin || (user?.role as any) === 'accountant' || !!(permissions as any).export;
+
+  // Check if current user has a specific permission
+  const hasPermission = (module: string, action: 'view' | 'create' | 'edit' | 'delete' = 'view'): boolean => {
+    if (isSuperAdmin || isAdmin) return true; // full access
+    const mod = (permissions as any)[module];
+    if (!mod) return false;
+    if (typeof mod === 'boolean') return mod;
+    return !!(mod as any)[action];
+  };
 
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
+        permissions,
         isSuperAdmin,
         isAdmin,
         isManager,
@@ -136,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isResident,
         isHelpdesk,
         canExport,
+        hasPermission,
         login,
         logout,
         updateBranding,

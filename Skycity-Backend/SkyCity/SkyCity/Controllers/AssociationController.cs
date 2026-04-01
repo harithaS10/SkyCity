@@ -26,25 +26,31 @@ public class AssociationController : ControllerBase
     [HttpGet]
     public async Task<ActionResult> GetAssociations([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        var query = _context.Associations.AsQueryable();
+        // Only show associations that have an active admin user (IsDeleted=1)
+        var query = _context.Associations
+            .Where(a => _context.Users.IgnoreQueryFilters()
+                .Any(u => u.AssociationId == a.Id && u.Role == UserRole.admin && u.IsDeleted));
 
         var total = await query.CountAsync();
         var items = await query
             .OrderBy(a => a.AssociationName)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(a => new {
+                a.Id, a.AssociationName, a.Email, a.Phone, a.Address,
+                a.ThemeColor, a.LogoUrl, a.Slug, a.IsActive, a.CreatedAt,
+                userCount = _context.Users.IgnoreQueryFilters().Count(u => u.AssociationId == a.Id),
+                admin = _context.Users.IgnoreQueryFilters()
+                    .Where(u => u.AssociationId == a.Id && u.Role == UserRole.admin && u.IsDeleted)
+                    .Select(u => new { u.Id, u.FullName, u.Username, u.Phone, u.IsActive })
+                    .FirstOrDefault()
+            })
             .ToListAsync();
 
         return Ok(new ApiResponse<dynamic>
         {
-            Data = new
-            {
-                Total = total,
-                Page = page,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling(total / (double)pageSize),
-                Items = items
-            }
+            Success = true,
+            Data = new { Total = total, Page = page, PageSize = pageSize, TotalPages = (int)Math.Ceiling(total / (double)pageSize), Items = items }
         });
     }
 
@@ -52,7 +58,7 @@ public class AssociationController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult> GetAssociation(int id)
     {
-        var association = await _context.Associations.FindAsync(id);
+        var association = await _context.Associations.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
         if (association == null)
             return NotFound(new ApiResponse { Success = false, Message = "Association not found" });
 
@@ -98,7 +104,7 @@ public class AssociationController : ControllerBase
         if (id != dto.Id || !ModelState.IsValid)
             return BadRequest(new ApiResponse { Success = false, Message = "BadRequest" });
 
-        var association = await _context.Associations.FindAsync(id);
+        var association = await _context.Associations.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
         if (association == null)
             return NotFound(new ApiResponse { Success = false, Message = "Not Found" });
 
@@ -106,12 +112,12 @@ public class AssociationController : ControllerBase
 
         association.AssociationName = dto.AssociationName ?? association.AssociationName;
         association.AdminId = dto.AdminId ?? association.AdminId;
-        association.LogoUrl = dto.LogoUrl;
-        association.ThemeColor = dto.ThemeColor;
-        association.Slug = dto.Slug;
-        association.Address = dto.Address;
-        association.Phone = dto.Phone;
-        association.Email = dto.Email;
+        association.LogoUrl = dto.LogoUrl ?? association.LogoUrl;
+        association.ThemeColor = dto.ThemeColor ?? association.ThemeColor;
+        association.Slug = dto.Slug ?? association.Slug;
+        association.Address = dto.Address ?? association.Address;
+        association.Phone = dto.Phone ?? association.Phone;
+        association.Email = dto.Email ?? association.Email;
         association.IsActive = dto.IsActive ?? association.IsActive;
 
         await _context.SaveChangesAsync();
@@ -124,22 +130,23 @@ public class AssociationController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAssociation(int id)
     {
-        var association = await _context.Associations.FindAsync(id);
-        if (association == null)
+        var rows = await _context.Database.ExecuteSqlRawAsync(
+            "UPDATE Associations SET IsDeleted = 0 WHERE Id = {0}", id);
+
+        if (rows == 0)
             return NotFound(new ApiResponse { Success = false, Message = "Not Found" });
 
-        _context.Associations.Remove(association);
-        await _context.SaveChangesAsync();
+        // Also soft-delete the admin user of this association
+        await _context.Database.ExecuteSqlRawAsync(
+            "UPDATE Users SET IsDeleted = 0 WHERE AssociationId = {0} AND Role = 'admin'", id);
 
-        await _auditService.LogChangeAsync<Association>("Delete", "Association", association);
-
-        return Ok(new ApiResponse { Message = "Deleted successfully" });
+        return Ok(new ApiResponse { Success = true, Message = "Deleted successfully" });
     }
 
     [HttpPatch("{id}/toggle-status")]
     public async Task<IActionResult> ToggleStatus(int id)
     {
-        var association = await _context.Associations.FindAsync(id);
+        var association = await _context.Associations.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);
         if (association == null)
             return NotFound(new ApiResponse { Success = false, Message = "Not Found" });
 

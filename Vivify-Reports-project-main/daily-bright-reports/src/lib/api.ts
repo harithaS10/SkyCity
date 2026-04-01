@@ -10,8 +10,12 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.vivifysoft.in/
 
 export interface AdminTenant {
   id: number;
+  name: string;
   companyName: string;
   email: string;
+  adminName?: string;
+  adminPhone?: string;
+  adminActive?: boolean;
   themeColor?: string;
   status: 'active' | 'inactive';
   userCount?: number;
@@ -641,8 +645,12 @@ export const api = {
         message: data.message,
         data: items.map((a: any) => ({
           id: a.id,
+          name: a.associationName,
           companyName: a.associationName,
-          email: a.email ?? '',
+          email: a.admin?.username || a.email || '',
+          adminName: a.admin?.fullName || '',
+          adminPhone: a.admin?.phone || '',
+          adminActive: a.admin?.isActive ?? true,
           themeColor: a.themeColor,
           status: a.isActive ? 'active' : 'inactive',
           userCount: a.userCount ?? 0,
@@ -678,8 +686,10 @@ export const api = {
     },
     updateAdmin: async (id: number, data: any): Promise<ApiResponse<any>> => {
       const response = await apiClient.put(`/association/${id}`, {
+        id,
         associationName: data.companyName,
         themeColor: data.themeColor,
+        email: data.email,
       });
       return response.data;
     },
