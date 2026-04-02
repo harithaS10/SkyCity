@@ -24,12 +24,13 @@ export interface AdminTenant {
 
 export type PermissionSet = { view: boolean; create: boolean; edit: boolean; delete: boolean; };
 export type RolePermissions = {
-  reports?: PermissionSet;
-  tasks?: PermissionSet;
-  users?: PermissionSet;
+  complaints?: PermissionSet;
+  work_orders?: PermissionSet;
+  daily_reports?: PermissionSet;
   analytics?: PermissionSet;
   chat?: PermissionSet;
   export?: boolean;
+  [key: string]: PermissionSet | boolean | undefined;
 };
 export interface CustomRole {
   id: number;

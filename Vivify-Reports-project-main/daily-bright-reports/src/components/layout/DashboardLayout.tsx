@@ -64,7 +64,7 @@ import { cn } from '@/lib/utils';
 import { ModeToggle } from '@/components/ModeToggle';
 import { ChatBox } from '@/components/ChatBox';
 import { Badge } from '@/components/ui/badge';
-import logo from '@/assets/logo.jpg';
+import logo from '@/assets/skycity-logo.png';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -110,6 +110,7 @@ const navItems: NavItem[] = [
 
   // Reporting
   { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
+  { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
   { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager'] },
   
   // Shared
@@ -153,7 +154,7 @@ const ROLE_BADGE: Record<AllowedRole, { label: string; color: string }> = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const { companyName, logoUrl } = useBranding();
   const navigate = useNavigate();
   const location = useLocation();
@@ -177,9 +178,25 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     try { localStorage.setItem(DISMISSED_KEY, JSON.stringify([...ids])); } catch { /* ignore */ }
   };
 
-  const filteredNavItems = navItems.filter(
-    (item) => user && item.roles.includes(user.role as AllowedRole)
-  );
+  const filteredNavItems = navItems.filter((item) => {
+    if (!user) return false;
+    if (!item.roles.includes(user.role as AllowedRole)) return false;
+    // For staff, apply custom role permissions
+    if (user.role === 'staff') {
+      const moduleMap: Record<string, string> = {
+        '/complaints': 'complaints',
+        '/admin/work-allocation': 'work_orders',
+        '/daily-report': 'daily_reports',
+        '/my-reports': 'daily_reports',
+        '/my-tasks': 'work_orders',
+        '/admin/analytics': 'analytics',
+        '/chat': 'chat',
+      };
+      const module = moduleMap[item.href];
+      if (module) return hasPermission(module, 'view');
+    }
+    return true;
+  });
 
   useEffect(() => {
     if ((user?.role === 'staff' || user?.role === 'resident')) {

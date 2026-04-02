@@ -22,7 +22,7 @@ import {
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import logo from '@/assets/logo.jpg';
+import logo from '@/assets/skycity-logo.png';
 //console.log('API object:', api);
 //console.log('API departments:', api.departments);
 
@@ -48,7 +48,7 @@ const Login: React.FC = () => {
   const [loadingDepts, setLoadingDepts] = useState(false);
 
   // Tenant branding — loaded if ?tenant= param is in URL
-  const [tenantName, setTenantName] = useState('Vivify Reports');
+  const [tenantName, setTenantName] = useState('SkyCity');
   const [tenantLogo, setTenantLogo] = useState<string | undefined>(undefined);
 
   useEffect(() => {

@@ -39,8 +39,9 @@ const statusColors: Record<string, string> = {
 };
 
 const Complaints: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canManage = ['admin', 'sub_admin', 'property_manager', 'helpdesk', 'super_admin'].includes(user?.role ?? '');
+  const canCreate = user?.role === 'staff' ? hasPermission('complaints', 'create') : true;
 
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [categories, setCategories] = useState<ComplaintCategory[]>([]);
@@ -143,34 +144,37 @@ const Complaints: React.FC = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <MessageSquareWarning className="h-7 w-7 text-primary" />
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <MessageSquareWarning className="h-5 w-5 text-primary" />
               Complaint Management
             </h1>
-            <p className="text-muted-foreground text-sm">Manage and track complaints</p>
+            <p className="text-muted-foreground text-xs">Manage and track complaints</p>
           </div>
-          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> Add Complaint
+          <Button size="sm" onClick={() => {
+            if (!canCreate) { toast.error("You don't have permission to create complaints"); return; }
+            setIsCreateOpen(true);
+          }} className="gap-1 shrink-0">
+            <Plus className="h-4 w-4" /> Add
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {Object.entries(counts).map(([label, count]) => (
             <Card key={label} className="cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => setFilterStatus(label)}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  {label === 'Open' && <AlertCircle className="h-5 w-5 text-destructive" />}
-                  {label === 'Assigned' && <Clock className="h-5 w-5 text-warning" />}
-                  {label === 'In Progress' && <Loader2 className="h-5 w-5 text-primary" />}
-                  {label === 'Resolved' && <CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+              <CardContent className="p-3 flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                  {label === 'Open' && <AlertCircle className="h-4 w-4 text-destructive" />}
+                  {label === 'Assigned' && <Clock className="h-4 w-4 text-warning" />}
+                  {label === 'In Progress' && <Loader2 className="h-4 w-4 text-primary" />}
+                  {label === 'Resolved' && <CheckCircle2 className="h-4 w-4 text-emerald-600" />}
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{isLoading ? '—' : count}</p>
-                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <p className="text-xl font-bold">{isLoading ? '—' : count}</p>
+                  <p className="text-xs text-muted-foreground">{label}</p>
                 </div>
               </CardContent>
             </Card>
@@ -178,19 +182,19 @@ const Complaints: React.FC = () => {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-3">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search complaints..." value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
           <Tabs value={filterStatus} onValueChange={setFilterStatus}>
-            <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="Open">Open</TabsTrigger>
-              <TabsTrigger value="Assigned">Assigned</TabsTrigger>
-              <TabsTrigger value="In Progress">In Progress</TabsTrigger>
-              <TabsTrigger value="Resolved">Resolved</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-5">
+              <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
+              <TabsTrigger value="Open" className="text-xs">Open</TabsTrigger>
+              <TabsTrigger value="Assigned" className="text-xs">Assigned</TabsTrigger>
+              <TabsTrigger value="In Progress" className="text-xs">In Progress</TabsTrigger>
+              <TabsTrigger value="Resolved" className="text-xs">Resolved</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>

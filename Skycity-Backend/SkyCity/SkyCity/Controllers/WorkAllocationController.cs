@@ -5,6 +5,8 @@ using SkycityBackend.Data;
 using SkycityBackend.Models;
 using System.Security.Claims;
 
+using SkycityBackend.Attributes;
+
 namespace SkycityBackend.Controllers;
 
 [Authorize]
@@ -48,6 +50,29 @@ public class WorkAllocationController : ControllerBase
         return Ok(new ApiResponse<dynamic> { Success = true, Data = items });
     }
 
+    [RequirePermission("work_orders", "create")]
+    [HttpPost("self-assign")]
+    public async Task<ActionResult> SelfAssign([FromBody] SelfAssignDto dto)
+    {
+        var alloc = new WorkAllocation
+        {
+            Title = dto.Title,
+            Description = dto.Description,
+            WorkId = dto.WorkId,
+            AssignedTo = CurrentUserId,
+            AssignedBy = CurrentUserId,
+            AssociationId = CurrentAssocId,
+            Priority = dto.Priority ?? "medium",
+            Status = "pending",
+            DueDate = dto.DueDate,
+            CreatedAt = DateTime.UtcNow
+        };
+        _context.WorkAllocations.Add(alloc);
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<dynamic> { Success = true, Message = "Work started and admin notified", Data = alloc });
+    }
+
+    [RequirePermission("work_orders", "create")]
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] CreateAllocationDto dto)
     {
@@ -155,3 +180,12 @@ public class CreateAllocationDto
 public class UpdateStatusDto { public string Status { get; set; } = string.Empty; }
 public class ProgressDto { public string ProgressNote { get; set; } = string.Empty; }
 public class ReassignDto { public int NewUserId { get; set; } public string? Reason { get; set; } }
+public class SelfAssignDto
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int WorkId { get; set; }
+    public string? ClientId { get; set; }
+    public string Priority { get; set; } = "medium";
+    public DateTime DueDate { get; set; }
+}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -86,6 +87,7 @@ const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = 
 };
 
 const Analytics: React.FC = () => {
+  const { canExport } = useAuth();
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [customStartDate, setCustomStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -530,7 +532,7 @@ const Analytics: React.FC = () => {
               <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
               <p className="text-muted-foreground">Monitor performance and report distribution</p>
             </div>
-            <Button onClick={handleWhatsAppExport} className="lg:hidden btn-gradient rounded-xl gap-2 shadow-md" size="sm">
+            <Button onClick={handleWhatsAppExport} className="lg:hidden btn-gradient rounded-xl gap-2 shadow-md" size="sm" disabled={!canExport}>
               <Download className="h-4 w-4" />
               Share Excel
             </Button>
@@ -643,7 +645,7 @@ const Analytics: React.FC = () => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="gap-2 btn-gradient border-none rounded-xl">
+                <Button className="gap-2 btn-gradient border-none rounded-xl" disabled={!canExport} title={!canExport ? "You don't have export permission" : undefined}>
                   <Download className="h-4 w-4" />
                   Export Data
                 </Button>

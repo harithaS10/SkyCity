@@ -72,7 +72,8 @@ const createEmptyRows = (count: number, startingIndex: number = 0): WorkRow[] =>
 };
 
 const DailyReport: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const canCreate = user?.role === 'staff' ? hasPermission('daily_reports', 'create') : true;
   const [date, setDate] = useState<Date>(new Date());
   const [rows, setRows] = useState<WorkRow[]>(createEmptyRows(10));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -324,6 +325,7 @@ const DailyReport: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    if (!canCreate) { toast.error("You don't have permission to submit reports"); return; }
     const filledRows = rows.filter((row) =>
       row.workDescription.trim() || row.workCode === 'OTHERS'
     );

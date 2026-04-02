@@ -72,6 +72,7 @@ builder.Services.AddResponseCaching();
 // Custom Services
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<TenantFilter>();
 
 builder.Services.AddResponseCompression(options =>

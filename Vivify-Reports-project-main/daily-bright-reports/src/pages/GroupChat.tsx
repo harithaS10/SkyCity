@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Send, Users, MessageSquare, Search, Plus, X, Check, Paperclip } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -42,7 +43,8 @@ interface User { id: number; name: string; fullName?: string; role: string; isAc
 interface Group { id: number; groupName: string; memberCount?: number; unreadCount?: number; members?: {userId: number; name?: string}[]; }
 
 const GroupChat: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const canChat = user?.role === 'staff' ? hasPermission('chat', 'create') : true;
   const chat = useChat(true);
 
   const [tab, setTab] = useState<'dm' | 'groups'>('dm');
@@ -171,6 +173,7 @@ const GroupChat: React.FC = () => {
   };
 
   const handleSend = async () => {
+    if (!canChat) { toast.error("You don't have permission to send messages"); return; }
     if (!text.trim() && !attachPreview) return;
     const t = text.trim();
     const attach = attachPreview;
@@ -453,10 +456,11 @@ const GroupChat: React.FC = () => {
                     value={text}
                     onChange={e => setText(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                    placeholder="Type a message…"
+                    placeholder={canChat ? "Type a message…" : "You don't have permission to send messages"}
                     className="flex-1 text-sm"
+                    disabled={!canChat}
                   />
-                  <Button onClick={handleSend} disabled={(!text.trim() && !attachPreview) || sending} size="sm" className="shrink-0 bg-primary">
+                  <Button onClick={handleSend} disabled={(!text.trim() && !attachPreview) || sending || !canChat} size="sm" className="shrink-0 bg-primary">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>

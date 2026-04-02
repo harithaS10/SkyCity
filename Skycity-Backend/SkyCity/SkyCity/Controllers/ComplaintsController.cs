@@ -7,6 +7,8 @@ using SkycityBackend.Models;
 using SkycityBackend.Services;
 using System.Security.Claims;
 
+using SkycityBackend.Attributes;
+
 namespace SkycityBackend.Controllers;
 
 [Authorize]
@@ -96,6 +98,7 @@ public class ComplaintsController : ControllerBase
     }
 
     [Authorize(Roles = "resident,staff,helpdesk,property_manager,admin,sub_admin")]
+    [RequirePermission("complaints", "create")]
     [HttpPost]
     public async Task<ActionResult> CreateComplaint([FromBody] CreateComplaintDto dto)
     {

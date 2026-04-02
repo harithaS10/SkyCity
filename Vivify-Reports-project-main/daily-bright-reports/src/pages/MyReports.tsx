@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -25,7 +26,7 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import { FileText, Calendar as CalendarIcon, TrendingUp, Clock, Loader2 } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon, TrendingUp, Clock, Loader2, Download } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO, subDays } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -49,7 +50,7 @@ type TimeRange = 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 const MyReports: React.FC = () => {
   // ... (Existing state)
-  const { user } = useAuth();
+  const { user, canExport } = useAuth();
   const [timeRange, setTimeRange] = useState<TimeRange>('weekly');
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +58,6 @@ const MyReports: React.FC = () => {
     from: subDays(new Date(), 30),
     to: new Date(),
   });
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // ... (getDateRange, useEffect with fetchReports - no change)
 
@@ -107,25 +107,22 @@ const MyReports: React.FC = () => {
 
   const { start } = getDateRange(timeRange);
   const filteredReports = reports;
-  const totalEntries = filteredReports.reduce((sum, r) => sum + r.entries.length, 0);
+  const totalEntries = filteredReports.length; // each WorkAllocation record = 1 entry
 
-  // ... (getChartData - reused)
   const getChartData = () => {
-    // ... (Logic simplified for brevity, assume similar structure but cleaner)
-    // Reuse logic from before but careful with 'custom'
     if (timeRange === 'custom' && dateRange?.from && dateRange?.to) {
-      // Show daily for custom range
       const data = [];
       let current = new Date(dateRange.from);
       const end = dateRange.to;
       while (current <= end) {
         const dateStr = format(current, 'yyyy-MM-dd');
-        const dayReports = reports.filter((r) => format(parseISO(r.date || r.Date), 'yyyy-MM-dd') === dateStr);
-        const entriesCount = dayReports.reduce((sum, r) => sum + (r.entries?.length || 0), 0);
-        data.push({
-          label: format(current, 'MMM dd'),
-          entries: entriesCount,
+        const dayReports = reports.filter((r) => {
+          const d = r.createdAt || r.date || r.Date;
+          if (!d) return false;
+          try { return format(parseISO(d), 'yyyy-MM-dd') === dateStr; } catch { return false; }
         });
+        const entriesCount = dayReports.length;
+        data.push({ label: format(current, 'MMM dd'), entries: entriesCount });
         current.setDate(current.getDate() + 1);
       }
       return data;
@@ -138,37 +135,35 @@ const MyReports: React.FC = () => {
         const date = new Date(s);
         date.setDate(date.getDate() + i);
         const dateStr = format(date, 'yyyy-MM-dd');
-        const dayReports = reports.filter((r) => format(parseISO(r.date || r.Date), 'yyyy-MM-dd') === dateStr);
-        const entriesCount = dayReports.reduce((sum, r) => sum + (r.entries?.length || 0), 0);
-        data.push({
-          label: format(date, 'EEE'),
-          entries: entriesCount,
+        const dayReports = reports.filter((r) => {
+          const d = r.createdAt || r.date || r.Date;
+          if (!d) return false;
+          try { return format(parseISO(d), 'yyyy-MM-dd') === dateStr; } catch { return false; }
         });
+        const entriesCount = dayReports.length;
+        data.push({ label: format(date, 'EEE'), entries: entriesCount });
       }
       return data;
     } else if (timeRange === 'monthly') {
-      // ... existing monthly log
       const data = [];
       const s = startOfMonth(new Date());
-      const weeks = 5; // Cover potential overflow
+      const weeks = 5;
       for (let i = 0; i < weeks; i++) {
         const weekStart = new Date(s);
         weekStart.setDate(weekStart.getDate() + i * 7);
         if (weekStart > endOfMonth(new Date())) break;
-
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 6);
-
         const weekReports = reports.filter((r) => {
-          const reportDate = parseISO(r.date || r.Date);
-          return reportDate >= weekStart && reportDate <= weekEnd;
+          const d = r.createdAt || r.date || r.Date;
+          if (!d) return false;
+          try {
+            const reportDate = parseISO(d);
+            return reportDate >= weekStart && reportDate <= weekEnd;
+          } catch { return false; }
         });
-
-        const entries = weekReports.reduce((sum, r) => sum + (r.entries?.length || 0), 0);
-        data.push({
-          label: `Week ${i + 1}`,
-          entries,
-        });
+        const entries = weekReports.length;
+        data.push({ label: `Week ${i + 1}`, entries });
       }
       return data;
     } else {
@@ -178,17 +173,16 @@ const MyReports: React.FC = () => {
       for (let i = 0; i < 12; i++) {
         const monthStart = new Date(s.getFullYear(), i, 1);
         const monthEnd = new Date(s.getFullYear(), i + 1, 0);
-
         const monthReports = reports.filter((r) => {
-          const reportDate = parseISO(r.date || r.Date);
-          return reportDate >= monthStart && reportDate <= monthEnd;
+          const d = r.createdAt || r.date || r.Date;
+          if (!d) return false;
+          try {
+            const reportDate = parseISO(d);
+            return reportDate >= monthStart && reportDate <= monthEnd;
+          } catch { return false; }
         });
-
-        const entries = monthReports.reduce((sum, r) => sum + (r.entries?.length || 0), 0);
-        data.push({
-          label: format(monthStart, 'MMM'),
-          entries,
-        });
+        const entries = monthReports.length;
+        data.push({ label: format(monthStart, 'MMM'), entries });
       }
       return data;
     }
@@ -196,25 +190,27 @@ const MyReports: React.FC = () => {
 
   const chartData = getChartData();
 
-  const handleClearHistory = () => {
-    setIsDeleteDialogOpen(true);
-  };
+  const handleExport = () => {
+    if (filteredReports.length === 0) { toast.info("No reports to export"); return; }
 
-  const confirmDelete = async () => {
-    try {
-      const res = await api.reports.deleteAllMyReports();
-      if (res.success) {
-        toast.success(res.message);
-        setReports([]); // Clear local state
-      } else {
-        toast.error(res.message || "Failed to clear reports.");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("An error occurred.");
-    } finally {
-      setIsDeleteDialogOpen(false);
-    }
+    const rows: any[] = [];
+    filteredReports.forEach((report: any) => {
+      rows.push({
+        'Date': (() => { const d = report.createdAt || report.date; if (!d) return 'N/A'; try { return format(parseISO(d), 'dd-MMM-yyyy'); } catch { return 'N/A'; } })(),
+        'Work Title': report.title || report.Title || 'N/A',
+        'Description': report.description || report.Description || 'N/A',
+        'Priority': report.priority || 'N/A',
+        'Status': report.status || 'N/A',
+        'Due Date': report.dueDate ? (() => { try { return format(parseISO(report.dueDate), 'dd-MMM-yyyy'); } catch { return 'N/A'; } })() : 'N/A',
+      });
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'My Reports');
+    const fileName = `my-reports-${user?.fullName?.replace(/\s+/g, '-') ?? 'export'}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    toast.success('Download started');
   };
 
   return (
@@ -226,9 +222,18 @@ const MyReports: React.FC = () => {
             <p className="text-muted-foreground">View your submitted work reports and performance</p>
           </div>
           <div className="flex gap-2 items-center">
-            <Button variant="destructive" className="gap-2" onClick={handleClearHistory}>
-              <Trash2 className="h-4 w-4" />
-              Clear History
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleExport}
+              title="Download my reports as Excel"
+            >
+              <Download className="h-4 w-4" />
+              Export Excel
+            </Button>
+            <Button className="gap-2" onClick={() => window.location.hash = '/daily-report'}>
+              <FileText className="h-4 w-4" />
+              Create Report
             </Button>
 
             {timeRange === 'custom' && (
@@ -409,12 +414,11 @@ const MyReports: React.FC = () => {
                           return (
                             <TableRow key={report.id} className="hover:bg-muted/50">
                               <TableCell className="font-medium border-r last:border-r-0 align-middle">
-                                {format(parseISO(report.date || report.Date), 'MMM dd, yyyy')}
+                {(() => { const d = report.createdAt || report.date || report.Date; if (!d) return 'N/A'; try { return format(parseISO(d), 'dd-MMM-yyyy'); } catch { return 'N/A'; } })()}
                               </TableCell>
-                              <TableCell className="border-r last:border-r-0 text-center align-middle">{report.entries?.length || 0}</TableCell>
+                              <TableCell className="border-r last:border-r-0 text-center align-middle">1</TableCell>
                               <TableCell className="max-w-xs truncate text-xs text-muted-foreground border-r last:border-r-0 align-middle">
-                                {report.entries?.map((e: any) => e.workTitle || e.Description).slice(0, 2).join(', ')}
-                                {report.entries?.length > 2 && '...'}
+                                {report.title || report.Title || '—'}
                               </TableCell>
                               <TableCell className="text-muted-foreground border-r last:border-r-0 text-center align-middle">
                                 {report.totalTimeSpent || report.TotalTimeSpent || 0}h
@@ -438,22 +442,6 @@ const MyReports: React.FC = () => {
           </div>
         </Tabs>
 
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete ALL your past reports and work history.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                Delete All History
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     </DashboardLayout>
   );

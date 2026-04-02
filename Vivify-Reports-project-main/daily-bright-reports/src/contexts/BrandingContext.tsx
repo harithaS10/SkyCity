@@ -14,7 +14,7 @@ interface BrandingContextType {
 }
 
 const BrandingContext = createContext<BrandingContextType>({
-  companyName: 'Vivify Reports',
+  companyName: 'SkyCity',
   logoUrl: undefined,
   themeColor: undefined,
 });
@@ -41,7 +41,7 @@ export const BrandingProvider: React.FC<{ children: ReactNode }> = ({
   const { user } = useAuth();
   const previousColor = useRef<string | undefined>(undefined);
 
-  const companyName = user?.companyName || 'Vivify Reports';
+  const companyName = user?.companyName || 'SkyCity';
   const logoUrl = user?.logoUrl;
   const themeColor = user?.themeColor;
 

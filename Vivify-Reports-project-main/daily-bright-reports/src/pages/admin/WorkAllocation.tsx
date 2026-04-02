@@ -97,6 +97,8 @@ const statusIcons = {
 };
 
 const WorkAllocationPage: React.FC = () => {
+  const { user, hasPermission } = useAuth();
+  const canCreate = user?.role === 'staff' ? hasPermission('work_orders', 'create') : true;
   const [allocations, setAllocations] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [availableWorks, setAvailableWorks] = useState<any[]>([]);
@@ -292,12 +294,13 @@ const WorkAllocationPage: React.FC = () => {
           </div>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 shadow-lg shadow-primary/20">
+              <Button className="gap-2 shadow-lg shadow-primary/20" onClick={(e) => {
+                if (!canCreate) { e.preventDefault(); toast.error("You don't have permission to allocate work"); }
+              }}>
                 <Plus className="h-4 w-4" />
                 Allocate New Work
               </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+            </DialogTrigger>            <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
               <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Allocate Work</DialogTitle>
                 <DialogDescription>

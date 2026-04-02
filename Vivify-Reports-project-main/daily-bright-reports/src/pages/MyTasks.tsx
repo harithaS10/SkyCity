@@ -59,7 +59,8 @@ const statusColors: Record<string, string> = {
 type TaskTypeFilter = 'all' | 'daily' | 'monthly';
 
 const MyTasks: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const canCreate = user?.role === 'staff' ? hasPermission('work_orders', 'create') : true;
   const [allocations, setAllocations] = useState<any[]>([]);
   const [adminTasks, setAdminTasks] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
@@ -298,6 +299,7 @@ const MyTasks: React.FC = () => {
 
 
   const handleSelfAssign = async () => {
+    if (!canCreate) { toast.error("You don't have permission to create work"); return; }
     if (!selfAssignData.title || !selfAssignData.workId) {
       toast.error("Please fill in the required fields");
       return;
@@ -494,7 +496,10 @@ const MyTasks: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md h-10 px-5 rounded-xl border-none"
-              onClick={() => setIsSelfAssignDialogOpen(true)}
+              onClick={() => {
+                if (!canCreate) { toast.error("You don't have permission to create work"); return; }
+                setIsSelfAssignDialogOpen(true);
+              }}
             >
               <Plus className="h-4 w-4" />
               <span className="font-semibold">Start New Work</span>

@@ -5,6 +5,8 @@ using SkycityBackend.Data;
 using SkycityBackend.Models;
 using System.Security.Claims;
 
+using SkycityBackend.Attributes;
+
 namespace SkycityBackend.Controllers;
 
 [Authorize]
@@ -131,6 +133,7 @@ public class ChatController : ControllerBase
     }
 
     // Send a DM
+    [RequirePermission("chat", "create")]
     [HttpPost("send")]
     public async Task<ActionResult> Send([FromBody] SendMessageDto dto)
     {
@@ -243,6 +246,7 @@ public class ChatController : ControllerBase
     }
 
     // Send group message
+    [RequirePermission("chat", "create")]
     [HttpPost("groups/{groupId}/messages")]
     public async Task<ActionResult> SendGroupMessage(int groupId, [FromBody] SendMessageDto dto)
     {

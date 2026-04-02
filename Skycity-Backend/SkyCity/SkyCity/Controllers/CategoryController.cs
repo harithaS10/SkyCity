@@ -27,6 +27,7 @@ public class CategoryController : ControllerBase
             query = query.Where(c => c.AssociationId == assocId);
 
         var items = await query
+            .Where(c => c.IsActive)
             .OrderBy(c => c.CategoryName)
             .Select(c => new {
                 c.Id, c.CategoryName, c.Department,

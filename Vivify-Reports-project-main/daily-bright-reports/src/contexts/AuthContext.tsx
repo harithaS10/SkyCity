@@ -37,13 +37,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const loadRolePermissions = async (role: string, associationId?: number) => {
     // Admin/super_admin have full access — no need to fetch
     if (['admin', 'super_admin', 'sub_admin'].includes(role)) {
-      setPermissions({ reports: { view: true, create: true, edit: true, delete: true }, tasks: { view: true, create: true, edit: true, delete: true }, users: { view: true, create: true, edit: true, delete: true }, analytics: { view: true, create: true, edit: true, delete: true }, chat: { view: true, create: true, edit: true, delete: true }, export: true });
+      setPermissions({ complaints: { view: true, create: true, edit: true, delete: true }, work_orders: { view: true, create: true, edit: true, delete: true }, daily_reports: { view: true, create: true, edit: true, delete: true }, analytics: { view: true, create: true, edit: true, delete: true }, chat: { view: true, create: true, edit: true, delete: true }, export: true });
       return;
     }
     try {
       const res = await api.roles.getAll();
       if (res.success && res.data) {
-        // Find a custom role matching this user's role name (case-insensitive)
         const match = res.data.find((r: any) => r.roleName?.toLowerCase() === role?.toLowerCase());
         if (match?.permissions) setPermissions(match.permissions);
       }
@@ -61,6 +60,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     setIsLoading(false);
   }, []);
+
+  // Poll permissions every 30s so role changes apply without re-login
+  useEffect(() => {
+    if (!user || ['admin', 'super_admin', 'sub_admin'].includes(user.role)) return;
+    const interval = setInterval(() => {
+      loadRolePermissions(user.role, user.associationId);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user?.role]);
 
   const login = async (
     credentials: LoginCredentials
@@ -108,11 +116,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = () => {
+    // Clear daily report cache for the current user
+    if (user) {
+      const prefix = `daily_report_${user.id}_`;
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(prefix))
+        .forEach(k => localStorage.removeItem(k));
+    }
     setUser(null);
+    setPermissions({});
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    localStorage.removeItem('authToken'); // Legacy cleanup
-    localStorage.removeItem('currentUser'); // Legacy cleanup
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
   };
 
   const updateBranding = (branding: {

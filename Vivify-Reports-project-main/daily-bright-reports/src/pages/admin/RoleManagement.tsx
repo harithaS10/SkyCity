@@ -21,8 +21,16 @@ import { cn } from '@/lib/utils';
 
 // ─── Permissions Matrix ────────────────────────────────────────────────────
 
-const MODULES = ['reports', 'tasks', 'users', 'analytics', 'chat'] as const;
+const MODULES = ['complaints', 'work_orders', 'daily_reports', 'analytics', 'chat'] as const;
 const PERM_KEYS = ['view', 'create', 'edit', 'delete'] as const;
+
+const MODULE_LABELS: Record<typeof MODULES[number], string> = {
+  complaints: 'Complaints',
+  work_orders: 'Work Orders',
+  daily_reports: 'Daily Reports',
+  analytics: 'Analytics',
+  chat: 'Community Chat',
+};
 
 type ModuleKey = typeof MODULES[number];
 type PermKey = typeof PERM_KEYS[number];
@@ -129,7 +137,7 @@ const RoleManagement: React.FC = () => {
         <tbody>
           {MODULES.map(m => (
             <tr key={m} className="border-t">
-              <td className="px-4 py-2 font-medium capitalize">{m}</td>
+              <td className="px-4 py-2 font-medium">{MODULE_LABELS[m]}</td>
               {PERM_KEYS.map(k => {
                 const checked = !!(perms as any)[m]?.[k];
                 return (
@@ -242,7 +250,7 @@ const RoleManagement: React.FC = () => {
               <Table>
                 <TableHeader className={headerBg}>
                   <TableRow className="hover:bg-transparent border-none">
-                    {['Role Name', 'Reports', 'Tasks', 'Users', 'Analytics', 'Export', 'Actions'].map(h => (
+                    {['Role Name', 'Complaints', 'Work Orders', 'Daily Reports', 'Analytics', 'Chat', 'Export', 'Actions'].map(h => (
                       <TableHead key={h} className={headerText}>{h}</TableHead>
                     ))}
                   </TableRow>
@@ -261,10 +269,11 @@ const RoleManagement: React.FC = () => {
                     return (
                       <TableRow key={r.id} className="hover:bg-slate-50/50">
                         <TableCell className="font-medium">{r.roleName}</TableCell>
-                        <TableCell className="text-center">{tick(hasAny(p.reports))}</TableCell>
-                        <TableCell className="text-center">{tick(hasAny(p.tasks))}</TableCell>
-                        <TableCell className="text-center">{tick(hasAny(p.users))}</TableCell>
+                        <TableCell className="text-center">{tick(hasAny(p.complaints))}</TableCell>
+                        <TableCell className="text-center">{tick(hasAny(p.work_orders))}</TableCell>
+                        <TableCell className="text-center">{tick(hasAny(p.daily_reports))}</TableCell>
                         <TableCell className="text-center">{tick(hasAny(p.analytics))}</TableCell>
+                        <TableCell className="text-center">{tick(hasAny(p.chat))}</TableCell>
                         <TableCell className="text-center">{tick(p.export)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>

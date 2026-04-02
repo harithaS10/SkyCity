@@ -31,8 +31,8 @@ public class RolesController : ControllerBase
             RoleType = dto.RoleType ?? dto.RoleName.ToLower().Replace(" ", "_"),
             PermissionLevel = 0,
             CanCreateUsers = dto.Permissions?.ContainsKey("users") == true,
-            CanAssignComplaints = dto.Permissions?.ContainsKey("tasks") == true,
-            CanApproveWorkOrders = dto.Permissions?.ContainsKey("reports") == true,
+            CanAssignComplaints = dto.Permissions?.ContainsKey("complaints") == true,
+            CanApproveWorkOrders = dto.Permissions?.ContainsKey("work_orders") == true,
             CanViewFinancials = dto.Permissions?.ContainsKey("analytics") == true,
             PermissionsJson = System.Text.Json.JsonSerializer.Serialize(dto.Permissions ?? new()),
         };
