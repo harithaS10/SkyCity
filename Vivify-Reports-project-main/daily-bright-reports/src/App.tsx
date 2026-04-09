@@ -36,6 +36,7 @@ import ProductManagement from './pages/admin/ProductManagement';
 import ProductManagementDebug from './pages/admin/ProductManagementDebug';
 import DepartmentManagement from './pages/admin/DepartmentManagement';
 import RoleManagement from './pages/admin/RoleManagement';
+import Themes from './pages/admin/Themes';
 
 // Super Admin pages
 import AdminManagement from './pages/superadmin/AdminManagement';
@@ -47,12 +48,18 @@ import ActivityLogs from './pages/manager/ActivityLogs';
 
 // Resident pages
 import ResidentDashboard from './pages/resident/Dashboard';
+import logo from '@/assets/skycity-logo.png';
 
 // ── Root Redirect (role-aware) ────────────────────────────────────────────────
 
 const RootRedirect = () => {
   const { user, isLoading } = useAuth();
-  if (isLoading) return null;
+  if (isLoading) return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background gap-4">
+      <img src={logo} alt="SkyCity" className="h-16 w-16 animate-pulse" />
+      <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+    </div>
+  );
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'super_admin') return <Navigate to="/super-admin/overview" replace />;
   if (user.role === 'resident') return <Navigate to="/resident/dashboard" replace />;
@@ -65,7 +72,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="vivify-theme">
+    <ThemeProvider defaultTheme="light" storageKey="skycity-theme">
       <AuthProvider>
         {/* BrandingProvider must be inside AuthProvider so it can read user branding fields */}
         <BrandingProvider>
@@ -226,7 +233,7 @@ const App = () => (
                 <Route
                   path="/admin/work-allocation"
                   element={
-                    <ProtectedRoute allowedRoles={['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff']}>
+                    <ProtectedRoute allowedRoles={['admin', 'sub_admin', 'property_manager', 'facility_manager']}>
                       <WorkAllocation />
                     </ProtectedRoute>
                   }
@@ -300,6 +307,14 @@ const App = () => (
                   element={
                     <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
                       <RoleManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/themes"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Themes />
                     </ProtectedRoute>
                   }
                 />

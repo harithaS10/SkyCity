@@ -50,6 +50,9 @@ import {
   Crown,
   Layers,
   Activity,
+  Palette,
+  Home,
+  ClipboardCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -106,7 +109,8 @@ const navItems: NavItem[] = [
   
   // Workflows
   { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: ['resident', 'admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
-  { label: 'Work Orders', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager', 'facility_manager', 'staff'] },
+  { label: 'Work Orders', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager', 'facility_manager'] },
+  { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['staff'] },
 
   // Reporting
   { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
@@ -120,11 +124,11 @@ const navItems: NavItem[] = [
 // Admin dropdowns
 const managementItems: DropdownItem[] = [
   { label: 'User Management', href: '/admin/users', icon: <Users className="h-3.5 w-3.5" /> },
-  { label: 'Property Management', href: '/admin/properties', icon: <Building2 className="h-3.5 w-3.5" /> },
+  { label: 'Property Management', href: '/admin/properties', icon: <Home className="h-3.5 w-3.5" /> },
   { label: 'Client Management', href: '/admin/clients', icon: <Building2 className="h-3.5 w-3.5" /> },
   { label: 'Work Management', href: '/admin/works', icon: <Briefcase className="h-3.5 w-3.5" /> },
-  { label: 'Departments', href: '/admin/departments', icon: <Layers className="h-3.5 w-3.5" /> },
   { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-3.5 w-3.5" /> },
+  { label: 'Branding', href: '/admin/themes', icon: <Palette className="h-3.5 w-3.5" /> },
 ];
 
 const taskManagementItems: DropdownItem[] = [
@@ -132,8 +136,7 @@ const taskManagementItems: DropdownItem[] = [
 ];
 
 const productManagementItems: DropdownItem[] = [
-  { label: 'Category Management', href: '/admin/categories', icon: <Settings className="h-3.5 w-3.5" /> },
-  { label: 'Product Management', href: '/admin/products', icon: <Package className="h-3.5 w-3.5" /> },
+  { label: 'Work Management', href: '/admin/works', icon: <Briefcase className="h-3.5 w-3.5" /> },
 ];
 
 // ─── RoleBadge ────────────────────────────────────────────────────────────────
@@ -341,7 +344,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <img src={displayLogo} alt="Logo" className="h-full w-full object-contain" />
               </div>
               <div className="flex flex-col justify-center min-w-0">
-                <span className="text-xl sm:text-xl vivify-logo-text leading-none truncate">
+                <span className="text-xl sm:text-xl skycity-logo-text leading-none truncate">
                   {companyName.split(' ')[0].toLowerCase()}
                 </span>
                 <span className="text-[11px] sm:text-[10px] reports-subtext leading-none mt-0.5 truncate">
@@ -392,17 +395,17 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <Settings className="h-3.5 w-3.5 flex-shrink-0" />,
                 managementItems.map(i => i.href)
               )}
-              {isAdminRole && renderDropdown(
-                'Tasks',
-                taskManagementItems,
-                <ListTodo className="h-3.5 w-3.5 flex-shrink-0" />,
-                taskManagementItems.map(i => i.href)
-              )}
-              {isAdminRole && renderDropdown(
-                'Products',
-                productManagementItems,
-                <Package className="h-3.5 w-3.5 flex-shrink-0" />,
-                productManagementItems.map(i => i.href)
+              {isAdminRole && (
+                <button
+                  onClick={() => navigate('/admin/employees')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-white/80 hover:text-white hover:bg-white/10',
+                    location.pathname.startsWith('/admin/employee') && 'bg-white/15 text-white'
+                  )}
+                >
+                  <ClipboardCheck className="h-3.5 w-3.5 flex-shrink-0" />
+                  Employee Tasks
+                </button>
               )}
             </div>
           </nav>
@@ -410,11 +413,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           {/* Right: Theme + Bell + User Menu */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* Association Info Badge (Non-SuperAdmins) */}
-            {!isSuperAdmin && user?.associationId && (
-              <Badge variant="outline" className="hidden lg:flex gap-1 border-white/20 text-white dark:text-slate-600 dark:border-slate-200">
-                <Building2 size={12} /> Assc ID: {user.associationId}
-              </Badge>
-            )}
+            
 
             <ModeToggle className="text-primary-foreground dark:text-slate-600 dark:hover:bg-slate-100 h-10 w-10 sm:h-8 sm:w-8" />
 
@@ -577,21 +576,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       </div>
                     </Button>
                   ))}
-                  <div className="pt-3 pb-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground px-3 uppercase tracking-wide">Products</p>
-                  </div>
-                  {productManagementItems.map((item) => (
-                    <Button key={item.href} variant="ghost"
-                      className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
-                        location.pathname === item.href ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      )}
-                      onClick={() => { navigate(item.href); setIsMobileMenuOpen(false); }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="h-4 w-4 flex-shrink-0">{item.icon}</span>{item.label}
-                      </div>
-                    </Button>
-                  ))}
                 </>
               )}
             </div>
@@ -610,11 +594,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       <main className="px-4 sm:px-6 md:px-8 py-6 sm:py-8 max-w-[1800px] mx-auto w-full">
         {children}
       </main>
-
-      {/* Floating Chat Box */}
-      <ChatErrorBoundary>
-        <ChatBox />
-      </ChatErrorBoundary>
     </div>
   );
 };

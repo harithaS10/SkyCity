@@ -27,6 +27,15 @@ public class Property : ISoftDelete
     public string PropertyName { get; set; } = string.Empty;
     public string? Address { get; set; }
     public int TotalUnits { get; set; }
+    // Type: "apartment" | "others"
+    public string PropertyType { get; set; } = "apartment";
+    public string? TowerName { get; set; }
+    public string? FloorNo { get; set; }
+    public string? DoorNo { get; set; }
+    public string? ContactName { get; set; }
+    public string? ContactMobile { get; set; }
+    // Comma-separated common areas for "others" type (e.g. "Swimming Pool,Club House")
+    public string? CommonAreas { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; } = true;
 
@@ -81,7 +90,7 @@ public class Complaint : ISoftDelete
     public string ComplaintNumber { get; set; } = string.Empty;
     public int ResidentId { get; set; }
     public int? UnitId { get; set; }
-    public int CategoryId { get; set; }
+    public int? CategoryId { get; set; }  // nullable — work type used instead of complaint category
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string Priority { get; set; } = "Medium";
@@ -277,11 +286,14 @@ public class WorkAllocation
     public string Status { get; set; } = "pending";
     public DateTime DueDate { get; set; }
     public string? ProgressNote { get; set; }
+    public string? AttachmentUrls { get; set; }
     public string? RequestStatus { get; set; }
     public DateTime? RequestedDueDate { get; set; }
     public string? RequestedDescription { get; set; }
     public string? ReassignReason { get; set; }
     public int? ReassignedFrom { get; set; }
+    public string? Duration { get; set; }
+    public DateTime? CompletedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -361,6 +373,18 @@ public class Client : ISoftDelete
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+public class Announcement : ISoftDelete
+{
+    public int Id { get; set; }
+    public int CompanyId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public DateTime StartAt { get; set; }
+    public DateTime EndAt { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; } = true; // true = visible, false = soft-deleted
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public class StaffTask : ISoftDelete
 {
     public int Id { get; set; }
@@ -375,5 +399,28 @@ public class StaffTask : ISoftDelete
     public DateTime DueDate { get; set; }
     public DateTime? CompletedAt { get; set; }
     public bool IsDeleted { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+
+public class DailyReportDraft
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public int AssociationId { get; set; }
+    public DateTime ReportDate { get; set; }
+    public string RowsJson { get; set; } = "[]";
+    public bool IsSubmitted { get; set; } = false;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AssistanceRequest
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public int AssociationId { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public bool IsRead { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

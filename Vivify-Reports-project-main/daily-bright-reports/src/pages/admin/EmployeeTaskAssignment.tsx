@@ -108,10 +108,26 @@ const EmployeeTaskAssignment: React.FC = () => {
     
     setIsLoading(true);
     try {
-      const response = await api.tasks.getUserTasks(parseInt(employeeId));
-      if (response.success && response.data) {
-        setTasks(response.data);
-      }
+      // Fetch work allocations for this employee
+      const allocRes = await api.allocations.getAll().catch(() => ({ success: false, data: [] }));
+      const allocs: any[] = allocRes.success ? (allocRes.data || []) : [];
+      const empAllocs = allocs.filter((a: any) => a.assignedTo === parseInt(employeeId));
+
+      // Map allocations to Task shape
+      const allocTasks: Task[] = empAllocs.map((a: any) => ({
+        id: a.id,
+        taskName: a.workTitle || a.title || 'Work Task',
+        description: a.description || '',
+        priority: a.priority || 'medium',
+        status: a.status === 'in-progress' ? 'in_progress' : (a.status || 'pending'),
+        dueDate: a.dueDate,
+        assigneeName: '',
+        isRecurring: false,
+        groupId: null,
+        createdAt: a.createdAt,
+      }));
+
+      setTasks(allocTasks);
     } catch (error) {
       console.error("Error fetching employee tasks:", error);
       toast.error("Failed to load employee tasks");
@@ -192,9 +208,8 @@ const EmployeeTaskAssignment: React.FC = () => {
 
   const handleDeleteTask = async (taskId: number) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
-
     try {
-      const response = await api.tasks.delete(taskId);
+      const response = await api.allocations.delete(taskId);
       if (response.success) {
         toast.success("Task deleted successfully");
         fetchEmployeeTasks();
@@ -208,7 +223,9 @@ const EmployeeTaskAssignment: React.FC = () => {
 
   const handleStatusChange = async (taskId: number, newStatus: string) => {
     try {
-      const res = await api.tasks.updateStatus(taskId, newStatus);
+      // Map back from task status to allocation status
+      const allocStatus = newStatus === 'in_progress' ? 'in-progress' : newStatus;
+      const res = await api.allocations.updateStatus(taskId, allocStatus);
       if (res.success) {
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
         toast.success('Status updated');
@@ -216,6 +233,7 @@ const EmployeeTaskAssignment: React.FC = () => {
     } catch (e: any) { toast.error(e.message); }
   };
   const monthlyTasks = tasks.filter(task => task.isRecurring);
+  const dailyTasks = tasks.filter(task => !task.isRecurring);
 
   const priorityColors: Record<string, string> = {
     low: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -234,21 +252,21 @@ const EmployeeTaskAssignment: React.FC = () => {
       <div className="space-y-8 animate-in fade-in duration-500">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/admin/employees')}
-              className="gap-2"
+              className="gap-2 w-fit"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Employees
             </Button>
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            <div className="space-y-0.5">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-tight">
                 Task Assignment - {employeeName}
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Assign and manage daily and monthly tasks for this employee
               </p>
             </div>
@@ -264,7 +282,7 @@ const EmployeeTaskAssignment: React.FC = () => {
               </div>
               <div>
                 <CardTitle className="text-xl">{employeeName}</CardTitle>
-                <p className="text-sm text-muted-foreground">Employee ID: EMP-{employeeId?.padStart(3, '0')}</p>
+                <p className="text-sm text-muted-foreground">Employee ID: EMP-{employeeId ? employeeId.padStart(3, '0') : '000'}</p>
               </div>
             </div>
           </CardHeader>
@@ -301,10 +319,10 @@ const EmployeeTaskAssignment: React.FC = () => {
           {/* Daily Task Section */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  <CardTitle>Daily Task Assignment</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Clock className="h-5 w-5 text-blue-600 shrink-0" />
+                  <CardTitle className="text-base">Daily Task Assignment</CardTitle>
                 </div>
                 <Button
                   onClick={() => {
@@ -312,10 +330,10 @@ const EmployeeTaskAssignment: React.FC = () => {
                     setIsCreateDialogOpen(true);
                   }}
                   size="sm"
-                  className="gap-2"
+                  className="gap-1 shrink-0 text-xs"
                 >
-                  <Plus className="h-4 w-4" />
-                  Add Daily Task
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Daily
                 </Button>
               </div>
             </CardHeader>
@@ -382,10 +400,10 @@ const EmployeeTaskAssignment: React.FC = () => {
           {/* Monthly Task Section */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5 text-purple-600" />
-                  <CardTitle>Monthly Task Assignment</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CalendarDays className="h-5 w-5 text-purple-600 shrink-0" />
+                  <CardTitle className="text-base">Monthly Task Assignment</CardTitle>
                 </div>
                 <Button
                   onClick={() => {
@@ -393,10 +411,10 @@ const EmployeeTaskAssignment: React.FC = () => {
                     setIsCreateDialogOpen(true);
                   }}
                   size="sm"
-                  className="gap-2"
+                  className="gap-1 shrink-0 text-xs"
                 >
-                  <Plus className="h-4 w-4" />
-                  Add Monthly Task
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Monthly
                 </Button>
               </div>
             </CardHeader>
@@ -470,6 +488,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                 </TabsList>
 
                 <TabsContent value="daily" className="mt-6">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -509,7 +528,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {format(new Date(task.dueDate), 'MMM dd, yyyy HH:mm')}
+                              {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy HH:mm') : '-'}
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
@@ -525,9 +544,11 @@ const EmployeeTaskAssignment: React.FC = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="monthly" className="mt-6">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -568,7 +589,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {format(new Date(task.dueDate), 'MMM dd, yyyy')}
+                              {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : '-'}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -590,6 +611,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </TabsContent>
               </Tabs>
             )}

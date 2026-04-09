@@ -16,7 +16,7 @@
     --popover-foreground: 222 47% 11%;
 
     --primary: 220 47% 20%;
-    /* Vivify Official Brand Blue (#1B274C) */
+    /* SkyCity Brand Blue (#1B274C) */
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -118,6 +118,10 @@
   * {
     @apply border-border;
   }
+  input:focus, textarea:focus, select:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
 
   h1,
   h2,
@@ -129,7 +133,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    background-image: linear-gradient(rgba(248, 250, 252, 0.95), rgba(248, 250, 252, 0.95)), url('./assets/logo.jpg');
+    background-image: linear-gradient(rgba(248, 250, 252, 0.95), rgba(248, 250, 252, 0.95)), url('./assets/skycity-logo.png');
     background-size: cover;
     background-attachment: fixed;
     background-position: center;
@@ -140,7 +144,7 @@
   }
 
   .dark body {
-    background-image: linear-gradient(rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.92)), url('./assets/logo.jpg');
+    background-image: linear-gradient(rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.92)), url('./assets/skycity-logo.png');
   }
 }
 
@@ -166,7 +170,7 @@
   text-transform: uppercase;
 }
 
-.vivify-logo-text {
+.skycity-logo-text {
   font-family: 'Outfit', sans-serif;
   letter-spacing: -0.02em;
   font-weight: 800;
@@ -174,7 +178,7 @@
   color: #ffffff;
 }
 
-.dark .vivify-logo-text {
+.dark .skycity-logo-text {
   color: #1e293b;
 }
 

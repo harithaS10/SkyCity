@@ -243,7 +243,7 @@ const MyReports: React.FC = () => {
                     id="date"
                     variant={"outline"}
                     className={cn(
-                      "w-[300px] justify-start text-left font-normal",
+                      "w-full sm:w-[300px] justify-start text-left font-normal",
                       !dateRange && "text-muted-foreground"
                     )}
                   >
@@ -421,7 +421,7 @@ const MyReports: React.FC = () => {
                                 {report.title || report.Title || '—'}
                               </TableCell>
                               <TableCell className="text-muted-foreground border-r last:border-r-0 text-center align-middle">
-                                {report.totalTimeSpent || report.TotalTimeSpent || 0}h
+                                {report.duration || report.totalTimeSpent || report.TotalTimeSpent || '0h'}
                               </TableCell>
                               <TableCell className="text-center align-middle">
                                 {hasPending ? (

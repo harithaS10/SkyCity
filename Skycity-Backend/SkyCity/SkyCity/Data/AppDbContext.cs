@@ -37,6 +37,9 @@ public class AppDbContext : DbContext
     public DbSet<ChatGroupMember> ChatGroupMembers { get; set; }
     public DbSet<Client> Clients { get; set; }
     public DbSet<StaffTask> StaffTasks { get; set; }
+    public DbSet<Announcement> Announcements { get; set; }
+    public DbSet<DailyReportDraft> DailyReportDrafts { get; set; }
+    public DbSet<AssistanceRequest> AssistanceRequests { get; set; }
 
     public int? CurrentAssociationId => _httpContextAccessor.HttpContext?.Items["AssociationId"] as int?;
     public bool IsSuperAdmin => _httpContextAccessor.HttpContext?.User.IsInRole("super_admin") ?? false;
@@ -117,6 +120,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RoleDefinition>().HasQueryFilter(e => e.IsDeleted);
         modelBuilder.Entity<Client>().HasQueryFilter(e => e.IsDeleted);
         modelBuilder.Entity<StaffTask>().HasQueryFilter(e => e.IsDeleted);
+        modelBuilder.Entity<Announcement>().HasQueryFilter(e => e.IsDeleted);
     }
 
     public override int SaveChanges()

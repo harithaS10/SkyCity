@@ -92,7 +92,7 @@ const statusColors = {
 
 const statusIcons = {
   pending: <Clock className="h-4 w-4" />,
-  'in-progress': <Loader2 className="h-4 w-4 animate-spin" />,
+  'in-progress': <Loader2 className="h-4 w-4" />,
   completed: <CheckCircle2 className="h-4 w-4" />,
 };
 
@@ -102,6 +102,10 @@ const WorkAllocationPage: React.FC = () => {
   const [allocations, setAllocations] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [availableWorks, setAvailableWorks] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [selectedLocationType, setSelectedLocationType] = useState<'tower' | 'others' | ''>('');
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>('');
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAllocating, setIsAllocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -119,6 +123,9 @@ const WorkAllocationPage: React.FC = () => {
   });
   const [userDescriptions, setUserDescriptions] = useState<Record<number, string>>({});
 
+  // Image preview state
+  const [previewImage, setPreviewImage] = useState<{ src: string; name: string } | null>(null);
+
   // Reassignment State
   const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
   const [allocationToReassign, setAllocationToReassign] = useState<any>(null);
@@ -128,20 +135,23 @@ const WorkAllocationPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [allocationsRes, usersRes, worksRes] = await Promise.all([
+      const [allocationsRes, usersRes, worksRes, propsRes] = await Promise.all([
         api.allocations.getAll(),
         api.users?.getAll().catch(() => ({ success: true, data: [] })) ?? Promise.resolve({ success: true, data: [] }),
-        api.categories.getAll()
+        api.works.getAll(),
+        api.properties.getByAssociation(Number(user?.associationId)).catch(() => ({ success: true, data: [] }))
       ]);
 
       if (allocationsRes.success) setAllocations(allocationsRes.data || []);
       if (usersRes.success) setUsers((usersRes.data || []).filter((u: any) => u.isActive !== false).map((u: any) => ({ ...u, name: u.fullName })));
-      if (worksRes.success) setAvailableWorks((worksRes.data || []).map((c: any) => ({
-        id: c.id,
-        workTitle: c.categoryName,
-        workCode: c.id.toString(),
-        workType: c.department || 'General'
+      if (worksRes.success) setAvailableWorks((worksRes.data || []).map((w: any) => ({
+        id: w.id,
+        workTitle: w.workTitle,
+        workCode: w.workCode,
+        workType: w.workType || 'Standard'
       })));
+      const propItems = (propsRes?.data as any)?.items ?? propsRes?.data ?? [];
+      setProperties(Array.isArray(propItems) ? propItems : []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -175,13 +185,33 @@ const WorkAllocationPage: React.FC = () => {
         assignedToIds: newAllocation.assignedToIds,
         userDescriptions: userDescriptions,
         workId: newAllocation.workId ? parseInt(newAllocation.workId) : null,
+        propertyId: selectedPropertyId ? parseInt(selectedPropertyId) : null,
+        locationType: selectedLocationType || null,
       };
 
       const response = await api.allocations.create(payload);
       if (response.success) {
+        // Upload attachments if any
+        if (attachments.length > 0 && response.data) {
+          try {
+            const ids: number[] = Array.isArray(response.data)
+              ? response.data.map((a: any) => a.id).filter(Boolean)
+              : response.data.id ? [response.data.id] : [];
+            if (ids.length > 0) {
+              await Promise.all(ids.map(id => api.allocations.uploadAttachmentsBase64(id, attachments)));
+              toast.success('Attachments uploaded');
+            }
+          } catch (uploadErr) {
+            toast.error('Work allocated but attachment upload failed');
+          }
+          setAttachments([]);
+        }
         fetchData();
         setNewAllocation({ title: '', description: '', assignedToIds: [], workId: '', dueDate: '', priority: 'medium' });
         setUserDescriptions({});
+        setSelectedLocationType('');
+        setSelectedPropertyId('');
+        setAttachments([]);
         setIsCreateDialogOpen(false);
         toast.success(response.message || 'Work tasks allocated successfully');
       } else {
@@ -352,7 +382,6 @@ const WorkAllocationPage: React.FC = () => {
                                       )}
                                     />
                                     <span className="font-semibold">{work.workTitle}</span>
-                                    <Badge variant="outline" className="text-[10px] h-4 px-1">{work.workCode}</Badge>
                                   </div>
                                   {work.workType && (
                                     <span className="text-[9px] text-muted-foreground ml-6 italic">{work.workType}</span>
@@ -366,6 +395,63 @@ const WorkAllocationPage: React.FC = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
+                {/* Location selection — shown after work category is picked */}
+                {newAllocation.workId && (
+                  <div className="space-y-2">
+                    <Label>Location Type *</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['tower', 'others'] as const).map(t => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => { setSelectedLocationType(t); setSelectedPropertyId(''); }}
+                          className={cn(
+                            'flex items-center justify-center gap-2 rounded-lg border-2 py-2 text-sm font-semibold transition-all',
+                            selectedLocationType === t
+                              ? 'border-primary bg-primary/5 text-primary'
+                              : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                          )}
+                        >
+                          {t === 'tower' ? '🏢 Tower' : '🏊 Common Area'}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedLocationType && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">
+                          {selectedLocationType === 'tower' ? 'Select Tower' : 'Select Area'}
+                        </Label>
+                        <div className="border rounded-md max-h-36 overflow-y-auto divide-y">
+                          {properties
+                            .filter(p => selectedLocationType === 'tower'
+                              ? p.propertyType !== 'others'
+                              : p.propertyType === 'others')
+                            .map(p => (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setSelectedPropertyId(p.id.toString())}
+                                className={cn(
+                                  'w-full text-left px-3 py-2 text-sm transition-colors hover:bg-accent',
+                                  selectedPropertyId === p.id.toString()
+                                    ? 'bg-primary text-primary-foreground hover:bg-primary'
+                                    : ''
+                                )}
+                              >
+                                {p.propertyName}
+                                {p.floorNo && <span className="text-xs opacity-70 ml-2">{p.floorNo} Floors</span>}
+                              </button>
+                            ))}
+                          {properties.filter(p => selectedLocationType === 'tower'
+                            ? p.propertyType !== 'others'
+                            : p.propertyType === 'others').length === 0 && (
+                            <p className="px-3 py-2 text-xs text-muted-foreground">No {selectedLocationType === 'tower' ? 'towers' : 'areas'} found</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="description">Specific Instructions</Label>
                   <Textarea
@@ -495,6 +581,39 @@ const WorkAllocationPage: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Attachment <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+                  <div
+                    className="border-2 border-dashed rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => document.getElementById('alloc-file-input')?.click()}
+                  >
+                    <input
+                      id="alloc-file-input"
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx"
+                      className="hidden"
+                      onChange={e => {
+                        const files = Array.from(e.target.files || []);
+                        setAttachments(prev => [...prev, ...files]);
+                        e.target.value = '';
+                      }}
+                    />
+                    {attachments.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">Click to upload images or documents</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 justify-center">
+                        {attachments.map((f, i) => (
+                          <div key={i} className="flex items-center gap-1 bg-slate-100 rounded px-2 py-0.5 text-xs">
+                            <span className="truncate max-w-[100px]">{f.name}</span>
+                            <button type="button" onClick={e => { e.stopPropagation(); setAttachments(prev => prev.filter((_, idx) => idx !== i)); }} className="text-muted-foreground hover:text-destructive">×</button>
+                          </div>
+                        ))}
+                        <span className="text-xs text-primary">+ Add more</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <DialogFooter className="flex-shrink-0 pt-2 border-t">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} disabled={isAllocating}>
@@ -589,6 +708,39 @@ const WorkAllocationPage: React.FC = () => {
                         </div>
                       </div>
 
+                      {allocation.attachmentUrls && (() => {
+                        let files: { Name: string; Type: string; Data: string }[] = [];
+                        try {
+                          const parsed = JSON.parse(allocation.attachmentUrls);
+                          if (Array.isArray(parsed)) files = parsed;
+                        } catch { /* not JSON */ }
+                        if (files.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap gap-1">
+                            {files.map((f, i) => {
+                              const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
+                              return isImage ? (
+                                <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })} title={f.Name}>
+                                  <img src={f.Data} alt={f.Name} className="h-10 w-10 rounded object-cover border hover:opacity-80 cursor-zoom-in" />
+                                </button>
+                              ) : (
+                                <a key={i} href={f.Data} download={f.Name}
+                                  className="text-[10px] bg-slate-100 hover:bg-slate-200 rounded px-1.5 py-0.5 text-slate-600 flex items-center gap-0.5">
+                                  📎 <span className="truncate max-w-[80px]">{f.Name}</span>
+                                </a>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+
+                      {allocation.progressNote && (
+                        <div className="flex items-start gap-1.5 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                          <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wide shrink-0 mt-0.5">Live</span>
+                          <span className="text-[11px] text-blue-800 italic leading-tight">{allocation.progressNote}</span>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-2">
                         <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold shrink-0">
                           {getUserName(allocation.assignedTo).charAt(0)}
@@ -649,8 +801,7 @@ const WorkAllocationPage: React.FC = () => {
                   <TableHeader className="bg-primary hover:bg-primary">
                     <TableRow className="hover:bg-transparent border-none">
                       <TableHead className="text-white font-semibold last:border-r-0 h-11 w-[250px]">Work Identity</TableHead>
-                      <TableHead className="text-white font-semibold last:border-r-0 h-11 w-[200px]">Client</TableHead>
-                      <TableHead className="text-white font-semibold last:border-r-0 h-11 w-[200px]">Latest Progress</TableHead>
+                      <TableHead className="text-white font-semibold last:border-r-0 h-11">Instructions</TableHead>
                       <TableHead className="text-white font-semibold last:border-r-0 h-11">Assigned To</TableHead>
                       <TableHead className="text-white font-semibold last:border-r-0 h-11">Status & Due</TableHead>
                       <TableHead className="text-white font-semibold last:border-r-0 h-11 text-center">Priority</TableHead>
@@ -666,19 +817,48 @@ const WorkAllocationPage: React.FC = () => {
                             <div className="flex flex-wrap gap-1 text-[10px] text-muted-foreground">
                               <span className="font-semibold px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 border">{allocation.workTitle}</span>
                             </div>
+                            {allocation.attachmentUrls && (() => {
+                              let files: { Name: string; Type: string; Data: string }[] = [];
+                              try {
+                                const parsed = JSON.parse(allocation.attachmentUrls);
+                                if (Array.isArray(parsed)) files = parsed;
+                              } catch { /* not JSON, skip */ }
+                              if (files.length === 0) return null;
+                              return (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {files.map((f, i) => {
+                                    const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
+                                    return isImage ? (
+                                      <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })} title={f.Name}>
+                                        <img src={f.Data} alt={f.Name} className="h-8 w-8 rounded object-cover border hover:opacity-80 cursor-zoom-in" />
+                                      </button>
+                                    ) : (
+                                      <a key={i} href={f.Data} download={f.Name}
+                                        className="text-[10px] bg-slate-100 hover:bg-slate-200 rounded px-1.5 py-0.5 text-slate-600 flex items-center gap-0.5">
+                                        📎 <span className="truncate max-w-[80px]">{f.Name}</span>
+                                      </a>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
                             {allocation.requestStatus === 'pending' && (
                               <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-[9px] h-4 px-1 w-fit mt-1">Request Pending</Badge>
                             )}
                           </div>
                         </TableCell>
                         <TableCell className="align-top border-r border-slate-200 last:border-r-0">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium text-sm">{allocation.clientName || '-'}</span>
-                          </div>
-                          {allocation.description && (
-                            <div className="mt-2 text-xs text-muted-foreground italic border-t pt-1">
+                          {allocation.description ? (
+                            <div className="text-xs text-muted-foreground italic">
                               {allocation.description}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50 italic">No instruction given</span>
+                          )}
+                          {allocation.progressNote && (
+                            <div className="mt-1.5 flex items-start gap-1.5 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                              <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wide shrink-0 mt-0.5">Live</span>
+                              <span className="text-[11px] text-blue-800 italic leading-tight">{allocation.progressNote}</span>
                             </div>
                           )}
                           {allocation.requestStatus === 'pending' && (
@@ -691,18 +871,6 @@ const WorkAllocationPage: React.FC = () => {
                                 <Button size="sm" variant="destructive" className="h-5 text-[9px] px-2" onClick={() => handleDenyRequest(allocation.id)}>Deny</Button>
                               </div>
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="align-top border-r border-slate-200 last:border-r-0">
-                          {allocation.progressNote ? (
-                            <div className="text-xs text-blue-900/80 bg-blue-50/30 p-2 rounded border border-blue-100/50">
-                              <span className="font-semibold text-[10px] uppercase tracking-wider text-blue-600 mb-1 block">
-                                {allocation.lastProgressUpdate ? format(new Date(allocation.lastProgressUpdate), 'MMM dd HH:mm') : 'Update'}
-                              </span>
-                              <p className="italic line-clamp-3">"{allocation.progressNote}"</p>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground opacity-50">-</span>
                           )}
                         </TableCell>
                         <TableCell className="align-top border-r border-slate-200 last:border-r-0">
@@ -828,6 +996,29 @@ const WorkAllocationPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Image lightbox */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <button
+              className="absolute -top-3 -right-3 h-7 w-7 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:bg-slate-100 z-10"
+              onClick={() => setPreviewImage(null)}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <img
+              src={previewImage.src}
+              alt={previewImage.name}
+              className="max-w-[90vw] max-h-[85vh] rounded-lg object-contain shadow-2xl"
+            />
+            <p className="text-center text-white/70 text-xs mt-2 truncate">{previewImage.name}</p>
+          </div>
+        </div>
+      )}
+
     </DashboardLayout >
   );
 };

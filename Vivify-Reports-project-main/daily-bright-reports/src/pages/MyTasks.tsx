@@ -84,15 +84,16 @@ const MyTasks: React.FC = () => {
     dueDate: format(new Date(), 'yyyy-MM-dd')
   });
   const [isSubmittingNewWork, setIsSubmittingNewWork] = useState(false);
+  const [attachments, setAttachments] = useState<File[]>([]);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
       const [tasksRes, clientsRes, worksRes, adminTasksRes] = await Promise.all([
-        api.allocations.getMyTasks(),
-        api.clients.getAll(),
-        api.works.getActive(),
-        api.tasks.getMyTasks()
+        api.allocations.getMyTasks().catch(() => ({ success: true, data: [] })),
+        api.clients.getAll().catch(() => ({ success: true, data: [] })),
+        api.works.getActive().catch(() => ({ success: true, data: [] })),
+        api.tasks.getMyTasks().catch(() => ({ success: true, data: [] }))
       ]);
 
       if (tasksRes.success) setAllocations(tasksRes.data || []);
@@ -314,6 +315,11 @@ const MyTasks: React.FC = () => {
       };
       const response = await api.allocations.selfAssign(payload);
       if (response.success) {
+        // Upload attachments if any
+        if (attachments.length > 0 && response.data?.id) {
+          await api.allocations.uploadAttachmentsBase64(response.data.id, attachments).catch(() => {});
+          setAttachments([]);
+        }
         toast.success("Work started and admin notified");
         setIsSelfAssignDialogOpen(false);
         setSelfAssignData({
@@ -335,10 +341,32 @@ const MyTasks: React.FC = () => {
     }
   };
 
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
+  const parseAttachments = (raw: string): Array<{name: string; src: string; isImage: boolean}> => {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((f: any) => ({
+          name: f.Name || f.name || 'File',
+          src: f.Data || f.data || '',
+          isImage: (f.Type || f.type || '').startsWith('image/'),
+        }));
+      }
+    } catch {}
+    // fallback: comma-separated URLs
+    return raw.split(',').filter(Boolean).map(url => ({
+      name: url.split('/').pop() || 'File',
+      src: `https://api.vivifysoft.in/SkyCity${url}`,
+      isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(url),
+    }));
+  };
+
   const TaskCard = ({ task, index }: { task: any; index: number }) => (
     <Card
       className={cn(
-        "transition-all duration-200 cursor-pointer border shadow-sm hover:shadow-md",
+        "transition-all duration-200 cursor-pointer border hover:shadow-md hover:border-primary/30",
         statusColors[task.status]
       )}
       onClick={() => {
@@ -346,62 +374,51 @@ const MyTasks: React.FC = () => {
         setIsDetailDialogOpen(true);
       }}
     >
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-4">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge className={cn("capitalize px-2 py-0 h-5 text-[10px] font-semibold", priorityColors[task.priority])} variant="outline">
+            {/* Top row: badges */}
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              <Badge className={cn("capitalize px-1.5 py-0 h-4 text-[10px] font-semibold", priorityColors[task.priority])} variant="outline">
                 {task.priority || 'medium'}
               </Badge>
-              {task._source === 'task' && (
-                <Badge className={cn(
-                  "px-2 py-0 h-5 text-[10px] font-semibold",
-                  task.taskType === 'monthly'
-                    ? 'bg-purple-100 text-purple-800 border-purple-200'
-                    : 'bg-blue-100 text-blue-800 border-blue-200'
-                )} variant="outline">
-                  {task.taskType === 'monthly' ? 'Monthly' : 'Daily'}
-                </Badge>
-              )}
-              {task.groupId && (
-                <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 px-2 py-0 h-5 text-[10px] font-semibold" variant="outline">
-                  Group Task
+              {isOverdue(task.dueDate || task.DueDate, task.status) && (
+                <Badge variant="destructive" className="gap-0.5 px-1.5 py-0 h-4 text-[10px]">
+                  <AlertCircle className="h-2.5 w-2.5" /> Overdue
                 </Badge>
               )}
               {task.requestStatus === 'pending' && (
-                <Badge className="bg-amber-100 text-amber-800 border-amber-200 px-2 py-0 h-5 text-[10px]">Request Pending</Badge>
-              )}
-              {isOverdue(task.dueDate || task.DueDate, task.status) && (
-                <Badge variant="destructive" className="gap-1 px-2 py-0 h-5 text-[10px]">
-                  <AlertCircle className="h-3 w-3" />
-                  Overdue
-                </Badge>
+                <Badge className="bg-amber-100 text-amber-800 border-amber-300 px-1.5 py-0 h-4 text-[10px]">Pending Request</Badge>
               )}
             </div>
-            <h3 className="font-semibold text-base mb-1 truncate text-slate-900">{task.title}</h3>
-            <p className="text-sm text-slate-500 line-clamp-2 mb-4">{task.description}</p>
-
-            <div className="flex flex-wrap items-center gap-4 text-xs">
-              {getClient(task.clientId) && (
-                <div className="flex items-center gap-1.5 text-slate-600">
-                  {getClient(task.clientId).logoUrl ? (
-                    <img src={getClient(task.clientId).logoUrl} alt={getClient(task.clientId).name} className="h-3.5 w-3.5 object-contain" />
-                  ) : (
-                    <Building2 className="h-3.5 w-3.5" />
-                  )}
-                  {getClient(task.clientId).name}
+            {/* Title */}
+            <h3 className="font-semibold text-sm truncate text-slate-900">{task.title || task.workTitle || task.taskName}</h3>
+            {/* Description */}
+            {task.description && (
+              <p className="text-xs text-slate-500 truncate mt-0.5">{task.description}</p>
+            )}
+            {/* Due date + attachments */}
+            <div className="flex items-center gap-3 mt-1.5">
+              <div className={cn("flex items-center gap-1 text-xs", isOverdue(task.dueDate || task.DueDate, task.status) ? 'text-rose-600 font-medium' : 'text-slate-500')}>
+                <Calendar className="h-3 w-3" />
+                {task.dueDate ? format(new Date(task.dueDate || task.DueDate), 'MMM dd, yyyy') : '—'}
+              </div>
+              {task.attachmentUrls && (
+                <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                  {parseAttachments(task.attachmentUrls).slice(0, 3).map((att, i) => (
+                    att.isImage ? (
+                      <img key={i} src={att.src} alt={att.name}
+                        className="h-6 w-6 rounded object-cover border hover:opacity-80 cursor-zoom-in"
+                        onClick={e => { e.stopPropagation(); setPreviewSrc(att.src); }} />
+                    ) : (
+                      <a key={i} href={att.src} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        className="text-[10px] bg-slate-100 rounded px-1.5 py-0.5 text-slate-600">📎</a>
+                    )
+                  ))}
                 </div>
               )}
-              <div className={cn(
-                "flex items-center gap-1.5",
-                isOverdue(task.dueDate || task.DueDate, task.status) ? 'text-rose-600 font-medium' : 'text-slate-600'
-              )}>
-                <Calendar className="h-3.5 w-3.5" />
-                {format(new Date(task.dueDate || task.DueDate), 'MMM dd, yyyy')}
-              </div>
             </div>
           </div>
-
           <div className="flex flex-col items-end gap-2">
             {task.status === 'pending' && (
               <Button
@@ -552,15 +569,17 @@ const MyTasks: React.FC = () => {
               <TabsTrigger value="completed">Completed ({completedTasks.length})</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="pending" className="mt-6 space-y-4">
+            <TabsContent value="pending" className="mt-4">
               {pendingTasks.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed rounded-lg bg-slate-50">
                   <p className="text-muted-foreground">No tasks to do. Great job!</p>
                 </div>
               ) : (
-                pendingTasks.map((task, index) => (
-                  <TaskCard key={task.id} task={task} index={index} />
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {pendingTasks.map((task, index) => (
+                    <TaskCard key={task.id} task={task} index={index} />
+                  ))}
+                </div>
               )}
             </TabsContent>
 
@@ -647,9 +666,29 @@ const MyTasks: React.FC = () => {
                   <p className="text-sm text-slate-400 mt-1">Tasks older than 7 days are automatically hidden.</p>
                 </div>
               ) : (
-                completedTasks.map((task, index) => (
-                  <TaskCard key={task.id} task={task} index={index} />
-                ))
+                <div className="divide-y rounded-lg border overflow-hidden">
+                  {completedTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between px-4 py-2.5 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => { setSelectedTask(task); setIsDetailDialogOpen(true); }}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{task.title || task.workTitle || task.taskName || '—'}</p>
+                          <p className="text-xs text-muted-foreground">{task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : ''}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <Badge variant="outline" className={`text-[10px] ${task.priority === 'high' ? 'bg-rose-50 text-rose-700 border-rose-200' : task.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                          {task.priority}
+                        </Badge>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </TabsContent>
           </Tabs>
@@ -696,14 +735,14 @@ const MyTasks: React.FC = () => {
 
       {/* Start New Work Dialog */}
       <Dialog open={isSelfAssignDialogOpen} onOpenChange={setIsSelfAssignDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[425px] max-h-[85vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>Start New Work</DialogTitle>
             <DialogDescription>
               Notify the administrator about work you are starting independently.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-3 py-2 overflow-y-auto flex-1 min-h-0 pr-1">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sa-work">Work Category *</Label>
@@ -757,8 +796,9 @@ const MyTasks: React.FC = () => {
               <label htmlFor="self-description" className="text-sm font-medium text-slate-700">Description / Details</label>
               <textarea
                 id="self-description"
-                className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                className="flex min-h-[56px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
                 placeholder="Add more details if needed..."
+                rows={2}
                 value={selfAssignData.description}
                 onChange={(e) => setSelfAssignData({ ...selfAssignData, description: e.target.value })}
               />
@@ -790,7 +830,32 @@ const MyTasks: React.FC = () => {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <div className="grid gap-2 px-6 pb-2">
+            <label className="text-sm font-medium text-slate-700">
+              Attachment <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <div
+              className="border-2 border-dashed rounded-lg p-3 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => document.getElementById('self-assign-file-input')?.click()}
+            >
+              <input id="self-assign-file-input" type="file" multiple accept="image/*,.pdf,.doc,.docx" className="hidden"
+                onChange={e => { setAttachments(prev => [...prev, ...Array.from(e.target.files || [])]); e.target.value = ''; }} />
+              {attachments.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Click to upload images or documents</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 justify-center">
+                  {attachments.map((f, i) => (
+                    <div key={i} className="flex items-center gap-1 bg-slate-100 rounded px-2 py-0.5 text-xs">
+                      <span className="truncate max-w-[100px]">{f.name}</span>
+                      <button type="button" onClick={e => { e.stopPropagation(); setAttachments(prev => prev.filter((_, idx) => idx !== i)); }} className="text-muted-foreground hover:text-destructive">×</button>
+                    </div>
+                  ))}
+                  <span className="text-xs text-primary">+ Add more</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="shrink-0 pt-2 border-t">
             <Button variant="outline" onClick={() => setIsSelfAssignDialogOpen(false)} disabled={isSubmittingNewWork}>Cancel</Button>
             <Button
               onClick={handleSelfAssign}
@@ -849,36 +914,28 @@ const MyTasks: React.FC = () => {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="hours">Hours</Label>
-                <Select
-                  value={completionDuration.hours}
-                  onValueChange={(val) => setCompletionDuration({ ...completionDuration, hours: val })}
-                >
-                  <SelectTrigger id="hours">
-                    <SelectValue placeholder="Hours" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 25 }, (_, i) => (
-                      <SelectItem key={i} value={i.toString()}>{i}h</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Hours</Label>
+                <div className="border rounded-md max-h-40 overflow-y-auto divide-y">
+                  {Array.from({ length: 25 }, (_, i) => (
+                    <button key={i} type="button"
+                      onClick={() => setCompletionDuration({ ...completionDuration, hours: i.toString() })}
+                      className={`w-full text-left px-3 py-1.5 text-sm transition-colors hover:bg-accent ${completionDuration.hours === i.toString() ? 'bg-primary text-primary-foreground hover:bg-primary' : ''}`}>
+                      {i}h
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="minutes">Minutes</Label>
-                <Select
-                  value={completionDuration.minutes}
-                  onValueChange={(val) => setCompletionDuration({ ...completionDuration, minutes: val })}
-                >
-                  <SelectTrigger id="minutes">
-                    <SelectValue placeholder="Minutes" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {['0', '5', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((m) => (
-                      <SelectItem key={m} value={m}>{m}m</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Minutes</Label>
+                <div className="border rounded-md max-h-40 overflow-y-auto divide-y">
+                  {['0', '5', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((m) => (
+                    <button key={m} type="button"
+                      onClick={() => setCompletionDuration({ ...completionDuration, minutes: m })}
+                      className={`w-full text-left px-3 py-1.5 text-sm transition-colors hover:bg-accent ${completionDuration.minutes === m ? 'bg-primary text-primary-foreground hover:bg-primary' : ''}`}>
+                      {m}m
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -899,63 +956,89 @@ const MyTasks: React.FC = () => {
 
       {/* Existing Detail Dialog Update */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden border-none shadow-2xl">
+        <DialogContent className="max-w-md p-0 overflow-hidden shadow-2xl">
           {selectedTask && (
             <div className="flex flex-col">
-              {/* ... existing header ... */}
-              <div className="p-6 bg-slate-900 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    {/* ... badges ... */}
-                    {selectedTask.groupId && (
-                      <Badge className="bg-indigo-500/20 text-indigo-200 border-indigo-500/50">Group Task</Badge>
-                    )}
+              {/* Colored top bar based on priority */}
+              <div className={`h-1.5 w-full ${selectedTask.priority === 'high' ? 'bg-rose-500' : selectedTask.priority === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+
+              <div className="p-6 space-y-5">
+                {/* Title + badges */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className={`text-xs font-semibold ${selectedTask.priority === 'high' ? 'border-rose-300 text-rose-600 bg-rose-50' : selectedTask.priority === 'medium' ? 'border-amber-300 text-amber-600 bg-amber-50' : 'border-emerald-300 text-emerald-600 bg-emerald-50'}`}>
+                      {selectedTask.priority?.toUpperCase()}
+                    </Badge>
+                    <Badge variant="outline" className={`text-xs ${selectedTask.status === 'completed' ? 'border-emerald-300 text-emerald-600 bg-emerald-50' : selectedTask.status === 'in_progress' || selectedTask.status === 'in-progress' ? 'border-blue-300 text-blue-600 bg-blue-50' : 'border-slate-300 text-slate-600 bg-slate-50'}`}>
+                      {selectedTask.status?.replace('_', ' ').replace('-', ' ')}
+                    </Badge>
                     {selectedTask.requestStatus === 'pending' && (
-                      <Badge className="bg-amber-500/20 text-amber-200 border-amber-500/50">Request Pending</Badge>
+                      <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs">Request Pending</Badge>
                     )}
                   </div>
+                  <h2 className="text-xl font-bold text-foreground">{selectedTask.title || selectedTask.workTitle || selectedTask.taskName || '—'}</h2>
+                  {selectedTask.description && (
+                    <p className="text-sm text-muted-foreground leading-relaxed">{selectedTask.description}</p>
+                  )}
                 </div>
-                {/* ... title and desc ... */}
-              </div>
 
-              <div className="p-6 space-y-4">
-                {/* ... client info ... */}
-                {/* ... due date ... */}
+                {/* Info grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-slate-50 p-3 space-y-0.5">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Due Date</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {selectedTask.dueDate ? format(new Date(selectedTask.dueDate), 'MMM dd, yyyy') : '—'}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 p-3 space-y-0.5">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Work Type</p>
+                    <p className="text-sm font-semibold text-foreground">{selectedTask.workTitle || selectedTask.workCode || selectedTask.title || selectedTask.taskName || '—'}</p>
+                  </div>
+                </div>
 
-                {/* Add Request Info if exists */}
-                {selectedTask.requestStatus === 'pending' && (
-                  <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-900">
-                    <p className="text-xs font-bold uppercase tracking-wider mb-1">Your Request is Pending</p>
-                    {selectedTask.requestedDueDate && <p className="text-sm">New Date: {format(new Date(selectedTask.requestedDueDate), 'MMM dd, yyyy')}</p>}
-                    {selectedTask.requestedDescription && <p className="text-sm mt-1">Note: {selectedTask.requestedDescription}</p>}
+                {/* Attachments */}
+                {selectedTask.attachmentUrls && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Attachments</p>
+                    <div className="flex flex-wrap gap-2">
+                      {parseAttachments(selectedTask.attachmentUrls).map((att, i) => (
+                        att.isImage ? (
+                          <img key={i} src={att.src} alt={att.name}
+                            className="h-16 w-16 rounded-lg object-cover border hover:opacity-80 transition-opacity cursor-zoom-in"
+                            onClick={() => setPreviewSrc(att.src)} />
+                        ) : (
+                          <a key={i} href={att.src} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-2 text-slate-700 transition-colors">
+                            📎 <span className="truncate max-w-[120px]">{att.name}</span>
+                          </a>
+                        )
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* ... description ... */}
-                {/* ... completed at ... */}
+                {/* Request pending info */}
+                {selectedTask.requestStatus === 'pending' && (
+                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-sm space-y-1">
+                    <p className="font-semibold text-xs uppercase tracking-wide">Change Request Pending</p>
+                    {selectedTask.requestedDueDate && <p>New Date: {format(new Date(selectedTask.requestedDueDate), 'MMM dd, yyyy')}</p>}
+                    {selectedTask.requestedDescription && <p>Note: {selectedTask.requestedDescription}</p>}
+                  </div>
+                )}
 
-                <div className="pt-4 flex flex-col gap-2">
-                  {/* ... actions ... */}
-                  {(selectedTask.status === 'pending' || selectedTask.status === 'in-progress') && (
-                    <Button
-                      variant="outline"
-                      className="w-full h-11 border-dashed"
+                {/* Actions */}
+                <div className="flex flex-col gap-2 pt-1">
+                  {(selectedTask.status === 'pending' || selectedTask.status === 'in-progress' || selectedTask.status === 'in_progress') && (
+                    <Button variant="outline" className="w-full gap-2 border-dashed"
                       onClick={() => {
-                        setRequestData({
-                          dueDate: selectedTask.dueDate ? format(new Date(selectedTask.dueDate), 'yyyy-MM-dd') : '',
-                          description: ''
-                        });
+                        setRequestData({ dueDate: selectedTask.dueDate ? format(new Date(selectedTask.dueDate), 'yyyy-MM-dd') : '', description: '' });
                         setIsRequestDialogOpen(true);
-                        // Keep detail dialog open or close it? Let's keep it open behind or close it.
-                        // If we close it, user experience might be disjointed. Dialogstacking works in Radix.
-                      }}
-                    >
+                      }}>
                       Request Change / Extension
                     </Button>
                   )}
-
-                  <Button variant="ghost" className="w-full h-11 text-slate-500 font-medium" onClick={() => setIsDetailDialogOpen(false)}>
-                    Close Details
+                  <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setIsDetailDialogOpen(false)}>
+                    Close
                   </Button>
                 </div>
               </div>
@@ -963,6 +1046,27 @@ const MyTasks: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Image Lightbox */}
+      {previewSrc && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setPreviewSrc(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/40 rounded-full p-2"
+            onClick={() => setPreviewSrc(null)}
+          >
+            ✕
+          </button>
+          <img
+            src={previewSrc}
+            alt="Preview"
+            className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
     </DashboardLayout>
   );
 };

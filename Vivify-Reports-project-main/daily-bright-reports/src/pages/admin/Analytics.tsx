@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -88,6 +89,7 @@ const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = 
 
 const Analytics: React.FC = () => {
   const { canExport } = useAuth();
+  const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [customStartDate, setCustomStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -100,6 +102,7 @@ const Analytics: React.FC = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [clientsMap, setClientsMap] = useState<Record<string, string>>({});
+  const [selectedReport, setSelectedReport] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -682,7 +685,7 @@ const Analytics: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Reports Count</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Active Employees</p>
                   <p className="text-3xl font-black">{totalReports}</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center text-success group-hover:bg-success group-hover:text-success-foreground transition-colors">
@@ -695,7 +698,7 @@ const Analytics: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Work Density</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Work Items</p>
                   <p className="text-3xl font-black">{totalEntries}</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center text-warning group-hover:bg-warning group-hover:text-warning-foreground transition-colors">
@@ -708,7 +711,7 @@ const Analytics: React.FC = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Entries / Report</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Avg Tasks / Employee</p>
                   <p className="text-3xl font-black">{avgEntriesPerReport}</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
@@ -785,7 +788,15 @@ const Analytics: React.FC = () => {
                       outerRadius={100}
                       paddingAngle={5}
                       dataKey="value"
-                      label={({ name, percent }) => `${name.slice(0, 15)} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent, x, y, midAngle }) => {
+                        // Only render label if segment is big enough
+                        if (percent < 0.05) return null;
+                        return (
+                          <text x={x} y={y} fill="#1f2937" fontSize={11} fontWeight={600} textAnchor="middle" dominantBaseline="central">
+                            {`${name.slice(0, 12)} ${(percent * 100).toFixed(0)}%`}
+                          </text>
+                        );
+                      }}
                     >
                       {workTypeDistribution.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -830,132 +841,10 @@ const Analytics: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-xl border-t-4 border-t-destructive overflow-hidden">
-          <CardHeader className="bg-destructive/[0.03] border-b border-destructive/10 pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-destructive flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Pending Work Monitor
-                </CardTitle>
-                <CardDescription>Manage and update deadlines for pending work entries</CardDescription>
-              </div>
-              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 font-bold uppercase tracking-wider text-[10px] px-3">
-                Action Required
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            {(() => {
-              const pendingReports = (reports || []).filter(report =>
-                report && report.entries && report.entries.some((entry: any) =>
-                  entry && entry.status === 'pending'
-                )
-              );
-
-              if (pendingReports.length === 0) {
-                return (
-                  <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed rounded-2xl bg-muted/20">
-                    <CheckCircle2 className="h-16 w-16 text-success/20 mb-4" />
-                    <h3 className="text-xl font-bold mb-1">Excellent Coverage!</h3>
-                    <p className="text-muted-foreground text-sm max-w-sm">
-                      There are currently no pending work items in the system for this period.
-                    </p>
-                  </div>
-                );
-              }
-
-              return (
-                <div className="grid gap-6 md:grid-cols-2">
-                  {pendingReports.map(report => {
-                    const pendingEntries = (report.entries || []).filter((e: any) =>
-                      e && e.status === 'pending'
-                    );
-
-                    return (
-                      <Card key={report.id} className="border-none shadow-md bg-muted/20 hover:shadow-lg transition-all">
-                        <CardHeader className="pb-4">
-                          <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                              <Users className="h-5 w-5" />
-                            </div>
-                            <div>
-                              <CardTitle className="text-lg">{report.userName}</CardTitle>
-                              <CardDescription className="flex items-center gap-1.5 text-xs font-semibold">
-                                <Calendar className="h-3 w-3" />
-                                Filed on {safeFormatDate(report.date || report.Date)}
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {pendingEntries.map((e: any, idx: number) => {
-                            const originalIdx = (report.entries || []).findIndex((entry: any) => entry === e);
-                            const isOverdue = e.dueDate && new Date(e.dueDate) < new Date();
-
-                            return (
-                              <div key={idx} className={cn(
-                                "p-4 rounded-xl border-2 transition-all",
-                                isOverdue ? "bg-destructive/[0.04] border-destructive/20" : "bg-card border-border"
-                              )}>
-                                <div className="flex items-start justify-between gap-4 mb-3">
-                                  <p className="font-bold text-sm leading-tight">{e.workTitle}</p>
-                                  <Badge variant={isOverdue ? "destructive" : "secondary"} className="h-5 text-[10px]">
-                                    {isOverdue ? "Overdue" : "Pending"}
-                                  </Badge>
-                                </div>
-                                <div className="space-y-3 pt-3 border-t">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
-                                      <Clock className="h-3.5 w-3.5" />
-                                      Current Due: <span className="text-foreground ml-1">
-                                        {e.adminDueDate ? format(new Date(e.adminDueDate), 'MMM dd, yyyy') : safeFormatDate(e.dueDate)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <div className="relative flex-1">
-                                      <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                      <input
-                                        type="date"
-                                        className="flex h-9 w-full rounded-md border border-input bg-background px-9 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                        onChange={(event) => handleUpdateDueDate(report.id, originalIdx, event.target.value)}
-                                      />
-                                    </div>
-                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">Update</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 pt-1">
-                                    <button
-                                      onClick={() => handleUpdateEntryStatus(report.id, originalIdx, 'in_progress')}
-                                      className="flex-1 h-8 rounded-lg text-xs font-semibold bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 transition-colors"
-                                    >
-                                      In Progress
-                                    </button>
-                                    <button
-                                      onClick={() => handleUpdateEntryStatus(report.id, originalIdx, 'completed')}
-                                      className="flex-1 h-8 rounded-lg text-xs font-semibold bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 transition-colors"
-                                    >
-                                      Completed
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </CardContent>
-        </Card>
-
         <Card className="border-none shadow-xl overflow-hidden">
           <CardHeader className="bg-muted/30 border-b">
             <CardTitle>Detailed Log Records</CardTitle>
-            <CardDescription>Comprehensive report data based on your filters</CardDescription>
+            <CardDescription>Click any row to view full details</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {filteredReports.length === 0 ? (
@@ -984,7 +873,11 @@ const Analytics: React.FC = () => {
                     {filteredReports.slice(0, 50).map((report) => {
                       const hasPending = report.entries?.some((e: any) => e.status === 'pending');
                       return (
-                        <TableRow key={report.id} className="transition-colors group hover:bg-slate-50/50">
+                        <TableRow
+                          key={report.id}
+                          className="transition-colors group hover:bg-slate-50/50 cursor-pointer"
+                          onClick={() => setSelectedReport(report)}
+                        >
                           <TableCell className="font-bold text-base border-r border-slate-200 last:border-r-0">
                             <div className="flex items-center gap-3">
                               <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center border font-normal text-muted-foreground">
@@ -1039,6 +932,105 @@ const Analytics: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Report Detail Popup */}
+      {selectedReport && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setSelectedReport(null)}
+        >
+          <div
+            className="bg-background rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b bg-primary text-primary-foreground rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg">
+                  {selectedReport.userName?.charAt(0) || 'U'}
+                </div>
+                <div>
+                  <p className="font-bold text-base leading-tight">{selectedReport.userName}</p>
+                  <p className="text-xs text-primary-foreground/70">{safeFormatDate(selectedReport.date || selectedReport.Date)}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedReport(null)}
+                className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 p-6 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
+                {selectedReport.entries?.length || 0} Work {selectedReport.entries?.length === 1 ? 'Entry' : 'Entries'}
+              </p>
+              {(selectedReport.entries || []).map((e: any, i: number) => {
+                const isPending = e.status === 'pending';
+                const isOverdue = e.dueDate && new Date(e.dueDate) < new Date();
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      "p-4 rounded-xl border-2 cursor-pointer hover:shadow-md transition-all",
+                      isOverdue && isPending ? "border-destructive/30 bg-destructive/5 hover:border-destructive/50"
+                        : isPending ? "border-amber-200 bg-amber-50/50 hover:border-amber-300"
+                        : "border-emerald-200 bg-emerald-50/50 hover:border-emerald-300"
+                    )}
+                    onClick={() => {
+                      setSelectedReport(null);
+                      navigate(`/admin/work-allocation?userId=${selectedReport.userId}`);
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <p className="font-bold text-sm">{e.workTitle || 'Untitled'}</p>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] h-5",
+                            isOverdue && isPending ? "bg-destructive/10 text-destructive border-destructive/20"
+                              : isPending ? "bg-amber-100 text-amber-700 border-amber-200"
+                              : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                          )}
+                        >
+                          {isOverdue && isPending ? 'Overdue' : isPending ? 'Pending' : 'Completed'}
+                        </Badge>
+                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                    </div>
+                    {e.description && (
+                      <p className="text-xs text-muted-foreground mb-2">{e.description}</p>
+                    )}
+                    {e.dueDate && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        Due: {safeFormatDate(e.dueDate)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {selectedReport.complaints?.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Complaints</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedReport.complaints.map((c: any) => (
+                      <Badge key={c.id} variant="outline" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
+                        {c.complaintNumber}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </DashboardLayout>
   );
 };

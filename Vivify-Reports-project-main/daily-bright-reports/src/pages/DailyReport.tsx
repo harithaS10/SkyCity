@@ -114,66 +114,72 @@ const DailyReport: React.FC = () => {
     const fetchData = async () => {
       setIsLoadingData(true);
       try {
-        const [worksRes, clientsRes, tasksRes] = await Promise.all([
+        const [worksRes, clientsRes, tasksRes, draftRes] = await Promise.all([
           api.works.getActive(),
           api.clients.getAll(),
-          api.allocations.getMyTasks()
+          api.allocations.getMyTasks(),
+          api.dailyReportDrafts.get(format(date, 'yyyy-MM-dd')).catch(() => ({ success: false, data: null }))
         ]);
 
+        if (worksRes.success && worksRes.data) setAvailableWorks(worksRes.data);
+
+        const worksMap: Record<number, any> = {};
         if (worksRes.success && worksRes.data) {
-          setAvailableWorks(worksRes.data);
+          worksRes.data.forEach((w: any) => { worksMap[w.id] = w; });
         }
-        if (clientsRes.success && clientsRes.data) {
-          setClients(clientsRes.data);
+        if (clientsRes.success && clientsRes.data) setClients(clientsRes.data);
+
+        // Load from API draft first
+        if (draftRes.success && draftRes.data?.rowsJson) {
+          try {
+            const parsedRows = JSON.parse(draftRes.data.rowsJson);
+            if (Array.isArray(parsedRows) && parsedRows.length > 0) {
+              setRows(parsedRows);
+              return;
+            }
+          } catch (e) { /* ignore parse error */ }
         }
 
-        // LOAD FROM LOCAL STORAGE FIRST
+        // Fallback: check localStorage
         const storageKey = `daily_report_${user?.id}_${format(date, 'yyyy-MM-dd')}`;
         const savedData = localStorage.getItem(storageKey);
-
         if (savedData) {
           try {
             const parsedRows = JSON.parse(savedData);
             if (Array.isArray(parsedRows) && parsedRows.length > 0) {
               setRows(parsedRows);
-              return; // Skip auto-fill if we have saved data
+              return;
             }
-          } catch (e) {
-            console.error("Error parsing saved rows:", e);
-          }
+          } catch (e) { /* ignore */ }
         }
 
-        // Auto-fill logic (only if no saved data)
+        // Auto-fill from allocations
         if (tasksRes.success && tasksRes.data) {
-          const tasksToFill = tasksRes.data.filter((task: any) => {
-            return task.status === 'in-progress' || task.status === 'pending';
-          });
-
+          const tasksToFill = tasksRes.data.filter((task: any) =>
+            task.status === 'in-progress' || task.status === 'pending'
+          );
           if (tasksToFill.length > 0) {
-            const newRows: WorkRow[] = tasksToFill.map((task: any, index: number) => ({
-              id: `autofill-${task.id}-${Date.now()}`,
-              workCode: task.workCode || 'OTHERS',
-              workDescription: '',
-              workTitle: task.workTitle || task.title || '',
-              timeSpent: task.duration || '0h 0m',
-              clientId: task.clientId?.toString() || '',
-              status: task.status === 'completed' ? 'completed' : 'pending',
-              dueDate: task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
-              adminDueDate: task.dueDate,
-              quantity: 0
-            }));
-
+            const newRows: WorkRow[] = tasksToFill.map((task: any) => {
+              const matchedWork = worksMap[task.workId];
+              return {
+                id: `autofill-${task.id}-${Date.now()}`,
+                workCode: matchedWork?.workCode || 'OTHERS',
+                workDescription: task.description || matchedWork?.workTitle || task.workTitle || task.title || '',
+                workTitle: matchedWork?.workTitle || task.workTitle || task.title || '',
+                timeSpent: task.duration || '0h 0m',
+                clientId: task.clientId?.toString() || '',
+                status: 'completed' as const,
+                dueDate: task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
+                adminDueDate: task.dueDate,
+                quantity: 0
+              };
+            });
             setRows(prev => {
-              const filledRowIds = new Set(newRows.map(r => r.id));
-              setAutoFilledRowIds(filledRowIds);
-
+              setAutoFilledRowIds(new Set(newRows.map(r => r.id)));
               const combined = [...newRows];
-              if (combined.length < 10) {
-                combined.push(...createEmptyRows(10 - combined.length, combined.length));
-              }
+              if (combined.length < 10) combined.push(...createEmptyRows(10 - combined.length, combined.length));
               return combined;
             });
-
             toast.success(`Pre-filled ${tasksToFill.length} tasks from your allocation`);
           } else {
             setRows(createEmptyRows(10));
@@ -190,16 +196,21 @@ const DailyReport: React.FC = () => {
     fetchData();
   }, [date, user?.id]);
 
-  // Auto-save to local storage
+  // Auto-save to API (debounced) + localStorage fallback
   useEffect(() => {
     if (isLoadingData) return;
     const storageKey = `daily_report_${user?.id}_${format(date, 'yyyy-MM-dd')}`;
     localStorage.setItem(storageKey, JSON.stringify(rows));
+    const timer = setTimeout(() => {
+      api.dailyReportDrafts.save(format(date, 'yyyy-MM-dd'), JSON.stringify(rows)).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(timer);
   }, [rows, date, user?.id, isLoadingData]);
 
   const handleManualSave = (index: number) => {
     const storageKey = `daily_report_${user?.id}_${format(date, 'yyyy-MM-dd')}`;
     localStorage.setItem(storageKey, JSON.stringify(rows));
+    api.dailyReportDrafts.save(format(date, 'yyyy-MM-dd'), JSON.stringify(rows)).catch(() => {});
     toast.success(`Row ${index + 1} saved successfully`);
   };
 

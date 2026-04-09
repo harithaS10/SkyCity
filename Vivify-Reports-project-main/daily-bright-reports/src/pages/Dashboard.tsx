@@ -75,6 +75,7 @@ const UserDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [showAllOverdue, setShowAllOverdue] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   // Consumed once on mount — true only when coming directly from login
@@ -356,9 +357,12 @@ const UserDashboard: React.FC = () => {
                 </div>
               ))}
               {overdueTasks.length > 3 && (
-                <p className="text-xs text-rose-600">
+                <button
+                  className="text-xs text-rose-600 font-semibold hover:text-rose-800 underline"
+                  onClick={() => setShowAllOverdue(true)}
+                >
                   And {overdueTasks.length - 3} more overdue tasks...
-                </p>
+                </button>
               )}
             </div>
           </CardContent>
@@ -552,37 +556,6 @@ const UserDashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-primary text-primary-foreground shadow-2xl shadow-primary/20 overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12 scale-150">
-              <ClipboardList size={80} />
-            </div>
-            <CardContent className="p-6 relative z-10">
-              <h3 className="font-bold text-lg mb-2">Need Help?</h3>
-              <p className="text-sm text-primary-foreground/80 mb-4 leading-relaxed">
-                Contact your system administrator if you encounter any issues or have questions about your allocations.
-              </p>
-              <Button
-                variant="secondary"
-                className="w-full font-semibold"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    const response = await api.allocations.requestHelp("User requested assistance via Dashboard.");
-                    if (response.success) {
-                      toast.success("Help request sent to administrator.");
-                    } else {
-                      toast.error("Failed to send request.");
-                    }
-                  } catch (e) {
-                    console.error(e);
-                    toast.error("Error sending request.");
-                  }
-                }}
-              >
-                Request Assistance
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
@@ -799,6 +772,45 @@ const UserDashboard: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* All Overdue Tasks Popup */}
+      {showAllOverdue && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setShowAllOverdue(false)}>
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b bg-rose-50">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-rose-600" />
+                <h2 className="font-bold text-rose-800">All Overdue Tasks ({overdueTasks.length})</h2>
+              </div>
+              <button onClick={() => setShowAllOverdue(false)}
+                className="h-7 w-7 rounded-full bg-rose-100 hover:bg-rose-200 flex items-center justify-center text-rose-700">
+                ✕
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4 space-y-2">
+              {overdueTasks.map((task) => (
+                <div key={task.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-rose-200">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm truncate">{task.title || task.taskName}</p>
+                    <p className="text-xs text-rose-600 font-medium">
+                      Due: {format(new Date(task.dueDate || task.DueDate), 'MMM dd, yyyy')}
+                    </p>
+                  </div>
+                  <Button size="sm" className="shrink-0 ml-2" onClick={() => {
+                    setSelectedTask(task);
+                    setIsStatusDialogOpen(true);
+                    setShowAllOverdue(false);
+                  }}>
+                    Update
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -811,6 +823,7 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [liveActivities, setLiveActivities] = useState<any[]>([]);
   const [allReports, setAllReports] = useState<any[]>([]);
+  const [assistanceRequests, setAssistanceRequests] = useState<any[]>([]);
   // Task Dashboard Integration
   const [taskStats, setTaskStats] = useState<any>(null);
   const [recentTasks, setRecentTasks] = useState<any[]>([]);
@@ -827,8 +840,7 @@ const AdminDashboard: React.FC = () => {
           api.allocations.getMyTasks(),
           api.allocations.getLiveActivities(),
           // Task Dashboard Integration
-          api.tasks.getStats(),
-          api.tasks.getAll(),
+          api.tasks.getStats(),          api.tasks.getAll(),
           api.tasks.getPerformance(),
           // User-created allocations (all users)
           api.allocations.getAll()
@@ -837,6 +849,12 @@ const AdminDashboard: React.FC = () => {
         if (statsRes.success) setStats(statsRes.data);
         if (tasksRes.success) setAdminTasks(tasksRes.data || []);
         if (liveRes.success) setLiveActivities(liveRes.data || []);
+
+        // Fetch assistance requests
+        try {
+          const assistRes = await api.assistance.getAll();
+          if (assistRes.success) setAssistanceRequests(assistRes.data || []);
+        } catch { /* ignore */ }
 
         // Task Dashboard Integration
         if (taskStatsRes.success) setTaskStats(taskStatsRes.data);
@@ -1186,7 +1204,7 @@ const AdminDashboard: React.FC = () => {
                       <div className="flex justify-between items-start mb-1">
                         <p className="text-sm font-bold text-foreground leading-none">{activity.assigneeName}</p>
                         <span className="text-[10px] text-muted-foreground font-medium whitespace-nowrap ml-2">
-                          {formatDistanceToNow(new Date(activity.lastProgressUpdate), { addSuffix: true })}
+                          {activity.lastProgressUpdate ? formatDistanceToNow(new Date(activity.lastProgressUpdate), { addSuffix: true }) : ''}
                         </span>
                       </div>
                       <p className="text-[11px] font-medium text-primary mb-1 leading-tight">
@@ -1300,39 +1318,6 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-2xl relative overflow-hidden">
-            <div className="absolute -bottom-4 -right-4 opacity-10 rotate-12">
-              <TrendingUp size={120} />
-            </div>
-            <CardContent className="p-6 relative z-10">
-              <h3 className="font-bold text-xl mb-2">Help Requests</h3>
-              <div className="space-y-3 mt-4">
-                {adminTasks.filter(t => t.title && t.title.startsWith("HELP REQUEST") && t.status === 'pending').length > 0 ? (
-                  adminTasks.filter(t => t.title && t.title.startsWith("HELP REQUEST") && t.status === 'pending').slice(0, 3).map((task, i) => (
-                    <div key={i} className="flex justify-between text-sm items-center py-2 border-b border-white/10 last:border-0">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-white">{task.title.replace("HELP REQUEST: ", "")}</span>
-                        <span className="text-xs opacity-70 truncate max-w-[150px]">{task.description}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-6 text-[10px]"
-                        onClick={() => navigate('/my-tasks')}
-                      >
-                        View
-                      </Button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-4">
-                    <CheckCircle2 className="h-8 w-8 opacity-50 mb-2" />
-                    <span className="opacity-70 text-sm">No new requests</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

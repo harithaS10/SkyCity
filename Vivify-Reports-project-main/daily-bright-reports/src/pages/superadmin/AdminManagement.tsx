@@ -162,7 +162,7 @@ const AdminManagement: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="flex-row gap-2 justify-end">
                 <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
                 <Button onClick={handleCreate}>Create Admin</Button>
               </DialogFooter>
@@ -190,7 +190,7 @@ const AdminManagement: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <DialogFooter>
+              <DialogFooter className="flex-row gap-2 justify-end">
                 <Button variant="outline" onClick={() => setEditTarget(null)}>Cancel</Button>
                 <Button onClick={handleUpdate}>Save Changes</Button>
               </DialogFooter>

@@ -2,36 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Building2, Shield, BarChart3, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '@/assets/skycity-logo.png';
-//console.log('API object:', api);
-//console.log('API departments:', api.departments);
-
-const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
-  { value: 'super_admin', label: 'Super Admin' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'manager', label: 'Manager / Supervisor' },
-  { value: 'user', label: 'Employee / User' },
-];
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -41,66 +17,19 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-
-  const [selectedRole, setSelectedRole] = useState<UserRole>('user');
-  const [departments, setDepartments] = useState<{ id: number; departmentName: string }[]>([]);
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | undefined>(undefined);
-  const [loadingDepts, setLoadingDepts] = useState(false);
-
-  // Tenant branding — loaded if ?tenant= param is in URL
-  const [tenantName, setTenantName] = useState('SkyCity');
-  const [tenantLogo, setTenantLogo] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tenantSlug = params.get('tenant');
-    if (tenantSlug) {
-      // In a real implementation fetch from /api/branding/public?tenant=slug
-      // For now keep defaults
-    }
-  }, []);
-
-  // Fetch departments when manager role is chosen
-  useEffect(() => {
-    if (selectedRole === 'manager' || selectedRole === 'user') {
-      setLoadingDepts(true);
-      api.departments
-        .getAll()
-        .then((res) => {
-          if (res.success && res.data) setDepartments(res.data);
-        })
-        .catch(() => {
-          /* silently fail — depts not mandatory on all deployments */
-        })
-        .finally(() => setLoadingDepts(false));
-    } else {
-      setDepartments([]);
-      setSelectedDepartmentId(undefined);
-    }
-  }, [selectedRole]);
-
-  const needsDepartment = selectedRole === 'manager' || selectedRole === 'user';
+  const [selectedRole] = useState<UserRole>('user');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (!username || !password) {
       setError('Please enter your username and password');
       return;
     }
-
-    const result = await login({
-      username,
-      password,
-      role: selectedRole,
-      departmentId: needsDepartment ? selectedDepartmentId : undefined,
-    });
-
+    const result = await login({ username, password, role: selectedRole });
     if (result.success) {
       toast.success('Login successful!');
       sessionStorage.setItem('show_task_popup', '1');
-      // Role-based redirect
       if (selectedRole === 'super_admin') {
         navigate('/super-admin/overview');
       } else {
@@ -111,119 +40,162 @@ const Login: React.FC = () => {
     }
   };
 
-  const displayLogo = tenantLogo ?? logo;
-  const displayName = tenantName;
+  const features = [
+    { icon: BarChart3, title: 'Daily Reports', desc: 'Track and manage daily work allocations' },
+    { icon: Building2, title: 'Property Management', desc: 'Oversee properties, buildings and units' },
+    { icon: Shield, title: 'Complaint Handling', desc: 'Resolve resident complaints efficiently' },
+    { icon: Users, title: 'Team Collaboration', desc: 'Coordinate staff tasks and assignments' },
+  ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-white">
-      {/* Brand Background watermark */}
-      <div
-        className="absolute inset-0 z-0 bg-no-repeat bg-center opacity-10 pointer-events-none"
-        style={{
-          backgroundImage: `url('${displayLogo}')`,
-          backgroundSize: 'contain',
-          backgroundPosition: 'center',
-        }}
-      />
+    <div className="h-screen flex overflow-hidden">
+      {/* Left Panel */}
+      <div className="hidden lg:flex lg:w-3/5 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex-col justify-between p-8 relative overflow-hidden h-full">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
+        </div>
 
-      <div className="w-full max-w-lg space-y-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-        {/* Logo + Brand Name */}
-        <div className="flex flex-row items-center justify-center gap-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white shadow-lg p-2 ring-1 ring-slate-100">
-            <img src={displayLogo} alt="Logo" className="h-full w-full object-contain" />
+        {/* Logo */}
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center p-2 ring-1 ring-white/20">
+            <img src={logo} alt="SkyCity" className="h-full w-full object-contain" />
           </div>
-          <div className="text-left">
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 uppercase">
-              {displayName}
-            </h1>
-            <p className="text-sm text-slate-500 font-medium mt-1 tracking-wide uppercase">
-              Daily Reporting System
-            </p>
+          <div>
+            <h1 className="text-white font-bold text-xl tracking-widest uppercase">SkyCity</h1>
+            <p className="text-slate-400 text-xs tracking-wider uppercase">Daily Reporting System</p>
           </div>
         </div>
 
-        <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-md">
-          <CardHeader className="space-y-1 pb-6 pt-8">
-            <CardTitle className="text-2xl font-bold text-center">
-              Welcome back
-            </CardTitle>
-            <CardDescription className="text-center">
-              Sign in to your account to continue
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-2">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium animate-in zoom-in-95 duration-200">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
+        {/* Center content */}
+        <div className="relative z-10 space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold text-white leading-tight">
+              Manage your city<br />
+              <span className="text-blue-400">smarter, faster.</span>
+            </h2>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
+              A unified platform for property management, complaint resolution, and daily workforce reporting.
+            </p>
+          </div>
 
-              {/* Username */}
-              <div className="space-y-2">
-                <Label htmlFor="username">Username or Email</Label>
+          <div className="grid grid-cols-1 gap-3">
+            {features.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="flex items-start gap-3 p-3 rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur-sm">
+                <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <Icon className="h-4 w-4 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-white text-sm font-semibold">{title}</p>
+                  <p className="text-slate-400 text-xs mt-0.5">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="relative z-10">
+          <p className="text-slate-500 text-xs">© 2026 SkyCity. All rights reserved.</p>
+        </div>
+      </div>
+
+      {/* Right Panel */}
+      <div className="w-full lg:w-2/5 flex items-center justify-center bg-white dark:bg-slate-950 relative overflow-hidden py-8">
+        {/* Watermark logo - removed */}
+        <div className="w-full max-w-md space-y-8 px-4 relative z-10 bg-white rounded-2xl shadow-xl p-8">
+
+          {/* Mobile logo */}
+          <div className="flex lg:hidden items-center gap-3 justify-center">
+            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center p-1.5">
+              <img src={logo} alt="SkyCity" className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <h1 className="font-bold text-lg tracking-widest uppercase text-slate-900">SkyCity</h1>
+              <p className="text-slate-500 text-xs tracking-wider uppercase">Daily Reporting System</p>
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Sign in to your account to continue</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="username" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Username or Email
+              </Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 transition-colors text-sm"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Password
+              </Label>
+              <div className="relative">
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="username or email@company.com"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="h-11 transition-all duration-200 bg-background/50 focus:bg-background"
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 pr-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 transition-colors text-sm"
                   disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
+            </div>
 
-              {/* Password */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 pr-10 transition-all duration-200 bg-background/50 focus:bg-background"
-                    disabled={isLoading}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-11 w-11 text-muted-foreground hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-semibold text-sm transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
+            >
+              {isLoading ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
 
-              <Button
-                type="submit"
-                className="w-full h-11 text-base font-semibold transition-all duration-300 active:scale-[0.98] shadow-lg shadow-primary/20"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Signing In...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
+            <span className="text-xs text-slate-400">SECURE LOGIN</span>
+            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
+          </div>
 
-        <div className="flex items-center justify-center mt-8">
-          <p className="text-sm text-muted-foreground">
-            © 2026 {displayName}. All rights reserved.
+          <p className="text-center text-xs text-slate-400">
+            Protected by enterprise-grade security. Your data is safe.
           </p>
         </div>
       </div>

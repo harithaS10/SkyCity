@@ -42,7 +42,7 @@ const TenantOverview: React.FC = () => {
             { label: 'Total Tenants', value: tenants.length, icon: <Globe className="h-5 w-5 text-primary" />, color: 'bg-primary/10' },
             { label: 'Active Tenants', value: activeTenants, icon: <TrendingUp className="h-5 w-5 text-emerald-600" />, color: 'bg-emerald-100/50' },
             { label: 'Total Users', value: totalUsers, icon: <Users className="h-5 w-5 text-sky-600" />, color: 'bg-sky-100/50' },
-            { label: 'Reports Filed', value: totalReports, icon: <FileText className="h-5 w-5 text-violet-600" />, color: 'bg-violet-100/50' },
+            { label: 'Work Orders', value: totalReports, icon: <FileText className="h-5 w-5 text-violet-600" />, color: 'bg-violet-100/50' },
           ].map(({ label, value, icon, color }) => (
             <Card key={label}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -96,7 +96,7 @@ const TenantOverview: React.FC = () => {
                       </div>
                       <div className="rounded-lg bg-slate-50 p-2 text-center">
                         <p className="text-lg font-bold">{t.reportCount ?? 0}</p>
-                        <p className="text-[10px] text-muted-foreground">Reports</p>
+                        <p className="text-[10px] text-muted-foreground">Work Orders</p>
                       </div>
                     </div>
                   </CardContent>

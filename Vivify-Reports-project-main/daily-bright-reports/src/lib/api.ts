@@ -200,6 +200,14 @@ export const api = {
       const response = await apiClient.post('/property', data);
       return response.data;
     },
+    update: async (id: number, data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.put(`/property/${id}`, data);
+      return response.data;
+    },
+    bulkCreate: async (data: any): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post('/property/bulk', data);
+      return response.data;
+    },
     delete: async (id: number): Promise<ApiResponse<any>> => {
       const response = await apiClient.delete(`/property/${id}`);
       return response.data;
@@ -249,7 +257,11 @@ export const api = {
       return response.data;
     },
     assign: async (id: number, data: AssignmentDto): Promise<ApiResponse<any>> => {
-      const response = await apiClient.post(`/complaints/${id}/assign`, data);
+      const response = await apiClient.post(`/complaint-actions/${id}/assign`, data);
+      return response.data;
+    },
+    updateStatus: async (id: number, status: string): Promise<ApiResponse<any>> => {
+      const response = await apiClient.patch(`/complaint-actions/${id}/status`, { status });
       return response.data;
     },
     resolve: async (id: number, data: ResolutionDto): Promise<ApiResponse<any>> => {
@@ -409,26 +421,31 @@ export const api = {
 
       const complaints = complaintsRes.data?.data?.items ?? complaintsRes.data?.data ?? [];
 
-      const items = (raw?.data ?? []).map((a: any) => {
+      // Group allocations by user+date so each user appears once per day
+      const grouped: Record<string, any> = {};
+      (raw?.data ?? []).forEach((a: any) => {
+        const day = a.createdAt ? a.createdAt.split('T')[0] : 'unknown';
+        const key = `${a.assignedTo}_${day}`;
         const userComplaints = complaints.filter((c: any) => c.residentId === a.assignedTo);
-        return {
-          id: a.id,
-          userId: a.assignedTo,
-          userName: userMap[a.assignedTo] || 'Unknown',
-          date: a.createdAt,
+        if (!grouped[key]) {
+          grouped[key] = {
+            id: a.id,
+            userId: a.assignedTo,
+            userName: userMap[a.assignedTo] || 'Unknown',
+            date: a.createdAt,
+            complaints: userComplaints,
+            entries: [],
+          };
+        }
+        grouped[key].entries.push({
           workTitle: a.title,
           description: a.description,
           status: a.status,
+          hoursSpent: 0,
           dueDate: a.dueDate,
-          complaints: userComplaints,
-          entries: [{
-            workTitle: a.title,
-            description: a.description,
-            status: a.status,
-            hoursSpent: 0,
-          }],
-        };
+        });
       });
+      const items = Object.values(grouped);
       return { success: true, data: items };
     },
     getAnalytics: async (params: any): Promise<ApiResponse<any>> => {
@@ -470,6 +487,16 @@ export const api = {
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
 
+        // Build trend data — group by date
+        const trendMap: Record<string, number> = {};
+        filtered.forEach((a: any) => {
+          const day = a.createdAt ? a.createdAt.split('T')[0] : null;
+          if (day) trendMap[day] = (trendMap[day] || 0) + 1;
+        });
+        const trendData = Object.entries(trendMap)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, workCount]) => ({ date, workCount }));
+
         return {
           success: true,
           data: {
@@ -480,7 +507,7 @@ export const api = {
             entriesPerReport: users.length > 0 ? Math.round(filtered.length / users.length) : 0,
             productivity,
             workDistribution,
-            data: [], // trendData — empty for now
+            data: trendData,
           }
         };
       } catch {
@@ -530,10 +557,40 @@ export const api = {
     },
   },
 
+  // Assistance Requests
+  assistance: {
+    request: async (message: string) =>
+      (await apiClient.post('/assistance', { message })).data,
+    getAll: async () => (await apiClient.get('/assistance')).data,
+    markRead: async (id: number) => (await apiClient.post(`/assistance/${id}/read`, {})).data,
+  },
+
+  // Branding
+  branding: {    get: async () => (await apiClient.get('/branding')).data,
+    update: async (data: { associationName?: string; themeColor?: string; logoUrl?: string }) =>
+      (await apiClient.post('/branding/update', data)).data,
+  },
+
+  // Daily Report Drafts
+  dailyReportDrafts: {
+    get: async (date: string) => (await apiClient.get('/daily-report-drafts', { params: { date } })).data,
+    save: async (date: string, rowsJson: string, isSubmitted = false) =>
+      (await apiClient.post('/daily-report-drafts', { date, rowsJson, isSubmitted })).data,
+  },
+
   // Legacy Work Allocations
-  allocations: {
-    getAll: async () => (await apiClient.get('/workallocations/all')).data,
-    getMyTasks: async () => (await apiClient.get('/workallocations/my-tasks')).data,
+  allocations: {    getAll: async () => (await apiClient.get('/workallocations/all')).data,
+    getMyTasks: async () => {
+      const res = (await apiClient.get('/workallocations/my-tasks')).data;
+      if (res.success && Array.isArray(res.data)) {
+        res.data = res.data.map((a: any) => ({
+          ...a,
+          title: a.title || a.workTitle || '',
+          workTitle: a.workTitle || a.title || '',
+        }));
+      }
+      return res;
+    },
     getLiveActivities: async () => (await apiClient.get('/workallocations/live')).data,
     create: async (data: any) => (await apiClient.post('/workallocations', data)).data,
     updateStatus: async (id: number, status: string, duration?: string) => 
@@ -542,6 +599,26 @@ export const api = {
     updateProgress: async (id: number, progressNote: string) => 
       (await apiClient.post(`/workallocations/${id}/progress`, { progressNote })).data,
     selfAssign: async (data: any) => (await apiClient.post('/workallocations/self-assign', data)).data,
+    uploadAttachments: async (id: number, files: File[]) => {
+      const form = new FormData();
+      files.forEach(f => form.append('files', f));
+      return (await apiClient.post(`/workallocations/${id}/attachments`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })).data;
+    },
+    uploadAttachmentsBase64: async (id: number, files: File[]) => {
+      const toBase64 = (f: File): Promise<string> =>
+        new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result as string);
+          r.onerror = rej;
+          r.readAsDataURL(f);
+        });
+      const encoded = await Promise.all(files.map(async f => ({
+        name: f.name, type: f.type, data: await toBase64(f)
+      })));
+      return (await apiClient.post(`/workallocations/${id}/attachments-base64`, { files: encoded })).data;
+    },
     reassign: async (id: number, newUserId: number, reason?: string) =>
       (await apiClient.post(`/workallocations/${id}/reassign`, { newUserId, reason })).data,
     approveRequest: async (id: number) =>
@@ -549,7 +626,7 @@ export const api = {
     denyRequest: async (id: number) =>
       (await apiClient.post(`/workallocations/${id}/deny-request`, {})).data,
     requestChange: async (id: number, data: any) => 
-      (await apiClient.post(`/workallocations/request-change`, data, { params: { id } })).data,
+      (await apiClient.post(`/workallocations/${id}/request-change`, data)).data,
   },
   
   // Products

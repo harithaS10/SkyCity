@@ -50,6 +50,38 @@ public class PropertyController : ControllerBase
     }
 
     [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [HttpPost("bulk")]
+    public async Task<ActionResult> CreatePropertiesBulk([FromBody] BulkCreatePropertyDto dto)
+    {
+        if (dto.Properties == null || dto.Properties.Count == 0)
+            return BadRequest(new ApiResponse { Success = false, Message = "No properties provided" });
+
+        var userAssocId = int.Parse(User.FindFirst("AssociationId")?.Value ?? "0");
+
+        var properties = dto.Properties.Select(p => new Property
+        {
+            AssociationId = userAssocId,
+            PropertyName  = p.PropertyName,
+            Address       = p.Address,
+            TotalUnits    = 0,
+            PropertyType  = p.PropertyType ?? "apartment",
+            TowerName     = p.TowerName,
+            FloorNo       = p.FloorNo,
+            DoorNo        = p.DoorNo,
+            ContactName   = p.ContactName,
+            ContactMobile = p.ContactMobile,
+            CommonAreas   = p.CommonAreas != null && p.CommonAreas.Count > 0
+                                ? string.Join(",", p.CommonAreas) : null,
+            CreatedAt     = DateTime.UtcNow
+        }).ToList();
+
+        _context.Properties.AddRange(properties);
+        await _context.SaveChangesAsync();
+
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = new { Created = properties.Count }, Message = $"{properties.Count} properties created" });
+    }
+
+    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
     [HttpPost]
     public async Task<ActionResult> CreateProperty([FromBody] CreatePropertyDto dto)
     {
@@ -63,10 +95,19 @@ public class PropertyController : ControllerBase
         var property = new Property
         {
             AssociationId = dto.AssociationId,
-            PropertyName = dto.PropertyName,
-            Address = dto.Address,
-            TotalUnits = dto.TotalUnits,
-            CreatedAt = DateTime.UtcNow
+            PropertyName  = dto.PropertyName,
+            Address       = dto.Address,
+            TotalUnits    = dto.TotalUnits,
+            PropertyType  = dto.PropertyType ?? "apartment",
+            TowerName     = dto.TowerName,
+            FloorNo       = dto.FloorNo,
+            DoorNo        = dto.DoorNo,
+            ContactName   = dto.ContactName,
+            ContactMobile = dto.ContactMobile,
+            CommonAreas   = dto.CommonAreas != null && dto.CommonAreas.Count > 0
+                                ? string.Join(",", dto.CommonAreas)
+                                : null,
+            CreatedAt     = DateTime.UtcNow
         };
 
         _context.Properties.Add(property);
@@ -77,6 +118,32 @@ public class PropertyController : ControllerBase
         return CreatedAtAction(nameof(GetProperties), new { associationId = property.AssociationId }, new ApiResponse<Property> { Data = property });
     }
 
+    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [HttpPut("{id}")]
+    public async Task<ActionResult> UpdateProperty(int id, [FromBody] CreatePropertyDto dto)
+    {
+        var property = await _context.Properties.FindAsync(id);
+        if (property == null)
+            return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        property.PropertyName  = dto.PropertyName;
+        property.Address       = dto.Address;
+        property.PropertyType  = dto.PropertyType ?? property.PropertyType;
+        property.TowerName     = dto.TowerName;
+        property.FloorNo       = dto.FloorNo;
+        property.DoorNo        = dto.DoorNo;
+        property.ContactName   = dto.ContactName;
+        property.ContactMobile = dto.ContactMobile;
+        property.CommonAreas   = dto.CommonAreas != null && dto.CommonAreas.Count > 0
+                                    ? string.Join(",", dto.CommonAreas)
+                                    : property.CommonAreas;
+
+        await _context.SaveChangesAsync();
+        await _auditService.LogChangeAsync<Property>("Update", "Property", property);
+
+        return Ok(new ApiResponse<Property> { Success = true, Data = property });
+    }
+
     [Authorize(Roles = "super_admin,admin,property_manager")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProperty(int id)
@@ -85,11 +152,12 @@ public class PropertyController : ControllerBase
         if (property == null)
             return NotFound(new ApiResponse { Success = false, Message = "Not Found" });
 
-        _context.Properties.Remove(property);
+        // Soft delete — sets IsDeleted = false (excluded by global query filter)
+        property.IsDeleted = false;
         await _context.SaveChangesAsync();
 
         await _auditService.LogChangeAsync<Property>("Delete", "Property", property);
-        return Ok(new ApiResponse { Message = "Deleted successfully" });
+        return Ok(new ApiResponse { Success = true, Message = "Property deleted" });
     }
 
     [HttpGet("property/{propertyId}/buildings")]

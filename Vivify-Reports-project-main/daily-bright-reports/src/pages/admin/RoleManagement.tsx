@@ -247,6 +247,7 @@ const RoleManagement: React.FC = () => {
           <CardHeader className="bg-white"><CardTitle className="text-lg">All Roles</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader className={headerBg}>
                   <TableRow className="hover:bg-transparent border-none">
@@ -295,6 +296,7 @@ const RoleManagement: React.FC = () => {
                   })}
                 </TableBody>
               </Table>
+              </div>
             </div>
           </CardContent>
         </Card>

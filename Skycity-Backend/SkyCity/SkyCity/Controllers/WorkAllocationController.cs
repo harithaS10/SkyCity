@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkycityBackend.Data;
+using SkycityBackend.DTOs;
 using SkycityBackend.Models;
 using System.Security.Claims;
 
@@ -15,7 +16,12 @@ namespace SkycityBackend.Controllers;
 public class WorkAllocationController : ControllerBase
 {
     private readonly AppDbContext _context;
-    public WorkAllocationController(AppDbContext context) => _context = context;
+    private readonly IWebHostEnvironment _env;
+    public WorkAllocationController(AppDbContext context, IWebHostEnvironment env)
+    {
+        _context = context;
+        _env = env;
+    }
 
     private int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
     private int CurrentAssocId => int.TryParse(User.FindFirst("AssociationId")?.Value, out var id) ? id : 0;
@@ -27,7 +33,37 @@ public class WorkAllocationController : ControllerBase
             .Where(a => a.AssociationId == CurrentAssocId)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
-        return Ok(new ApiResponse<dynamic> { Success = true, Data = items });
+
+        // Enrich with user names and work titles
+        var userIds = items.SelectMany(a => new[] { a.AssignedTo, a.AssignedBy }).Distinct().ToList();
+        var users = await _context.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.FullName })
+            .ToListAsync();
+        var userMap = users.ToDictionary(u => u.Id, u => u.FullName);
+
+        var workIds = items.Select(a => a.WorkId).Distinct().ToList();
+        var works = await _context.WorkCategories
+            .Where(w => workIds.Contains(w.Id))
+            .Select(w => new { w.Id, w.WorkTitle })
+            .ToListAsync();
+        var workMap = works.ToDictionary(w => w.Id, w => w.WorkTitle);
+
+        var enriched = items.Select(a => new
+        {
+            a.Id, a.Title, a.Description, a.WorkId, a.AssignedTo, a.AssignedBy,
+            a.AssociationId, a.Priority, a.Status, a.DueDate,
+            a.ProgressNote, a.RequestStatus, a.RequestedDueDate, a.RequestedDescription,
+            a.ReassignReason, a.ReassignedFrom, a.CreatedAt, a.Duration, a.CompletedAt,
+            a.AttachmentUrls,
+            clientName   = userMap.GetValueOrDefault(a.AssignedTo, ""),
+            workTitle    = !string.IsNullOrEmpty(workMap.GetValueOrDefault(a.WorkId, ""))
+                ? workMap[a.WorkId]
+                : (!string.IsNullOrEmpty(a.Title) ? a.Title : null),
+            lastProgressUpdate = a.ProgressNote != null ? a.CreatedAt : (DateTime?)null,
+        });
+
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = enriched });
     }
 
     [HttpGet("my-tasks")]
@@ -37,7 +73,27 @@ public class WorkAllocationController : ControllerBase
             .Where(a => a.AssignedTo == CurrentUserId)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
-        return Ok(new ApiResponse<dynamic> { Success = true, Data = items });
+
+        var workIds = items.Select(a => a.WorkId).Distinct().ToList();
+        var works = await _context.WorkCategories
+            .Where(w => workIds.Contains(w.Id))
+            .Select(w => new { w.Id, w.WorkTitle })
+            .ToListAsync();
+        var workMap = works.ToDictionary(w => w.Id, w => w.WorkTitle);
+
+        var enriched = items.Select(a => new
+        {
+            a.Id, a.Title, a.Description, a.WorkId, a.AssignedTo, a.AssignedBy,
+            a.AssociationId, a.Priority, a.Status, a.DueDate,
+            a.ProgressNote, a.RequestStatus, a.RequestedDueDate, a.RequestedDescription,
+            a.ReassignReason, a.ReassignedFrom, a.CreatedAt, a.Duration, a.CompletedAt,
+            a.AttachmentUrls,
+            workTitle = !string.IsNullOrEmpty(workMap.GetValueOrDefault(a.WorkId, ""))
+                ? workMap[a.WorkId]
+                : (!string.IsNullOrEmpty(a.Title) ? a.Title : null),
+        });
+
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = enriched });
     }
 
     [HttpGet("live")]
@@ -105,6 +161,10 @@ public class WorkAllocationController : ControllerBase
         var alloc = await _context.WorkAllocations.FindAsync(id);
         if (alloc == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
         alloc.Status = dto.Status;
+        if (!string.IsNullOrEmpty(dto.Duration))
+            alloc.Duration = dto.Duration;
+        if (dto.Status == "completed")
+            alloc.CompletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
         return Ok(new ApiResponse { Success = true, Message = "Status updated" });
     }
@@ -129,6 +189,68 @@ public class WorkAllocationController : ControllerBase
         return Ok(new ApiResponse { Success = true, Message = "Deleted" });
     }
 
+    [HttpPost("{id}/attachments-base64")]
+    public async Task<ActionResult> UploadAttachmentsBase64(int id, [FromBody] Base64AttachmentsDto dto)
+    {
+        var alloc = await _context.WorkAllocations.FindAsync(id);
+        if (alloc == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+        if (dto.Files == null || dto.Files.Count == 0)
+            return BadRequest(new ApiResponse { Success = false, Message = "No files provided" });
+
+        // Store as JSON array of {name, type, data} in AttachmentUrls
+        var existing = string.IsNullOrEmpty(alloc.AttachmentUrls) ? "[]" : alloc.AttachmentUrls;
+        // If existing is comma-separated paths (old format), wrap in array
+        if (!existing.TrimStart().StartsWith("["))
+            existing = "[]";
+
+        var existingList = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(existing) ?? new();
+        var newItems = dto.Files.Select(f => new { f.Name, f.Type, f.Data }).ToList();
+        var combined = existingList.Select(e => (object)e).Concat(newItems.Select(n => (object)n)).ToList();
+        alloc.AttachmentUrls = System.Text.Json.JsonSerializer.Serialize(combined);
+
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = new { count = dto.Files.Count } });
+    }
+
+    [HttpPost("{id}/attachments")]
+    public async Task<ActionResult> UploadAttachments(int id, [FromForm] List<IFormFile> files)
+    {
+        var alloc = await _context.WorkAllocations.FindAsync(id);
+        if (alloc == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+        if (files == null || files.Count == 0)
+            return BadRequest(new ApiResponse { Success = false, Message = "No files provided" });
+
+        var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var uploadDir = Path.Combine(webRoot, "uploads", "allocations");
+        Directory.CreateDirectory(uploadDir);
+
+        var urls = new List<string>();
+        foreach (var file in files)
+        {
+            if (file.Length == 0) continue;
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            var allowed = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".doc", ".docx" };
+            if (!allowed.Contains(ext)) continue;
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var filePath = Path.Combine(uploadDir, fileName);
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream);
+            urls.Add($"/uploads/allocations/{fileName}");
+        }
+
+        if (urls.Count == 0)
+            return BadRequest(new ApiResponse { Success = false, Message = "No valid files uploaded" });
+
+        var existing = string.IsNullOrEmpty(alloc.AttachmentUrls)
+            ? new List<string>()
+            : alloc.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        existing.AddRange(urls);
+        alloc.AttachmentUrls = string.Join(",", existing);
+
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = new { urls, allAttachments = alloc.AttachmentUrls } });
+    }
+
     [HttpPost("{id}/reassign")]
     public async Task<ActionResult> Reassign(int id, [FromBody] ReassignDto dto)
     {
@@ -139,6 +261,18 @@ public class WorkAllocationController : ControllerBase
         alloc.ReassignReason = dto.Reason;
         await _context.SaveChangesAsync();
         return Ok(new ApiResponse { Success = true, Message = "Reassigned" });
+    }
+
+    [HttpPost("{id}/request-change")]
+    public async Task<ActionResult> RequestChange(int id, [FromBody] RequestChangeDto dto)
+    {
+        var alloc = await _context.WorkAllocations.FindAsync(id);
+        if (alloc == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+        alloc.RequestStatus = "pending";
+        alloc.RequestedDueDate = dto.DueDate;
+        alloc.RequestedDescription = dto.Description;
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse { Success = true, Message = "Request submitted" });
     }
 
     [HttpPost("{id}/approve-request")]
@@ -177,7 +311,7 @@ public class CreateAllocationDto
     public Dictionary<int, string>? UserDescriptions { get; set; }
 }
 
-public class UpdateStatusDto { public string Status { get; set; } = string.Empty; }
+public class UpdateStatusDto { public string Status { get; set; } = string.Empty; public string? Duration { get; set; } }
 public class ProgressDto { public string ProgressNote { get; set; } = string.Empty; }
 public class ReassignDto { public int NewUserId { get; set; } public string? Reason { get; set; } }
 public class SelfAssignDto

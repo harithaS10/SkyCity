@@ -98,6 +98,7 @@ const ComplaintList = () => {
       </div>
 
       <div className="border rounded-xl bg-card overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -151,6 +152,7 @@ const ComplaintList = () => {
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );

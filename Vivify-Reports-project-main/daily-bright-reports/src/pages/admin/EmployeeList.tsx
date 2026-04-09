@@ -79,21 +79,19 @@ const EmployeeList: React.FC = () => {
 
   const fetchEmployeeStats = async (employees: Employee[]) => {
     try {
+      // Fetch all allocations once, then count per employee
+      const allocRes = await api.allocations.getAll().catch(() => ({ success: false, data: [] }));
+      const allAllocations: any[] = allocRes.success ? (allocRes.data || []) : [];
+
       const statsPromises = employees.map(async (employee) => {
         try {
-          const getUserTasks = (api.tasks as any).getUserTasks;
-          if (typeof getUserTasks !== 'function') {
-            return { employeeId: employee.id, stats: { totalTasks: 0, completedTasks: 0, pendingTasks: 0, completionRate: 0 } };
-          }
-          const response = await getUserTasks(employee.id);
-          if (response.success && response.data) {
-            const tasks = response.data;
-            const totalTasks = tasks.length;
-            const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
-            const pendingTasks = tasks.filter((t: any) => t.status === 'pending').length;
-            const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-            return { employeeId: employee.id, stats: { totalTasks, completedTasks, pendingTasks, completionRate } };
-          }
+          // Count from WorkAllocations
+          const allocations = allAllocations.filter((a: any) => a.assignedTo === employee.id);
+          const totalTasks = allocations.length;
+          const completedTasks = allocations.filter((a: any) => a.status === 'completed').length;
+          const pendingTasks = allocations.filter((a: any) => a.status === 'pending').length;
+          const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          return { employeeId: employee.id, stats: { totalTasks, completedTasks, pendingTasks, completionRate } };
         } catch {}
         return { employeeId: employee.id, stats: { totalTasks: 0, completedTasks: 0, pendingTasks: 0, completionRate: 0 } };
       });
@@ -213,6 +211,7 @@ const EmployeeList: React.FC = () => {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -297,6 +296,7 @@ const EmployeeList: React.FC = () => {
                   })}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

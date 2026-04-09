@@ -40,6 +40,7 @@ public class AssociationController : ControllerBase
                 a.Id, a.AssociationName, a.Email, a.Phone, a.Address,
                 a.ThemeColor, a.LogoUrl, a.Slug, a.IsActive, a.CreatedAt,
                 userCount = _context.Users.IgnoreQueryFilters().Count(u => u.AssociationId == a.Id),
+                reportCount = _context.WorkAllocations.Count(w => w.AssociationId == a.Id),
                 admin = _context.Users.IgnoreQueryFilters()
                     .Where(u => u.AssociationId == a.Id && u.Role == UserRole.admin && u.IsDeleted)
                     .Select(u => new { u.Id, u.FullName, u.Username, u.Phone, u.IsActive })

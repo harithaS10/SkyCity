@@ -1,0 +1,8 @@
+IF NOT EXISTS (
+    SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+    WHERE TABLE_NAME = 'WorkAllocations' AND COLUMN_NAME = 'Duration'
+)
+BEGIN
+    ALTER TABLE WorkAllocations ADD Duration NVARCHAR(20) NULL;
+    ALTER TABLE WorkAllocations ADD CompletedAt DATETIME2 NULL;
+END

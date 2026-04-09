@@ -293,7 +293,7 @@ const WorkManagement: React.FC = () => {
                   <TableRow className="hover:bg-transparent border-none">
                     <TableHead className="text-white font-semibold last:border-r-0 h-11">Code</TableHead>
                     <TableHead className="text-white font-semibold last:border-r-0 h-11">Title</TableHead>
-                    <TableHead className="text-white font-semibold last:border-r-0 h-11">Category</TableHead>
+                    <TableHead className="text-white font-semibold last:border-r-0 h-11">Type</TableHead>
                     <TableHead className="text-right text-white font-semibold px-4 h-11">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -301,7 +301,7 @@ const WorkManagement: React.FC = () => {
                   {filteredWorks.map((work, index) => (
                     <TableRow
                       key={work.id}
-                      className="animate-fade-in hover:bg-slate-50/50 transition-colors"
+                      className="animate-fade-in hover:bg-slate-50/50 transition-colors border-b border-slate-100"
                       style={{ animationDelay: `${index * 0.03}s` }}
                     >
                       <TableCell className="border-r border-slate-200 last:border-r-0">
@@ -311,12 +311,8 @@ const WorkManagement: React.FC = () => {
                       </TableCell>
                       <TableCell className="font-medium border-r border-slate-200 last:border-r-0">{work.workTitle}</TableCell>
                       <TableCell className="border-r border-slate-200 last:border-r-0">
-                        <Badge variant="outline" className={
-                          work.workCode.startsWith('0')
-                            ? 'bg-success/10 text-success border-success/20'
-                            : 'bg-warning/10 text-warning border-warning/20'
-                        }>
-                          {work.workCode.startsWith('0') ? 'Standard' : 'Special'}
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                          {work.workType || 'Standard'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">

@@ -180,6 +180,7 @@ const CategoryManagement: React.FC = () => {
                     <p className="text-muted-foreground">No categories yet</p>
                   </div>
                 ) : (
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -213,6 +214,7 @@ const CategoryManagement: React.FC = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -269,6 +271,7 @@ const CategoryManagement: React.FC = () => {
                     <p className="text-muted-foreground">No sub-categories yet</p>
                   </div>
                 ) : (
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -310,6 +313,7 @@ const CategoryManagement: React.FC = () => {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 )}
               </CardContent>
             </Card>

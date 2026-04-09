@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import {
   MessageSquareWarning, Search, Clock, CheckCircle2, AlertCircle,
   User, Building2, Calendar, Loader2, Plus, Hash,
@@ -53,6 +53,7 @@ const Complaints: React.FC = () => {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selected, setSelected] = useState<Complaint | null>(null);
   const [staffList, setStaffList] = useState<any[]>([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
 
   const [form, setForm] = useState({
     title: '', description: '', priority: 'Medium',
@@ -66,29 +67,32 @@ const Complaints: React.FC = () => {
   const load = async () => {
     setIsLoading(true);
     try {
-      const res = await api.complaints.getAll({ status: filterStatus === 'all' ? undefined : filterStatus });
+      // Always fetch all — filter client-side for accurate counts
+      const res = await api.complaints.getAll({});
       const items = (res.data as any)?.items ?? res.data ?? [];
       setComplaints(Array.isArray(items) ? items : []);
     } catch { toast.error('Failed to load complaints'); }
     finally { setIsLoading(false); }
   };
 
-  useEffect(() => { load(); }, [filterStatus]);
+  useEffect(() => { load(); }, []);
 
   useEffect(() => {
-    api.categories.getAll().then(res => {
+    api.works.getAll().then(res => {
       if (res.success && res.data) setCategories(res.data as any);
     }).catch(() => {});
   }, []);
 
   const filtered = complaints.filter(c => {
     const q = searchQuery.toLowerCase();
-    return !q || c.title.toLowerCase().includes(q) || c.complaintNumber.toLowerCase().includes(q);
+    const matchesSearch = !q || c.title.toLowerCase().includes(q) || c.complaintNumber.toLowerCase().includes(q);
+    const matchesStatus = filterStatus === 'all' || c.status === filterStatus;
+    return matchesSearch && matchesStatus;
   });
 
   const counts = {
     Open: complaints.filter(c => c.status === 'Open').length,
-    Assigned: complaints.filter(c => c.status === 'Assigned').length,
+    ...(canManage ? { Assigned: complaints.filter(c => c.status === 'Assigned').length } : {}),
     'In Progress': complaints.filter(c => c.status === 'In Progress').length,
     Resolved: complaints.filter(c => c.status === 'Resolved').length,
   };
@@ -103,7 +107,7 @@ const Complaints: React.FC = () => {
       const res = await api.complaints.create({
         residentId: user!.id,
         unitId: parseInt(form.unitId) || user?.unitId || 0,
-        categoryId: parseInt(form.categoryId),
+        categoryId: 0,
         title: form.title,
         description: form.description,
         priority: form.priority as any,
@@ -120,6 +124,19 @@ const Complaints: React.FC = () => {
     finally { setIsSubmitting(false); }
   };
 
+  const handleStatusUpdate = async (complaintId: number, newStatus: string) => {
+    try {
+      const res = await (api.complaints as any).updateStatus(complaintId, newStatus);
+      if (res.success !== false) {
+        toast.success(`Status updated to ${newStatus}`);
+        load();
+      } else {
+        toast.error(res.message || 'Failed to update status');
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Failed to update status');
+    }
+  };
   const handleAssign = async () => {
     if (!selected || !assignForm.staffId) {
       toast.error('Please select a staff member');
@@ -128,16 +145,19 @@ const Complaints: React.FC = () => {
     try {
       const res = await api.complaints.assign(selected.id, {
         staffId: parseInt(assignForm.staffId),
-        managerId: user!.id,
+        managerId: user?.id ?? 0,
       });
-      if (res.success) {
+      if (res.success !== false) {
         toast.success('Complaint assigned');
         setIsAssignOpen(false);
+        setAssignForm({ staffId: '', managerId: '' });
         load();
       } else {
         toast.error(res.message || 'Failed to assign');
       }
-    } catch { toast.error('Failed to assign complaint'); }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e?.message || 'Failed to assign complaint');
+    }
   };
 
   return (
@@ -189,10 +209,10 @@ const Complaints: React.FC = () => {
               onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
           <Tabs value={filterStatus} onValueChange={setFilterStatus}>
-            <TabsList className="w-full grid grid-cols-5">
+            <TabsList className={`w-full grid ${canManage ? 'grid-cols-5' : 'grid-cols-4'}`}>
               <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
               <TabsTrigger value="Open" className="text-xs">Open</TabsTrigger>
-              <TabsTrigger value="Assigned" className="text-xs">Assigned</TabsTrigger>
+              {canManage && <TabsTrigger value="Assigned" className="text-xs">Assigned</TabsTrigger>}
               <TabsTrigger value="In Progress" className="text-xs">In Progress</TabsTrigger>
               <TabsTrigger value="Resolved" className="text-xs">Resolved</TabsTrigger>
             </TabsList>
@@ -230,14 +250,61 @@ const Complaints: React.FC = () => {
                   )}
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
-                    {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
+                    {format(new Date(c.createdAt), 'MMM dd, yyyy')}
                   </div>
                   {canManage && c.status === 'Open' && (
                     <Button size="sm" className="w-full gap-2" onClick={() => {
                       setSelected(c); setIsAssignOpen(true);
+                      setIsLoadingStaff(true);
+                      api.users.getAll().then(res => {
+                        if (res.success && res.data) {
+                          const excluded = ['admin', 'super_admin'];
+                          setStaffList(res.data.filter((u: any) => !excluded.includes(u.role)));
+                        }
+                      }).catch(() => {}).finally(() => setIsLoadingStaff(false));
                     }}>
                       <User className="h-4 w-4" /> Assign
                     </Button>
+                  )}
+                  {/* Admin can change status at any point */}
+                  {canManage && c.status !== 'Open' && c.status !== 'Closed' && c.status !== 'Resolved' && (
+                    <div className="flex gap-1.5 flex-wrap">
+                      {c.status !== 'In Progress' && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-blue-200 text-blue-600 hover:bg-blue-50"
+                          onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
+                          <Loader2 className="h-3 w-3" /> In Progress
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                        onClick={() => handleStatusUpdate(c.id, 'Resolved')}>
+                        <CheckCircle2 className="h-3 w-3" /> Resolved
+                      </Button>
+                    </div>
+                  )}
+                  {/* Staff can update status of complaints assigned to them */}
+                  {user?.role === 'staff' && ['Open', 'Assigned', 'In Progress'].includes(c.status) && (
+                    <div className="flex gap-2">
+                      {c.status === 'Open' && (
+                        <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-blue-200 text-blue-600 hover:bg-blue-50 text-xs"
+                          onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
+                          <Loader2 className="h-3 w-3" /> Start Working
+                        </Button>
+                      )}
+                      {(c.status === 'Assigned' || c.status === 'In Progress') && (
+                        <>
+                          {c.status === 'Assigned' && (
+                            <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-blue-200 text-blue-600 hover:bg-blue-50 text-xs"
+                              onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
+                              <Loader2 className="h-3 w-3" /> In Progress
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs"
+                            onClick={() => handleStatusUpdate(c.id, 'Resolved')}>
+                            <CheckCircle2 className="h-3 w-3" /> Resolved
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -272,7 +339,7 @@ const Complaints: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>{c.categoryName}</SelectItem>
+                      <SelectItem key={c.id} value={c.id.toString()}>{c.workTitle || c.categoryName}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -300,23 +367,34 @@ const Complaints: React.FC = () => {
         </Dialog>
 
         {/* Assign Dialog */}
-        <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
-          <DialogContent>
+        <Dialog open={isAssignOpen} onOpenChange={v => { setIsAssignOpen(v); if (!v) setAssignForm({ staffId: '', managerId: '' }); }}>
+          <DialogContent className="sm:max-w-sm">
             <DialogHeader>
               <DialogTitle>Assign Complaint</DialogTitle>
               <DialogDescription>{selected?.complaintNumber} — {selected?.title}</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-1">
-                <Label>Staff User ID *</Label>
-                <Input value={assignForm.staffId} type="number"
-                  onChange={e => setAssignForm(p => ({ ...p, staffId: e.target.value }))}
-                  placeholder="Enter staff user ID" />
-              </div>
+            <div className="space-y-3 py-2">
+              <Label>Assign To *</Label>
+              {isLoadingStaff ? (
+                <p className="text-sm text-muted-foreground">Loading staff...</p>
+              ) : (
+                <div className="border rounded-md max-h-56 overflow-y-auto divide-y">
+                  {staffList.map((s: any) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setAssignForm(p => ({ ...p, staffId: s.id.toString() }))}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-accent ${assignForm.staffId === s.id.toString() ? 'bg-primary text-primary-foreground hover:bg-primary' : ''}`}
+                    >
+                      {s.fullName || s.username}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAssignOpen(false)}>Cancel</Button>
-              <Button onClick={handleAssign}>Assign</Button>
+              <Button onClick={handleAssign} disabled={!assignForm.staffId}>Assign</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -61,6 +61,22 @@ public class AuthController : ControllerBase
         user.LastLoginAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
+        // Fetch association branding
+        string? logoUrl = null;
+        string? themeColor = null;
+        string? associationName = null;
+        if (user.AssociationId.HasValue)
+        {
+            var assoc = await _context.Associations.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(a => a.Id == user.AssociationId.Value);
+            if (assoc != null)
+            {
+                logoUrl = assoc.LogoUrl;
+                themeColor = assoc.ThemeColor;
+                associationName = assoc.AssociationName;
+            }
+        }
+
         return Ok(new ApiResponse<object>
         {
             Success = true,
@@ -68,7 +84,15 @@ public class AuthController : ControllerBase
             Data = new
             {
                 Token = token,
-                User = new { user.Id, user.Username, user.FullName, role = user.Role.ToString(), user.AssociationId, user.UnitId }
+                User = new
+                {
+                    user.Id, user.Username, user.FullName,
+                    role = user.Role.ToString(),
+                    user.AssociationId, user.UnitId,
+                    logoUrl,
+                    themeColor,
+                    associationName
+                }
             }
         });
     }

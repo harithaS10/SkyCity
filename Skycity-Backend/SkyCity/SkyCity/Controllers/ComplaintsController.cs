@@ -54,9 +54,7 @@ public class ComplaintsController : ControllerBase
         // Scope by association — join via resident's associationId or category
         if (!isSuperAdmin && assocId > 0)
             query = query.Where(c =>
-                c.Resident!.AssociationId == assocId ||
-                _context.ComplaintCategories.IgnoreQueryFilters()
-                    .Any(cat => cat.Id == c.CategoryId && cat.AssociationId == assocId));
+                c.Resident!.AssociationId == assocId);
 
         // Staff/resident: only see their own complaints or ones assigned to them
         if (!isSuperAdmin && !isAdmin && userId > 0)
@@ -98,7 +96,6 @@ public class ComplaintsController : ControllerBase
     }
 
     [Authorize(Roles = "resident,staff,helpdesk,property_manager,admin,sub_admin")]
-    [RequirePermission("complaints", "create")]
     [HttpPost]
     public async Task<ActionResult> CreateComplaint([FromBody] CreateComplaintDto dto)
     {
@@ -109,39 +106,47 @@ public class ComplaintsController : ControllerBase
         {
             ResidentId = dto.ResidentId,
             UnitId = dto.UnitId > 0 ? dto.UnitId : null,
-            CategoryId = dto.CategoryId,
+            CategoryId = null, // FK to ComplaintCategories — set null since we use work types now
             Title = dto.Title,
             Description = dto.Description,
             Priority = dto.Priority,
             ComplaintNumber = $"CMP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}",
             Status = "Open",
             CreatedAt = DateTime.UtcNow,
-            IsDeleted = true, // true = active/visible
+            IsDeleted = true,
         };
+
+        // Store work type reference in description prefix if provided
+        if (dto.CategoryId > 0)
+        {
+            var workType = await _context.WorkCategories.FindAsync(dto.CategoryId);
+            if (workType != null && !complaint.Title.Contains(workType.WorkTitle))
+                complaint.Description = $"[{workType.WorkTitle}] {complaint.Description}".Trim();
+        }
 
         _context.Complaints.Add(complaint);
         await _context.SaveChangesAsync();
         
-        // Audit log
         await _auditService.LogChangeAsync<Complaint>("Create", "Complaint", complaint);
-        
-        // Notify helpdesk
-        var helpdeskUsers = await _context.Users
-            .Where(u => u.Role == UserRole.helpdesk && u.AssociationId == _context.ComplaintCategories.FirstOrDefault(cc => cc.Id == complaint.CategoryId)!.AssociationId)
-            .Select(u => u.Id)
-            .ToListAsync();
-            
-        await _notificationService.SendBulkAsync(
-            helpdeskUsers,
-            "New Complaint Created",
-            $"Complaint #{complaint.ComplaintNumber}: {complaint.Title}",
-            "complaint_created",
-            complaint.Id);
         
         return Ok(new ApiResponse<Complaint> { Success = true, Data = complaint });
     }
 
-    [Authorize(Roles = "helpdesk,property_manager,admin")]
+    [Authorize(Roles = "helpdesk,property_manager,admin,sub_admin,facility_manager,staff")]
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateComplaintStatusDto dto)
+    {
+        var complaint = await _context.Complaints.FindAsync(id);
+        if (complaint == null)
+            return NotFound(new ApiResponse { Success = false, Message = "Not Found" });
+
+        complaint.Status = dto.Status;
+        await _context.SaveChangesAsync();
+        await _auditService.LogChangeAsync<Complaint>("StatusUpdate", "Complaint", complaint);
+        return Ok(new ApiResponse { Success = true, Message = $"Status updated to {dto.Status}" });
+    }
+
+    [Authorize(Roles = "helpdesk,property_manager,admin,sub_admin,facility_manager")]
     [HttpPost("{id}/assign")]
     public async Task<IActionResult> AssignComplaint(int id, [FromBody] AssignmentDto dto)
     {
@@ -155,7 +160,7 @@ public class ComplaintsController : ControllerBase
         var oldComplaint = new { complaint.Status, complaint.AssignedTo };
         
         complaint.AssignedTo = dto.StaffId;
-        complaint.AssignedBy = dto.ManagerId;
+        complaint.AssignedBy = dto.ManagerId ?? int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
         complaint.AssignedAt = DateTime.UtcNow;
         complaint.Status = "Assigned";
         

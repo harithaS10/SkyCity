@@ -110,6 +110,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 app.UseResponseCaching();
+app.UseStaticFiles(); // serve wwwroot files (uploads)
 
 // Handle OPTIONS preflight globally
 app.Use(async (context, next) =>

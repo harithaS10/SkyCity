@@ -310,6 +310,7 @@ const UserTaskDashboard: React.FC = () => {
             {['all', 'daily', 'monthly', 'pending', 'completed'].map(tab => (
               <TabsContent key={tab} value={tab} className="mt-6">
                 <Card>
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -418,6 +419,7 @@ const UserTaskDashboard: React.FC = () => {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 </Card>
               </TabsContent>
             ))}
