@@ -317,24 +317,11 @@ const EmployeeTaskAssignment: React.FC = () => {
         {/* Task Assignment Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Daily Task Section */}
-          <Card>
+          <Card id="daily-task-section">
             <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Clock className="h-5 w-5 text-blue-600 shrink-0" />
-                  <CardTitle className="text-base">Daily Task Assignment</CardTitle>
-                </div>
-                <Button
-                  onClick={() => {
-                    setActiveTab('daily');
-                    setIsCreateDialogOpen(true);
-                  }}
-                  size="sm"
-                  className="gap-1 shrink-0 text-xs"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Daily
-                </Button>
+              <div className="flex items-center gap-2 min-w-0">
+                <Clock className="h-5 w-5 text-blue-600 shrink-0" />
+                <CardTitle className="text-base">Daily Task Assignment</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -398,24 +385,11 @@ const EmployeeTaskAssignment: React.FC = () => {
           </Card>
 
           {/* Monthly Task Section */}
-          <Card>
+          <Card id="monthly-task-section">
             <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <CalendarDays className="h-5 w-5 text-purple-600 shrink-0" />
-                  <CardTitle className="text-base">Monthly Task Assignment</CardTitle>
-                </div>
-                <Button
-                  onClick={() => {
-                    setActiveTab('monthly');
-                    setIsCreateDialogOpen(true);
-                  }}
-                  size="sm"
-                  className="gap-1 shrink-0 text-xs"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add Monthly
-                </Button>
+              <div className="flex items-center gap-2 min-w-0">
+                <CalendarDays className="h-5 w-5 text-purple-600 shrink-0" />
+                <CardTitle className="text-base">Monthly Task Assignment</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">

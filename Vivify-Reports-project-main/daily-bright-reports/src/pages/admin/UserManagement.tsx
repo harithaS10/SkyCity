@@ -348,7 +348,7 @@ const UserManagement: React.FC = () => {
           </Card>
         </div>
 
-        {/* Users Table */}
+        {/* Users Table — desktop; card list on mobile */}
         <Card className="overflow-hidden border-none shadow-md">
           <CardHeader className="bg-white">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -365,7 +365,54 @@ const UserManagement: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y">
+              {filteredUsers.map((user) => {
+                const initials = (user.name || '?').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+                const roleColor =
+                  user.role === 'admin' || user.role === 'super_admin' ? 'bg-amber-100 text-amber-700' :
+                  user.role === 'staff' ? 'bg-blue-100 text-blue-700' :
+                  user.role === 'resident' ? 'bg-emerald-100 text-emerald-700' :
+                  'bg-slate-100 text-slate-700';
+                return (
+                  <div key={user.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${roleColor}`}>
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{user.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize ${roleColor}`}>
+                          {user.role?.replace('_', ' ')}
+                        </span>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${user.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {user.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-card">
+                        <DropdownMenuItem onClick={() => handleToggleEnabled(user.id)} className="cursor-pointer text-xs">
+                          {user.status === 'active' ? 'Disable User' : 'Enable User'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive cursor-pointer text-xs">
+                          <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
               <div className="overflow-x-auto">
               <Table className="border-x">
                 <TableHeader className={`${headerBg} hover:${headerBg}`}>
@@ -392,12 +439,7 @@ const UserManagement: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell className={cellBorder}>
-                        <Select
-                          value={user.role}
-                          onValueChange={(value: string) =>
-                            handleRoleChange(user.id, value)
-                          }
-                        >
+                        <Select value={user.role} onValueChange={(value: string) => handleRoleChange(user.id, value)}>
                           <SelectTrigger className="w-32 h-8 bg-background border-slate-200">
                             <SelectValue />
                           </SelectTrigger>
@@ -417,10 +459,7 @@ const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell className={cellBorder}>
                         <div className="flex items-center gap-2">
-                          <Switch
-                            checked={user.status === 'active'}
-                            onCheckedChange={() => handleToggleEnabled(user.id)}
-                          />
+                          <Switch checked={user.status === 'active'} onCheckedChange={() => handleToggleEnabled(user.id)} />
                           <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className="px-2 py-0 text-[10px]">
                             {user.status === 'active' ? 'Active' : 'Disabled'}
                           </Badge>
@@ -437,12 +476,8 @@ const UserManagement: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-card">
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="text-destructive cursor-pointer"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete User
+                            <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive cursor-pointer">
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete User
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

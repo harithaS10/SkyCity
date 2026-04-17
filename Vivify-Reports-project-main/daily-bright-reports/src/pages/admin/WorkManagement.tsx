@@ -121,7 +121,8 @@ const WorkManagement: React.FC = () => {
     try {
       const response = await api.works.update(selectedWork.id, {
         workCode: selectedWork.workCode,
-        workTitle: selectedWork.workTitle
+        workTitle: selectedWork.workTitle,
+        workType: selectedWork.workType || 'Standard'
       });
       if (response.success) {
         toast.success('Work type updated successfully');

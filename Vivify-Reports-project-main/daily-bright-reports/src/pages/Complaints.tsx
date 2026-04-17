@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import {
   MessageSquareWarning, Search, Clock, CheckCircle2, AlertCircle,
   User, Building2, Calendar, Loader2, Plus, Hash,
@@ -209,12 +210,17 @@ const Complaints: React.FC = () => {
               onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
           <Tabs value={filterStatus} onValueChange={setFilterStatus}>
-            <TabsList className={`w-full grid ${canManage ? 'grid-cols-5' : 'grid-cols-4'}`}>
-              <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-              <TabsTrigger value="Open" className="text-xs">Open</TabsTrigger>
-              {canManage && <TabsTrigger value="Assigned" className="text-xs">Assigned</TabsTrigger>}
-              <TabsTrigger value="In Progress" className="text-xs">In Progress</TabsTrigger>
-              <TabsTrigger value="Resolved" className="text-xs">Resolved</TabsTrigger>
+            <TabsList className={`w-full grid ${canManage ? 'grid-cols-5' : 'grid-cols-4'} h-9 rounded-xl bg-muted/60 p-1`}>
+              <TabsTrigger value="all" className="rounded-lg text-xs font-semibold">All</TabsTrigger>
+              <TabsTrigger value="Open" className="rounded-lg text-xs font-semibold data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+                Open {counts.Open > 0 && <span className="ml-1 text-[9px]">({counts.Open})</span>}
+              </TabsTrigger>
+              {canManage && <TabsTrigger value="Assigned" className="rounded-lg text-xs font-semibold data-[state=active]:bg-amber-500 data-[state=active]:text-white">Assigned</TabsTrigger>}
+              <TabsTrigger value="In Progress" className="rounded-lg text-xs font-semibold data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+                <span className="hidden sm:inline">In Progress</span>
+                <span className="sm:hidden">Active</span>
+              </TabsTrigger>
+              <TabsTrigger value="Resolved" className="rounded-lg text-xs font-semibold data-[state=active]:bg-emerald-500 data-[state=active]:text-white">Done</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -227,33 +233,34 @@ const Complaints: React.FC = () => {
             No complaints found.
           </CardContent></Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             {filtered.map(c => (
-              <Card key={c.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <CardTitle className="text-base">{c.title}</CardTitle>
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <Hash className="h-3 w-3" />{c.complaintNumber}
-                      </CardDescription>
+              <Card key={c.id} className={cn(
+                "hover:shadow-md transition-shadow border-l-4",
+                c.priority === 'Urgent' ? 'border-l-rose-500' :
+                c.priority === 'High' ? 'border-l-orange-500' :
+                c.priority === 'Medium' ? 'border-l-amber-400' : 'border-l-slate-300'
+              )}>
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{c.title}</p>
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Hash className="h-2.5 w-2.5" />{c.complaintNumber}
+                        <span className="mx-1">·</span>
+                        <Calendar className="h-2.5 w-2.5" />{format(new Date(c.createdAt), 'MMM dd')}
+                      </p>
                     </div>
-                    <div className="flex flex-col gap-1 items-end">
-                      <Badge className={priorityColors[c.priority]} variant="outline">{c.priority}</Badge>
-                      <Badge className={statusColors[c.status]} variant="outline">{c.status}</Badge>
+                    <div className="flex flex-col gap-1 items-end shrink-0">
+                      <Badge className={cn("text-[10px] px-1.5 py-0 h-4", priorityColors[c.priority])} variant="outline">{c.priority}</Badge>
+                      <Badge className={cn("text-[10px] px-1.5 py-0 h-4", statusColors[c.status])} variant="outline">{c.status}</Badge>
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
                   {c.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">{c.description}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{c.description}</p>
                   )}
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    {format(new Date(c.createdAt), 'MMM dd, yyyy')}
-                  </div>
                   {canManage && c.status === 'Open' && (
-                    <Button size="sm" className="w-full gap-2" onClick={() => {
+                    <Button size="sm" className="w-full h-7 text-xs gap-1.5" onClick={() => {
                       setSelected(c); setIsAssignOpen(true);
                       setIsLoadingStaff(true);
                       api.users.getAll().then(res => {
@@ -263,44 +270,42 @@ const Complaints: React.FC = () => {
                         }
                       }).catch(() => {}).finally(() => setIsLoadingStaff(false));
                     }}>
-                      <User className="h-4 w-4" /> Assign
+                      <User className="h-3 w-3" /> Assign
                     </Button>
                   )}
-                  {/* Admin can change status at any point */}
                   {canManage && c.status !== 'Open' && c.status !== 'Closed' && c.status !== 'Resolved' && (
-                    <div className="flex gap-1.5 flex-wrap">
+                    <div className="flex gap-1.5">
                       {c.status !== 'In Progress' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-blue-200 text-blue-600 hover:bg-blue-50"
+                        <Button size="sm" variant="outline" className="flex-1 h-7 text-xs gap-1 border-blue-200 text-blue-600 hover:bg-blue-50"
                           onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
-                          <Loader2 className="h-3 w-3" /> In Progress
+                          <Loader2 className="h-3 w-3" /> Active
                         </Button>
                       )}
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                      <Button size="sm" variant="outline" className="flex-1 h-7 text-xs gap-1 border-emerald-200 text-emerald-600 hover:bg-emerald-50"
                         onClick={() => handleStatusUpdate(c.id, 'Resolved')}>
-                        <CheckCircle2 className="h-3 w-3" /> Resolved
+                        <CheckCircle2 className="h-3 w-3" /> Resolve
                       </Button>
                     </div>
                   )}
-                  {/* Staff can update status of complaints assigned to them */}
                   {user?.role === 'staff' && ['Open', 'Assigned', 'In Progress'].includes(c.status) && (
                     <div className="flex gap-2">
                       {c.status === 'Open' && (
-                        <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-blue-200 text-blue-600 hover:bg-blue-50 text-xs"
+                        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 border-blue-200 text-blue-600 hover:bg-blue-50 text-xs"
                           onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
-                          <Loader2 className="h-3 w-3" /> Start Working
+                          <Loader2 className="h-3 w-3" /> Start
                         </Button>
                       )}
                       {(c.status === 'Assigned' || c.status === 'In Progress') && (
                         <>
                           {c.status === 'Assigned' && (
-                            <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-blue-200 text-blue-600 hover:bg-blue-50 text-xs"
+                            <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 border-blue-200 text-blue-600 hover:bg-blue-50 text-xs"
                               onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
-                              <Loader2 className="h-3 w-3" /> In Progress
+                              <Loader2 className="h-3 w-3" /> Active
                             </Button>
                           )}
-                          <Button size="sm" variant="outline" className="flex-1 gap-1.5 border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs"
+                          <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs"
                             onClick={() => handleStatusUpdate(c.id, 'Resolved')}>
-                            <CheckCircle2 className="h-3 w-3" /> Resolved
+                            <CheckCircle2 className="h-3 w-3" /> Resolve
                           </Button>
                         </>
                       )}

@@ -6,7 +6,7 @@ import { useChat, ChatMsg, TaskStatusUpdate } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Send, Users, MessageSquare, Search, Plus, X, Check, Paperclip } from 'lucide-react';
+import { Send, Users, MessageSquare, Search, Plus, X, Check, Paperclip, Sparkles } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import AiChat from './AiChat';
 
 function getInitials(name: string) {
   if (!name) return '?';
@@ -47,7 +48,7 @@ const GroupChat: React.FC = () => {
   const canChat = user?.role === 'staff' ? hasPermission('chat', 'create') : true;
   const chat = useChat(true);
 
-  const [tab, setTab] = useState<'dm' | 'groups'>('dm');
+  const [tab, setTab] = useState<'ai' | 'dm' | 'groups'>('ai');
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [search, setSearch] = useState('');
@@ -224,19 +225,26 @@ const GroupChat: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-5rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="flex flex-col h-[calc(100vh-5rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+
+        {/* Top Tabs — always visible */}
+        <div className="flex border-b border-gray-100 shrink-0">
+          <button onClick={() => setTab('ai')} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'ai' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-400 hover:text-gray-600')}>
+            <Sparkles className="h-3.5 w-3.5 inline mr-1" />AI Bot
+          </button>
+          <button onClick={() => { setTab('dm'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'dm' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
+            <MessageSquare className="h-3.5 w-3.5 inline mr-1" />Self
+          </button>
+          <button onClick={() => { setTab('groups'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'groups' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
+            <Users className="h-3.5 w-3.5 inline mr-1" />Group
+          </button>
+        </div>
+
+        <div className="flex flex-1 overflow-hidden">
 
         {/* Sidebar */}
-        <aside className={cn('shrink-0 border-r border-gray-100 flex flex-col bg-white', 'w-full md:w-72', mobileView === 'chat' ? 'hidden md:flex' : 'flex')}>
-          {/* Tabs */}
-          <div className="flex border-b border-gray-100">
-            <button onClick={() => setTab('dm')} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'dm' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
-              <MessageSquare className="h-3.5 w-3.5 inline mr-1" />Direct
-            </button>
-            <button onClick={() => setTab('groups')} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'groups' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
-              <Users className="h-3.5 w-3.5 inline mr-1" />Groups
-            </button>
-          </div>
+        <aside className={cn('shrink-0 border-r border-gray-100 flex flex-col bg-white', 'w-full md:w-72', mobileView === 'chat' ? 'hidden md:flex' : 'flex', tab === 'ai' ? '!hidden' : '')}>
+          {/* Tabs removed — now at top */}
 
           {/* Search */}
           <div className="px-3 py-2 border-b border-gray-100">
@@ -296,7 +304,9 @@ const GroupChat: React.FC = () => {
 
         {/* Chat area */}
         <div className={cn('flex-1 flex flex-col min-w-0', mobileView === 'list' ? 'hidden md:flex' : 'flex')}>
-          {!selectedUser && !selectedGroup ? (
+          {tab === 'ai' ? (
+            <AiChat />
+          ) : !selectedUser && !selectedGroup ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-2">
               <MessageSquare className="h-10 w-10 opacity-30" />
               <p className="text-sm">Select a conversation to start chatting</p>
@@ -396,7 +406,7 @@ const GroupChat: React.FC = () => {
                             return (
                               <img
                                 src={p.dataUrl} alt={p.fileName}
-                                className="max-w-[220px] max-h-[200px] rounded-lg object-cover mb-1 cursor-pointer hover:opacity-90"
+                                className="w-full max-w-[220px] max-h-[200px] rounded-lg object-cover mb-1 cursor-pointer hover:opacity-90"
                                 onClick={() => setLightbox({ src: p.dataUrl, name: p.fileName })}
                               />
                             );
@@ -568,6 +578,7 @@ const GroupChat: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>{/* end outer container */}
     </DashboardLayout>
   );
 };

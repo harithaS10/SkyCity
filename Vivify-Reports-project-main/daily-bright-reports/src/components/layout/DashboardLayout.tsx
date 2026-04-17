@@ -591,9 +591,60 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       )}
 
       {/* ── Main Content ──────────────────────────────────────────────────── */}
-      <main className="px-4 sm:px-6 md:px-8 py-6 sm:py-8 max-w-[1800px] mx-auto w-full">
+      <main className="px-3 sm:px-6 md:px-8 py-4 sm:py-8 max-w-[1800px] mx-auto w-full pb-20 xl:pb-8">
         {children}
       </main>
+
+      {/* ── Mobile Bottom Navigation Bar ─────────────────────────────────── */}
+      <nav className="xl:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg safe-bottom">
+        <div className="flex items-center justify-around px-2 py-1">
+          {(() => {
+            const mobileNavItems = filteredNavItems.slice(0, 5).map(item => ({
+              ...item,
+              isActive: location.pathname === item.href,
+            }));
+            // Always show at most 5 items
+            return mobileNavItems.map((item) => {
+              const unseenCount = item.href === '/my-tasks' ? unseenTasksCount : 0;
+              return (
+                <button
+                  key={item.href}
+                  onClick={() => navigate(item.href)}
+                  className={cn(
+                    'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors min-w-0 flex-1',
+                    item.isActive
+                      ? 'text-primary'
+                      : 'text-muted-foreground'
+                  )}
+                >
+                  <div className="relative">
+                    <span className={cn(
+                      'flex h-6 w-6 items-center justify-center',
+                      item.isActive && 'text-primary'
+                    )}>
+                      {item.icon}
+                    </span>
+                    {unseenCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-500 text-[8px] font-bold text-white">
+                        {unseenCount > 9 ? '9+' : unseenCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className={cn(
+                    'text-[9px] font-medium truncate max-w-[52px] text-center leading-tight',
+                    item.isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
+                  )}>
+                    {item.label}
+                  </span>
+                  {item.isActive && (
+                    <div className="h-0.5 w-4 rounded-full bg-primary mt-0.5" />
+                  )}
+                </button>
+              );
+            });
+          })()}
+        </div>
+      </nav>
     </div>
   );
 };

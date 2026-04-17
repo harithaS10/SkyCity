@@ -75,6 +75,7 @@ const DailyReport: React.FC = () => {
   const { user, hasPermission } = useAuth();
   const canCreate = user?.role === 'staff' ? hasPermission('daily_reports', 'create') : true;
   const [date, setDate] = useState<Date>(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [rows, setRows] = useState<WorkRow[]>(createEmptyRows(10));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -99,10 +100,9 @@ const DailyReport: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
-        mobileDropdownRef.current && !mobileDropdownRef.current.contains(event.target as Node)
-      ) {
+      const clickedInsideDesktop = dropdownRef.current && dropdownRef.current.contains(event.target as Node);
+      const clickedInsideMobile = mobileDropdownRef.current && mobileDropdownRef.current.contains(event.target as Node);
+      if (!clickedInsideDesktop && !clickedInsideMobile) {
         setActiveDropdown(null);
       }
     };
@@ -388,78 +388,66 @@ const DailyReport: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-500">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-4 animate-in fade-in duration-500">
+        {/* Mobile-first header */}
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Daily Report</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Log your daily activities and time spent</p>
+            <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Daily Report</h1>
+            <p className="text-xs text-muted-foreground hidden sm:block">Log your daily activities and time spent</p>
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <Popover>
+          <div className="flex items-center gap-2">
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-[240px] justify-start text-left font-normal bg-card h-10 px-3">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, 'MMM dd, yyyy') : <span>Pick a date</span>}
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{format(date, 'MMM dd, yyyy')}</span>
+                  <span className="sm:hidden">{format(date, 'MMM dd')}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(newDate) => newDate && setDate(newDate)}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
+                <Calendar mode="single" selected={date}
+                  onSelect={(newDate) => { if (newDate) { setDate(newDate); setIsCalendarOpen(false); } }}
+                  initialFocus className="pointer-events-auto" />
               </PopoverContent>
             </Popover>
-            {autoFilledRowIds.size > 0 && (
-              <Button
-                variant="outline"
-                onClick={clearAutoFilledRows}
-                className="gap-2 h-10 px-4 border-dashed"
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear Auto-filled ({autoFilledRowIds.size})
-              </Button>
-            )}
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || filledRowsCount === 0}
-              className="gap-2 btn-gradient h-10 px-6 rounded-xl border-none"
-            >
-              {isSubmitting ? 'Submitting...' : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Submit Report
-                </>
-              )}
+            <Button onClick={handleSubmit} disabled={isSubmitting || filledRowsCount === 0}
+              size="sm" className="h-9 gap-1.5 text-xs bg-[#1E5FA8] hover:bg-blue-700 text-white font-semibold rounded-xl">
+              {isSubmitting ? <span className="animate-spin">⏳</span> : <Save className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">Submit Report</span>
+              <span className="sm:hidden">Submit</span>
             </Button>
           </div>
         </div>
 
+        {/* Filled count + clear autofill — mobile friendly */}
+        {(filledRowsCount > 0 || autoFilledRowIds.size > 0) && (
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs text-muted-foreground">
+              <span className="font-semibold text-primary">{filledRowsCount}</span> entr{filledRowsCount === 1 ? 'y' : 'ies'} filled
+            </span>
+            {autoFilledRowIds.size > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearAutoFilledRows} className="h-7 text-xs gap-1 text-muted-foreground">
+                <Trash2 className="h-3 w-3" /> Clear auto-filled ({autoFilledRowIds.size})
+              </Button>
+            )}
+          </div>
+        )}
+
         <Card className="border shadow-xl overflow-hidden rounded-xl">
-          <CardHeader className="bg-muted/50 pb-6 border-b">
+          <CardHeader className="bg-muted/50 pb-4 border-b">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Work Entries
-                </CardTitle>
-                <CardDescription>Enter details for each task performed today</CardDescription>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden lg:flex items-center gap-1 bg-background/50 p-1 rounded-lg border border-primary/10">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => scrollTable('left')} title="Scroll Left">
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <div className="h-4 w-px bg-border mx-1" />
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => scrollTable('right')} title="Scroll Right">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="text-sm font-medium text-muted-foreground mr-4">
-                  Filled rows: <span className="text-primary">{filledRowsCount}</span>
-                </div>
+              <CardTitle className="text-base sm:text-xl flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                Work Entries
+              </CardTitle>
+              <div className="hidden lg:flex items-center gap-1 bg-background/50 p-1 rounded-lg border border-primary/10">
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => scrollTable('left')} title="Scroll Left">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="h-4 w-px bg-border mx-1" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => scrollTable('right')} title="Scroll Right">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -550,7 +538,7 @@ const DailyReport: React.FC = () => {
                                 <div className="border-t mt-2 pt-2">
                                   <div
                                     className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm font-medium text-primary hover:bg-accent"
-                                    onClick={() => handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' })}
+                                    onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); }}
                                   >
                                     Others (Manual Entry)
                                   </div>
@@ -780,7 +768,7 @@ const DailyReport: React.FC = () => {
                               {filteredWorks.length === 0 && (
                                 <div className="p-4 text-center text-sm text-muted-foreground">No work matching "{searchTerm}"</div>
                               )}
-                              <div className="p-3 text-primary font-bold border-t mt-1 flex items-center gap-2 hover:bg-primary/5 rounded-sm transition-colors" onClick={() => handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' })}>
+                              <div className="p-3 text-primary font-bold border-t mt-1 flex items-center gap-2 hover:bg-primary/5 rounded-sm transition-colors" onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); }}>
                                 <Plus className="h-4 w-4" /> Others (Manual Entry)
                               </div>
                             </div>

@@ -557,6 +557,12 @@ export const api = {
     },
   },
 
+  // AI Bot
+  aiBot: {
+    sendMessage: async (message: string) =>
+      (await apiClient.post('/aibot/message', { message })).data,
+  },
+
   // Assistance Requests
   assistance: {
     request: async (message: string) =>

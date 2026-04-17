@@ -54,6 +54,7 @@ const MyReports: React.FC = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>('weekly');
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date(),
@@ -237,7 +238,7 @@ const MyReports: React.FC = () => {
             </Button>
 
             {timeRange === 'custom' && (
-              <Popover>
+              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     id="date"
@@ -262,14 +263,20 @@ const MyReports: React.FC = () => {
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
+                <PopoverContent className="w-auto p-0 max-w-[calc(100vw-2rem)]" align="end">
                   <Calendar
                     initialFocus
                     mode="range"
                     defaultMonth={dateRange?.from}
                     selected={dateRange}
-                    onSelect={setDateRange}
-                    numberOfMonths={2}
+                    onSelect={(range) => {
+                      setDateRange(range);
+                      // Close when both dates are selected
+                      if (range?.from && range?.to) {
+                        setIsDatePickerOpen(false);
+                      }
+                    }}
+                    numberOfMonths={1}
                   />
                 </PopoverContent>
               </Popover>

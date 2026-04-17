@@ -23,6 +23,10 @@ import {
   ListTodo,
   Plus,
   BarChart3,
+  RefreshCw,
+  Zap,
+  MessageSquare,
+  Filter,
 } from 'lucide-react';
 import {
   BarChart,
@@ -73,11 +77,14 @@ const UserDashboard: React.FC = () => {
   const [allocations, setAllocations] = useState<any[]>([]);
   const [adminTasks, setAdminTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [showAllOverdue, setShowAllOverdue] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [taskFilter, setTaskFilter] = useState<'all' | 'today' | 'overdue'>('all');
+  const [quickUpdatingId, setQuickUpdatingId] = useState<number | null>(null);
   // Consumed once on mount — true only when coming directly from login
   const shouldShowPopup = React.useRef(
     sessionStorage.getItem('show_task_popup') === '1'
@@ -120,6 +127,40 @@ const UserDashboard: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchData();
+    setIsRefreshing(false);
+    toast.success('Dashboard refreshed');
+  };
+
+  // Quick status update directly from task row (no dialog)
+  const handleQuickStatus = async (e: React.MouseEvent, task: any, newStatus: string) => {
+    e.stopPropagation();
+    setQuickUpdatingId(task.id);
+    try {
+      const isAdminTask = task._source === 'task';
+      const statusForApi = isAdminTask ? newStatus : newStatus.replace('in_progress', 'in-progress');
+      const response = isAdminTask
+        ? await api.tasks.updateStatus(task.id, statusForApi)
+        : await api.allocations.updateStatus(task.id, statusForApi);
+      if (response.success) {
+        toast.success(`Marked as ${newStatus.replace('_', ' ')}`);
+        await fetchData();
+      } else {
+        toast.error('Failed to update');
+      }
+    } catch {
+      toast.error('Update failed');
+    } finally {
+      setQuickUpdatingId(null);
+    }
+  };
 
   // Show popup only on login redirect, once data has loaded
   useEffect(() => {
@@ -234,328 +275,448 @@ const UserDashboard: React.FC = () => {
     });
   }
 
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const todayTasks = allTasks.filter((t: any) => {
+    if (!t.dueDate && !t.DueDate) return false;
+    try { return isToday(new Date(t.dueDate || t.DueDate)); } catch { return false; }
+  });
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Welcome back, {user?.name}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate('/my-tasks')} className="flex-1 sm:flex-none gap-2 text-xs h-9">
-            <ListTodo className="h-3.5 w-3.5" />
-            My Tasks
-          </Button>
-          <Button size="sm" onClick={() => navigate('/daily-report')} className="flex-1 sm:flex-none gap-2 text-xs h-9 shadow-lg shadow-primary/20">
-            <FileText className="h-3.5 w-3.5" />
-            {todayReport ? "Update Report" : "Create Report"}
-          </Button>
+    <div className="space-y-5 animate-in fade-in duration-500">
+
+      {/* Greeting Header */}
+      <div className="rounded-2xl bg-gradient-to-r from-primary to-primary/80 px-5 py-5 text-white shadow-lg shadow-primary/20">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-white/70">{getGreeting()},</p>
+            <h1 className="text-2xl font-bold text-white mt-0.5">
+              {user?.fullName?.split(' ')[0] || 'there'} 👋
+            </h1>
+            <p className="text-xs text-white/60 mt-1">{format(new Date(), 'EEEE, MMMM dd yyyy')}</p>
+          </div>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="flex gap-2">
+              <Button size="icon" variant="ghost"
+                className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/20 rounded-full"
+                onClick={handleRefresh} disabled={isRefreshing}
+                title="Refresh dashboard">
+                <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => navigate('/my-tasks')}
+                className="gap-1.5 text-xs h-8 bg-white/20 hover:bg-white/30 text-white border-0">
+                <ListTodo className="h-3.5 w-3.5" />
+                My Tasks
+              </Button>
+              <Button size="sm" onClick={() => navigate('/daily-report')}
+                className="gap-1.5 text-xs h-8 bg-white text-primary hover:bg-white/90 font-semibold">
+                <FileText className="h-3.5 w-3.5" />
+                {todayReport ? 'Update Report' : 'Create Report'}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Enhanced Stats Cards with Task Dashboard Integration */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-        <Card className="hover-lift rounded-xl shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">To Do Tasks</CardTitle>
-            <Clock className="h-4 w-4 text-warning" />
-          </CardHeader>
-          <CardContent className="pb-3">
-            <div className="text-xl sm:text-2xl font-bold">{pendingTasks.length}</div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Tasks awaiting start</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-lift">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <ClipboardList className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inProgressTasks.length}</div>
-            <p className="text-xs text-muted-foreground">Active assignments</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-lift border-none shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">User Tasks</CardTitle>
-            <Target className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{allTasks.length}</div>
-            <p className="text-xs text-muted-foreground">Total assigned</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-lift border-none shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">{completedTasks.length}</div>
-            <p className="text-xs text-muted-foreground">Successfully finished</p>
-          </CardContent>
-        </Card>
-
-        <Card className={`hover-lift ${!todayReport ? 'border-warning/50 bg-warning/5' : ''}`}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Status</CardTitle>
-            {todayReport ? <CheckCircle2 className="h-4 w-4 text-success" /> : <AlertCircle className="h-4 w-4 text-warning" />}
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${!todayReport ? 'text-warning' : 'text-success'}`}>
-              {todayReport ? 'Report Filed' : 'Pending Report'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {todayReport ? 'Updated ' + format(parseISO(todayReport.date || todayReport.Date), 'HH:mm') : 'Required for today'}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover-lift border-none shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <Award className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{completionRate}%</div>
-            <p className="text-xs text-muted-foreground">Your performance</p>
-          </CardContent>
-        </Card>
+      {/* Quick Links */}
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-blue-600 bg-blue-50 border-blue-100' },
+          { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+          { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-600 bg-amber-50 border-amber-100' },
+          { label: 'Community', icon: Users, path: '/chat', color: 'text-violet-600 bg-violet-50 border-violet-100' },
+        ].map(({ label, icon: Icon, path, color }) => (
+          <button key={path} onClick={() => navigate(path)}
+            className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all hover:shadow-md active:scale-95", color)}>
+            <Icon className="h-5 w-5" />
+            <span className="text-[11px] font-semibold leading-tight">{label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Overdue Tasks Alert */}
-      {overdueTasks.length > 0 && (
-        <Card className="border-rose-200 bg-rose-50">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-rose-600" />
-              <CardTitle className="text-rose-800">Overdue Tasks ({overdueTasks.length})</CardTitle>
+
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => navigate('/my-tasks')}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100">
+              <ListTodo className="h-4 w-4 text-amber-600" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {overdueTasks.slice(0, 3).map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                  <div>
-                    <p className="font-medium text-sm">{task.title || task.taskName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Due: {format(new Date(task.dueDate || task.DueDate), 'MMM dd, yyyy')}
-                    </p>
+            <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Open</span>
+          </div>
+          <p className="text-3xl font-bold">{pendingTasks.length}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Open Tasks</p>
+        </div>
+
+        <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => navigate('/my-tasks')}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100">
+              <Clock className="h-4 w-4 text-blue-600" />
+            </div>
+            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">Active</span>
+          </div>
+          <p className="text-3xl font-bold text-blue-600">{inProgressTasks.length}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">In Progress</p>
+        </div>
+
+        <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => navigate('/my-tasks')}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            </div>
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Done</span>
+          </div>
+          <p className="text-3xl font-bold text-emerald-600">{completedTasks.length}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
+        </div>
+
+        <div className={cn("rounded-2xl border p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
+          !todayReport ? 'bg-amber-50 border-amber-200' : 'bg-card')}
+          onClick={() => navigate('/daily-report')}>
+          <div className="flex items-center justify-between mb-3">
+            <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl",
+              !todayReport ? 'bg-amber-200' : 'bg-emerald-100')}>
+              <FileText className={cn("h-4 w-4", !todayReport ? 'text-amber-700' : 'text-emerald-600')} />
+            </div>
+            <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+              !todayReport ? 'text-amber-700 bg-amber-100 border-amber-300' : 'text-emerald-600 bg-emerald-50 border-emerald-200')}>
+              {!todayReport ? 'Pending' : 'Filed'}
+            </span>
+          </div>
+          <p className={cn("text-sm font-bold leading-tight", !todayReport ? 'text-amber-700' : 'text-emerald-600')}>
+            {!todayReport ? 'Pending Report' : 'Report Filed'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Today's status</p>
+        </div>
+      </div>
+
+      {/* Main Content — Today's Tasks + Activity */}
+      <div className="grid gap-4 lg:grid-cols-5">
+
+        {/* Today's Tasks */}
+        <div className="lg:col-span-3 space-y-4">
+          <Card className="shadow-sm rounded-2xl overflow-hidden">
+            <CardHeader className="pb-3 border-b bg-muted/30">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-primary" />
+                  Tasks
+                  {overdueTasks.length > 0 && (
+                    <span className="flex h-5 min-w-5 px-1 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                      {overdueTasks.length} overdue
+                    </span>
+                  )}
+                </CardTitle>
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate('/my-tasks')}>
+                  All Tasks <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+              {/* Filter tabs */}
+              <div className="flex gap-1 mt-2">
+                {(['all', 'today', 'overdue'] as const).map(f => (
+                  <button key={f} onClick={() => setTaskFilter(f)}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-[11px] font-semibold transition-colors capitalize",
+                      taskFilter === f
+                        ? f === 'overdue' ? 'bg-rose-500 text-white' : 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    )}>
+                    {f === 'all' ? `All (${[...pendingTasks, ...inProgressTasks].length})` :
+                     f === 'today' ? `Today (${allTasks.filter(t => { try { return isToday(new Date(t.dueDate || t.DueDate)); } catch { return false; } }).length})` :
+                     `Overdue (${overdueTasks.length})`}
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="max-h-[340px] overflow-y-auto">
+              {(() => {
+                let displayTasks: any[] = [];
+                if (taskFilter === 'today') {
+                  displayTasks = allTasks.filter(t => { try { return isToday(new Date(t.dueDate || t.DueDate)); } catch { return false; } });
+                } else if (taskFilter === 'overdue') {
+                  displayTasks = overdueTasks;
+                } else {
+                  // 'all' — show active tasks, today first
+                  const todayT = allTasks.filter(t => { try { return isToday(new Date(t.dueDate || t.DueDate)) && t.status !== 'completed'; } catch { return false; } });
+                  const rest = [...pendingTasks, ...inProgressTasks].filter(t => !todayT.find(x => x.id === t.id));
+                  displayTasks = [...todayT, ...rest];
+                }
+
+                if (displayTasks.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
+                      <CheckCircle2 className="h-10 w-10 text-emerald-400 opacity-60" />
+                      <p className="text-sm font-medium">
+                        {taskFilter === 'today' ? 'No tasks due today!' :
+                         taskFilter === 'overdue' ? 'No overdue tasks! 🎉' :
+                         'All tasks completed!'}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="divide-y">
+                    {displayTasks.slice(0, 10).map((task: any) => {
+                      const isOverdueTask = isPast(new Date(task.dueDate || task.DueDate)) && !isToday(new Date(task.dueDate || task.DueDate));
+                      const isBusy = quickUpdatingId === task.id;
+                      return (
+                        <div key={`${task._source}-${task.id}`}
+                          className="flex items-center gap-2.5 px-4 py-1.5 group">
+                          {/* Status dot */}
+                          <div className={cn("h-2 w-2 rounded-full shrink-0",
+                            task.status === 'completed' ? 'bg-emerald-500' :
+                            task.status === 'in-progress' || task.status === 'in_progress' ? 'bg-blue-500' :
+                            isOverdueTask ? 'bg-rose-500' : 'bg-amber-400'
+                          )} />
+
+                          {/* Task info */}
+                          <div className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => { setSelectedTask(task); setIsStatusDialogOpen(true); }}>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <p className="text-sm font-medium truncate leading-tight">{task.title || task.taskName}</p>
+                              <span className={cn("text-xs shrink-0", isOverdueTask ? 'text-rose-500 font-semibold' : 'text-muted-foreground')}>
+                                · {isOverdueTask ? '⚠ ' : ''}{format(new Date(task.dueDate || task.DueDate), 'MMM dd')}
+                              </span>
+                              {task._source === 'task' && <span className="text-xs text-blue-400 shrink-0">· Admin</span>}
+                              {task.priority && (
+                                <span className={cn("text-xs font-semibold capitalize shrink-0",
+                                  task.priority === 'high' ? 'text-rose-500' :
+                                  task.priority === 'medium' ? 'text-amber-500' : 'text-emerald-500'
+                                )}>· {task.priority}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Quick action buttons */}
+                          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {task.status !== 'in-progress' && task.status !== 'in_progress' && task.status !== 'completed' && (
+                              <button onClick={e => handleQuickStatus(e, task, 'in_progress')} disabled={isBusy} title="Start"
+                                className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors disabled:opacity-50">
+                                {isBusy ? <RefreshCw className="h-2.5 w-2.5 animate-spin" /> : <Play className="h-2.5 w-2.5" />}
+                              </button>
+                            )}
+                            {task.status !== 'completed' && (
+                              <button onClick={e => handleQuickStatus(e, task, 'completed')} disabled={isBusy} title="Done"
+                                className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200 transition-colors disabled:opacity-50">
+                                {isBusy ? <RefreshCw className="h-2.5 w-2.5 animate-spin" /> : <Check className="h-2.5 w-2.5" />}
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Status badge */}
+                          <Badge className={cn("text-[10px] px-1.5 py-0 h-4 capitalize shrink-0 pointer-events-none",
+                            task.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                            task.status === 'in-progress' || task.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                            isOverdueTask ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                            'bg-amber-100 text-amber-700 border-amber-200'
+                          )}>
+                            {task.status === 'in-progress' || task.status === 'in_progress' ? 'Active' :
+                             task.status === 'completed' ? 'Done' :
+                             isOverdueTask ? 'Overdue' : 'Pending'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                    {displayTasks.length > 10 && (
+                      <div className="px-4 py-2 text-center">
+                        <button onClick={() => navigate('/my-tasks')}
+                          className="text-xs text-primary font-semibold hover:underline">
+                          +{displayTasks.length - 10} more — View all
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setSelectedTask(task);
-                      setIsStatusDialogOpen(true);
-                    }}
-                  >
-                    Update Status
-                  </Button>
-                </div>
-              ))}
-              {overdueTasks.length > 3 && (
-                <button
-                  className="text-xs text-rose-600 font-semibold hover:text-rose-800 underline"
-                  onClick={() => setShowAllOverdue(true)}
-                >
-                  And {overdueTasks.length - 3} more overdue tasks...
-                </button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                );
+              })()}
+              </div>
+            </CardContent>
+          </Card>
 
-      <div className="grid gap-6 lg:grid-cols-7">
-        <div className="lg:col-span-4 space-y-6">
+          {/* Admin Updates Alert */}
           {reports.flatMap(r =>
             (r.entries || [])
               .filter((e: any) => e.status === 'pending' && e.adminDueDate)
               .map((e: any) => ({ ...e, reportDate: r.date || r.Date }))
           ).length > 0 && (
-              <Card className="border-primary/20 bg-primary/5 shadow-lg shadow-primary/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2 text-primary">
-                    <AlertCircle className="h-5 w-5" />
-                    Attention Required: Admin Updates
-                  </CardTitle>
-                  <CardDescription className="text-primary/70">
-                    Admins have updated due dates for these pending items.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {reports.flatMap(r =>
-                    (r.entries || [])
-                      .filter((e: any) => e.status === 'pending' && e.adminDueDate)
-                      .map((e: any) => ({ ...e, reportDate: r.date || r.Date }))
-                  ).map((update, idx) => {
-                    const isOverdue = new Date(update.adminDueDate) < new Date();
-                    return (
-                      <div key={idx} className={`p-4 rounded-lg border-2 shadow-sm transition-all ${isOverdue ? 'bg-destructive/5 border-destructive/20' : 'bg-background border-primary/10'}`}>
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold text-base leading-tight">{update.workTitle}</h3>
-                          <Badge variant={isOverdue ? "destructive" : "secondary"}>
-                            {isOverdue ? "Overdue" : "Updated Due Date"}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">{update.description}</p>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-2 rounded bg-muted/50">
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold">New Due Date</p>
-                            <p className={`text-sm font-semibold ${isOverdue ? 'text-destructive' : 'text-primary'}`}>
-                              {format(new Date(update.adminDueDate), 'MMM dd, yyyy')}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded bg-muted/50">
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold">From Report</p>
-                            <p className="text-sm font-semibold">{format(parseISO(update.reportDate), 'MMM dd, yyyy')}</p>
-                          </div>
-                        </div>
+            <Card className="border-primary/20 bg-primary/5 shadow-sm rounded-2xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2 text-primary">
+                  <AlertCircle className="h-4 w-4" />
+                  Admin Updates Required
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {reports.flatMap(r =>
+                  (r.entries || [])
+                    .filter((e: any) => e.status === 'pending' && e.adminDueDate)
+                    .map((e: any) => ({ ...e, reportDate: r.date || r.Date }))
+                ).map((update, idx) => {
+                  const isOverdue = new Date(update.adminDueDate) < new Date();
+                  return (
+                    <div key={idx} className={cn("p-3 rounded-xl border", isOverdue ? 'bg-destructive/5 border-destructive/20' : 'bg-background border-primary/10')}>
+                      <div className="flex justify-between items-start">
+                        <p className="font-semibold text-sm">{update.workTitle}</p>
+                        <Badge variant={isOverdue ? "destructive" : "secondary"} className="text-[10px]">
+                          {isOverdue ? "Overdue" : "Updated"}
+                        </Badge>
                       </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        New due: <span className={cn("font-medium", isOverdue ? 'text-destructive' : 'text-primary')}>
+                          {format(new Date(update.adminDueDate), 'MMM dd, yyyy')}
+                        </span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-          <Card className="shadow-xl shadow-muted/20 border-none bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle>Activity Overview</CardTitle>
-              <CardDescription className="text-xs">Daily report entry volume over the last 7 days</CardDescription>
+        {/* Right column — Performance + Stats + Chart */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Completion ring / performance */}
+          <Card className="shadow-sm rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Award className="h-4 w-4 text-purple-600" />
+                My Performance
+              </CardTitle>
             </CardHeader>
-            <CardContent className="p-2 sm:p-6">
-              <div className="h-[200px] sm:h-[300px] w-full mt-2 sm:mt-4">
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
+                  <svg className="h-20 w-20 -rotate-90" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="hsl(var(--primary))" strokeWidth="3"
+                      strokeDasharray={`${completionRate} ${100 - completionRate}`} strokeLinecap="round" />
+                  </svg>
+                  <span className="absolute text-lg font-bold">{completionRate}%</span>
+                </div>
+                <div className="space-y-2 flex-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Total</span>
+                    <span className="font-semibold">{allTasks.length}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-emerald-600">Completed</span>
+                    <span className="font-semibold text-emerald-600">{completedTasks.length}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-blue-600">In Progress</span>
+                    <span className="font-semibold text-blue-600">{inProgressTasks.length}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-amber-600">Pending</span>
+                    <span className="font-semibold text-amber-600">{pendingTasks.length}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Today's report status */}
+          <Card className="shadow-sm rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                Today's Report
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {todayReport ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                    <span className="text-xs font-medium text-emerald-600">Filed at {format(parseISO(todayReport.date || todayReport.Date), 'HH:mm')}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Entries</span>
+                    <span className="font-semibold text-foreground">{todayReport.entries?.length || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Pending items</span>
+                    <span className="font-semibold text-amber-600">
+                      {(todayReport.entries || []).filter((e: any) => e.status === 'pending').length}
+                    </span>
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full h-7 text-xs mt-1" onClick={() => navigate('/daily-report')}>
+                    Update Report
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                    <span className="text-xs font-medium text-amber-600">Not submitted yet</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Submit your daily report to track your work progress.</p>
+                  <Button size="sm" className="w-full h-7 text-xs mt-1" onClick={() => navigate('/daily-report')}>
+                    Create Report
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Overdue summary */}
+          {overdueTasks.length > 0 && (
+            <Card className="shadow-sm rounded-2xl border-rose-200 bg-rose-50/50 cursor-pointer" onClick={() => setShowAllOverdue(true)}>
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-rose-700">{overdueTasks.length} Overdue Task{overdueTasks.length > 1 ? 's' : ''}</p>
+                      <p className="text-[10px] text-rose-500">Tap to view all</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-3.5 w-3.5 text-rose-400" />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Activity chart */}
+          <Card className="shadow-sm rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Activity Overview</CardTitle>
+              <CardDescription className="text-xs">Report entries — last 7 days</CardDescription>
+            </CardHeader>
+            <CardContent className="px-2 pb-3">
+              <div className="h-[140px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={weeklyData}>
                     <defs>
                       <linearGradient id="colorEntries" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.1} />
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
                         <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
-                    <XAxis
-                      dataKey="day"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                      dy={10}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    />
-                    <Tooltip
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="entries"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={3}
-                      fillOpacity={1}
-                      fill="url(#colorEntries)"
-                    />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false}
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} dy={6} />
+                    <YAxis axisLine={false} tickLine={false}
+                      tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} width={20} />
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgb(0 0 0 / 0.1)', fontSize: 12 }} />
+                    <Area type="monotone" dataKey="entries" stroke="hsl(var(--primary))" strokeWidth={2}
+                      fillOpacity={1} fill="url(#colorEntries)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="lg:col-span-3 space-y-6">
-          <Card className="shadow-lg border-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-primary" />
-                Active Tasks
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[...pendingTasks, ...inProgressTasks].length > 0 ? (
-                  [...pendingTasks, ...inProgressTasks].slice(0, 5).map((task) => (
-                    <div key={`${task._source}-${task.id}`} className="group flex items-center justify-between p-3 rounded-lg border bg-background hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => navigate('/my-tasks')}>
-                      <div className="min-w-0 pr-4">
-                        <p className="font-semibold text-sm truncate group-hover:text-primary transition-colors">{task.title || task.taskName}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">Due {format(new Date(task.dueDate || task.DueDate), 'MMM dd')}</p>
-                          {task._source === 'task' && (
-                            <Badge className="text-[9px] px-1 py-0 h-4 bg-blue-100 text-blue-700 border-blue-200">Admin</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="capitalize text-[10px] whitespace-nowrap">{task.priority}</Badge>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-6 text-center text-muted-foreground bg-muted/20 rounded-lg border-dashed border-2">
-                    <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">No active tasks</p>
-                  </div>
-                )}
-                <Button variant="ghost" className="w-full text-sm group" onClick={() => navigate('/my-tasks')}>
-                  View All Tasks <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Task Summary */}
-          <Card className="shadow-lg border-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-blue-600" />
-                My Task Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {allTasks.length > 0 ? (
-                  allTasks.slice(0, 5).map((task) => (
-                    <div key={`${task._source}-${task.id}`} className="flex items-start justify-between p-3 rounded-lg border bg-card/50 hover:bg-card transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{task.title || task.taskName}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className={cn("text-xs capitalize", priorityColors[task.priority])}>
-                            {task.priority || 'medium'}
-                          </Badge>
-                          <Badge className={cn("text-xs capitalize", statusColors[task.status?.replace('-', '_')])}>
-                            {(task.status || 'pending').replace('_', ' ')}
-                          </Badge>
-                          {task.groupId && (
-                            <Badge className="text-[9px] px-1 py-0 h-4 bg-indigo-100 text-indigo-700 border-indigo-200">Group</Badge>
-                          )}
-                          {task._source === 'task' && !task.groupId && (
-                            <Badge className="text-[9px] px-1 py-0 h-4 bg-blue-100 text-blue-700 border-blue-200">Admin</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground ml-2">
-                        {format(new Date(task.dueDate || task.DueDate), 'MMM dd')}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Target className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">No tasks assigned</p>
-                  </div>
-                )}
-                {allTasks.length > 5 && (
-                  <Button variant="ghost" className="w-full text-sm" onClick={() => navigate('/my-tasks')}>
-                    View all {allTasks.length} tasks <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
         </div>
       </div>
 
@@ -569,7 +730,7 @@ const UserDashboard: React.FC = () => {
                 <Bell className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold !text-white">Welcome back, {user?.name?.split(' ')[0]} 👋</h2>
+                <h2 className="text-base font-bold !text-white">Welcome back, {user?.fullName?.split(' ')[0]} 👋</h2>
                 <p className="text-xs text-white/80 mt-0.5">
                   You have pending tasks that need your attention.
                 </p>
@@ -1326,10 +1487,20 @@ const AdminDashboard: React.FC = () => {
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Super admin should be on their own overview page
+  React.useEffect(() => {
+    if (user?.role === 'super_admin') {
+      navigate('/super-admin/overview', { replace: true });
+    }
+  }, [user?.role]);
+
+  if (user?.role === 'super_admin') return null;
 
   return (
     <DashboardLayout>
-      {user?.role === 'admin' ? <AdminDashboard /> : <UserDashboard />}
+      {user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'property_manager' || user?.role === 'facility_manager' ? <AdminDashboard /> : <UserDashboard />}
     </DashboardLayout>
   );
 };

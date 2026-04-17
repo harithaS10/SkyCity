@@ -494,9 +494,9 @@ const WorkAllocationPage: React.FC = () => {
                       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
                         <Command>
                           <CommandInput placeholder="Search employees..." />
-                          <CommandList>
+                          <CommandList className="max-h-48 overflow-y-auto">
                             <CommandEmpty>No employee found.</CommandEmpty>
-                            <CommandGroup className="max-h-60 overflow-y-auto">
+                            <CommandGroup>
                               {users.map((user) => (
                                 <CommandItem
                                   key={user.id}

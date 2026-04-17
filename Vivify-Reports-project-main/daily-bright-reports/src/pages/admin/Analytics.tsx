@@ -98,7 +98,15 @@ const Analytics: React.FC = () => {
   const [availableWorks, setAvailableWorks] = useState<any[]>([]);
   const [workSearchQuery, setWorkSearchQuery] = useState('');
   const [selectedWorks, setSelectedWorks] = useState<string[]>([]);
+  const [isWorkFilterOpen, setIsWorkFilterOpen] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+
+  // Close work filter popover on scroll
+  React.useEffect(() => {
+    const handleScroll = () => setIsWorkFilterOpen(false);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [clientsMap, setClientsMap] = useState<Record<string, string>>({});
@@ -193,12 +201,25 @@ const Analytics: React.FC = () => {
     };
   }, [selectedUser, timeRange, selectedWorks, customStartDate, customEndDate]);
 
-  const filteredReports = selectedUser === 'all'
-    ? (reports || [])
-    : (reports || []).filter(report => {
-      const userId = report.userId || report.UserId || report.userid;
-      return userId?.toString() === selectedUser;
-    });
+  const filteredReports = (() => {
+    let result = reports || [];
+    // Filter by user
+    if (selectedUser !== 'all') {
+      result = result.filter(report => {
+        const userId = report.userId || report.UserId || report.userid;
+        return userId?.toString() === selectedUser;
+      });
+    }
+    // Filter by work types on the frontend (backend filter is unreliable)
+    if (selectedWorks.length > 0) {
+      result = result.filter(report =>
+        report.entries?.some((e: any) =>
+          selectedWorks.includes(e.workTitle || e.WorkTitle || report.workTitle || report.title || '')
+        )
+      );
+    }
+    return result;
+  })();
 
   const trendData = (() => {
     if (!analyticsData) return [];
@@ -546,7 +567,7 @@ const Analytics: React.FC = () => {
                 <Users className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Select Employee" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-60 overflow-y-auto">
                 <SelectItem value="all">All Employees</SelectItem>
                 {users.map((user) => (
                   <SelectItem key={user.id} value={user.id.toString()}>
@@ -556,14 +577,14 @@ const Analytics: React.FC = () => {
               </SelectContent>
             </Select>
 
-            <Popover>
+            <Popover open={isWorkFilterOpen} onOpenChange={setIsWorkFilterOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="bg-card gap-2">
+                <Button variant="outline" className="bg-card gap-2" onClick={() => setIsWorkFilterOpen(v => !v)}>
                   <Filter className="h-4 w-4" />
                   Work Types ({selectedWorks.length})
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
+              <PopoverContent className="w-80 p-0" align="end" onInteractOutside={() => setIsWorkFilterOpen(false)}>
                 <div className="p-4 border-b">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm">Filter by Work Type</p>
@@ -601,6 +622,7 @@ const Analytics: React.FC = () => {
                               ? prev.filter(t => t !== work.workTitle)
                               : [...prev, work.workTitle]
                           );
+                          setIsWorkFilterOpen(false);
                         }}
                       >
                         <Checkbox
