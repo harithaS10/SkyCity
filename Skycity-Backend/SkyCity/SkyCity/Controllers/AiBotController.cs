@@ -98,8 +98,33 @@ public class AiBotController : ControllerBase
             return Ok(BotReply($"👥 Users ({users.Count}):\n\n" + string.Join("\n", lines)));
         }
 
+        // ── ADD PROPERTY (admin) — check BEFORE show properties ──────────────
+        if ((msg.Contains("add property") || msg.Contains("add tower") || msg.Contains("new property") || msg.Contains("create property")) && IsAdmin)
+        {
+            var nameM = Regex.Match(original, @"(?:add|create|new)\s+(?:property|tower|area)\s+([A-Za-z0-9\s]+?)(?:\s+type|\s*$)", RegexOptions.IgnoreCase);
+            var typeM = Regex.Match(original, @"type\s+(apartment|tower|others|common)", RegexOptions.IgnoreCase);
+
+            if (!nameM.Success)
+                return Ok(BotReply(
+                    "🏢 **Add a New Property**\n\nPlease provide the property details:\n\n• **Name** — e.g. Tower A, Swimming Pool\n• **Type** — apartment or others (common area)\n\nSay it like:\n`add property Tower A type apartment`\n`add property Swimming Pool type others`",
+                    new List<string> {
+                        "add property Tower A type apartment",
+                        "add property Club House type others",
+                        "add property Block B type apartment",
+                    }
+                ));
+
+            var propName = nameM.Groups[1].Value.Trim();
+            var propType = typeM.Success ? (typeM.Groups[1].Value.ToLower() == "apartment" || typeM.Groups[1].Value.ToLower() == "tower" ? "apartment" : "others") : "apartment";
+
+            return Ok(BotReply(
+                $"🏢 **Confirm new property:**\n\n• **Name:** {propName}\n• **Type:** {(propType == "apartment" ? "Apartment / Tower" : "Common Area")}\n\nCreate this property?",
+                new List<string> { $"confirm:add-property name={propName} type={propType}", "cancel" }
+            ));
+        }
+
         // ── SHOW PROPERTIES ──────────────────────────────────────────────────
-        if (msg.Contains("propert") || msg.Contains("tower") || (msg.Contains("show") && msg.Contains("building")))
+        if ((msg.Contains("show") || msg.Contains("list") || msg.Contains("view") || msg.Contains("all")) && (msg.Contains("propert") || msg.Contains("tower") || msg.Contains("building")))
         {
             var props = await _context.Properties.Where(p => p.AssociationId == CurrentAssocId).Select(p => new { p.PropertyName, p.PropertyType, p.TotalUnits }).ToListAsync();
             if (!props.Any()) return Ok(BotReply("No properties found."));
@@ -143,24 +168,6 @@ public class AiBotController : ControllerBase
             return Ok(BotReply(
                 $"📋 **Confirm new work type:**\n\n• **Title:** {workTitle}\n• **Code:** {workCode}\n• **Type:** Standard\n\nCreate this work type?",
                 new List<string> { $"confirm:add-work-type title={workTitle} code={workCode}", "cancel" }
-            ));
-        }
-
-        // ── ADD PROPERTY (admin) ──────────────────────────────────────────────
-        if ((msg.Contains("add property") || msg.Contains("add tower") || msg.Contains("new property") || msg.Contains("create property")) && IsAdmin)
-        {
-            var nameM = Regex.Match(original, @"(?:add|create|new)\s+(?:property|tower|area)\s+([A-Za-z0-9\s]+?)(?:\s+type|\s*$)", RegexOptions.IgnoreCase);
-            var typeM = Regex.Match(original, @"type\s+(apartment|tower|others|common)", RegexOptions.IgnoreCase);
-
-            if (!nameM.Success)
-                return Ok(BotReply("To add a property, say:\n`add property [Name] type [apartment/others]`\n\nExample: `add property Tower A type apartment`\nOr: `add property Swimming Pool type others`"));
-
-            var propName = nameM.Groups[1].Value.Trim();
-            var propType = typeM.Success ? (typeM.Groups[1].Value.ToLower() == "apartment" || typeM.Groups[1].Value.ToLower() == "tower" ? "apartment" : "others") : "apartment";
-
-            return Ok(BotReply(
-                $"🏢 **Confirm new property:**\n\n• **Name:** {propName}\n• **Type:** {(propType == "apartment" ? "Apartment / Tower" : "Common Area")}\n\nCreate this property?",
-                new List<string> { $"confirm:add-property name={propName} type={propType}", "cancel" }
             ));
         }
 
@@ -273,7 +280,7 @@ public class AiBotController : ControllerBase
         }
 
         // ── DEFAULT ───────────────────────────────────────────────────────────
-        return Ok(BotReply($"I'm not sure how to help with that. Type **help** to see what I can do! 🤖\n\nYou said: *\"{original}\"*"));
+        return Ok(BotReply($"I'm not sure how to help with that. Type **help** to see what I can do! 🤖\n\nYou said: \"{original}\""));
     }
 
     private async Task<ActionResult> HandleConfirm(string cmd)

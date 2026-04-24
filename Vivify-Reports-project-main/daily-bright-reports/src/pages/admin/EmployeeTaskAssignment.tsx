@@ -108,12 +108,16 @@ const EmployeeTaskAssignment: React.FC = () => {
     
     setIsLoading(true);
     try {
-      // Fetch work allocations for this employee
-      const allocRes = await api.allocations.getAll().catch(() => ({ success: false, data: [] }));
+      // Fetch both work allocations AND admin-assigned tasks for this employee
+      const [allocRes, tasksRes] = await Promise.all([
+        api.allocations.getAll().catch(() => ({ success: false, data: [] })),
+        api.tasks.getAll().catch(() => ({ success: false, data: [] })),
+      ]);
+
       const allocs: any[] = allocRes.success ? (allocRes.data || []) : [];
       const empAllocs = allocs.filter((a: any) => a.assignedTo === parseInt(employeeId));
 
-      // Map allocations to Task shape
+      // Map allocations (daily work orders) to Task shape
       const allocTasks: Task[] = empAllocs.map((a: any) => ({
         id: a.id,
         taskName: a.workTitle || a.title || 'Work Task',
@@ -127,7 +131,25 @@ const EmployeeTaskAssignment: React.FC = () => {
         createdAt: a.createdAt,
       }));
 
-      setTasks(allocTasks);
+      // Map admin-assigned tasks (daily + monthly) filtered by this employee
+      const allAdminTasks: any[] = tasksRes.success ? (tasksRes.data || []) : [];
+      const empAdminTasks = allAdminTasks.filter(
+        (t: any) => t.assignedTo === parseInt(employeeId) || t.assigneeId === parseInt(employeeId)
+      );
+      const adminTasksMapped: Task[] = empAdminTasks.map((t: any) => ({
+        id: t.id,
+        taskName: t.taskName || t.title || 'Task',
+        description: t.description || '',
+        priority: t.priority || 'medium',
+        status: (t.status || 'pending').toLowerCase().replace('-', '_'),
+        dueDate: t.dueDate,
+        assigneeName: t.assigneeName || '',
+        isRecurring: t.isRecurring === true,
+        groupId: t.groupId || null,
+        createdAt: t.createdAt,
+      }));
+
+      setTasks([...allocTasks, ...adminTasksMapped]);
     } catch (error) {
       console.error("Error fetching employee tasks:", error);
       toast.error("Failed to load employee tasks");
@@ -209,7 +231,11 @@ const EmployeeTaskAssignment: React.FC = () => {
   const handleDeleteTask = async (taskId: number) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
     try {
-      const response = await api.allocations.delete(taskId);
+      // Find the task to determine which API to use
+      const task = tasks.find(t => t.id === taskId);
+      const response = task?.isRecurring
+        ? await api.tasks.delete(taskId).catch(() => api.allocations.delete(taskId))
+        : await api.allocations.delete(taskId).catch(() => api.tasks.delete(taskId));
       if (response.success) {
         toast.success("Task deleted successfully");
         fetchEmployeeTasks();
@@ -223,9 +249,16 @@ const EmployeeTaskAssignment: React.FC = () => {
 
   const handleStatusChange = async (taskId: number, newStatus: string) => {
     try {
-      // Map back from task status to allocation status
-      const allocStatus = newStatus === 'in_progress' ? 'in-progress' : newStatus;
-      const res = await api.allocations.updateStatus(taskId, allocStatus);
+      const task = tasks.find(t => t.id === taskId);
+      let res;
+      if (task?.isRecurring) {
+        // Admin tasks use underscore format
+        res = await api.tasks.updateStatus(taskId, newStatus);
+      } else {
+        // Allocations use hyphen format
+        const allocStatus = newStatus === 'in_progress' ? 'in-progress' : newStatus;
+        res = await api.allocations.updateStatus(taskId, allocStatus);
+      }
       if (res.success) {
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
         toast.success('Status updated');

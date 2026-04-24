@@ -261,8 +261,9 @@ const MyTasks: React.FC = () => {
   };
 
   const handleQuickProgressUpdate = async () => {
-    const targetTask = selectedTask || inProgressTasks.find(t => t._source !== 'task');
-    if (!targetTask || !progressNote.trim() || targetTask._source === 'task') return;
+    const targetTask = selectedTask || null;
+    if (!targetTask) { toast.error('Please select a task first'); return; }
+    if (!progressNote.trim() || targetTask._source === 'task') return;
 
     setIsUpdatingProgress(true);
     try {
@@ -637,6 +638,7 @@ const MyTasks: React.FC = () => {
                             setSelectedTask(task || null);
                           }}
                         >
+                          <option value="" disabled>Select a task...</option>
                           {inProgressTasks.map(t => (
                             <option key={t.id} value={t.id}>{t.title}</option>
                           ))}
@@ -644,7 +646,7 @@ const MyTasks: React.FC = () => {
                       </div>
                       <Button
                         onClick={handleQuickProgressUpdate}
-                        disabled={!progressNote.trim() || isUpdatingProgress}
+                        disabled={!progressNote.trim() || isUpdatingProgress || !selectedTask}
                         className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200"
                       >
                         {isUpdatingProgress ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}

@@ -3,9 +3,9 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Bot, User, Sparkles, Mic, MicOff } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Mic, MicOff, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
 interface BotMessage {
@@ -16,17 +16,31 @@ interface BotMessage {
   actions?: string[];
 }
 
-const QUICK_COMMANDS = [
-  'show my tasks',
-  'show all users',
-  'show pending tasks',
-  'assign task',
-  'add user',
-  'add work type',
-  'add property',
-  'summary',
-  'help',
+// All possible quick commands with required role/permission
+const ALL_QUICK_COMMANDS = [
+  { cmd: 'show my tasks',     roles: ['staff', 'admin', 'sub_admin', 'property_manager', 'facility_manager', 'resident'] },
+  { cmd: 'show pending tasks', roles: ['staff', 'admin', 'sub_admin', 'property_manager', 'facility_manager'] },
+  { cmd: 'show all users',    roles: ['admin', 'sub_admin', 'property_manager'] },
+  { cmd: 'assign task',       roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager'] },
+  { cmd: 'add user',          roles: ['admin', 'sub_admin'] },
+  { cmd: 'add work type',     roles: ['admin', 'sub_admin', 'property_manager'] },
+  { cmd: 'add property',      roles: ['admin', 'sub_admin'] },
+  { cmd: 'summary',           roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff'] },
+  { cmd: 'help',              roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'resident'] },
 ];
+
+const CHAT_STORAGE_KEY = 'skycity_ai_chat_history';
+
+function serializeMessages(msgs: BotMessage[]): string {
+  return JSON.stringify(msgs.map(m => ({ ...m, timestamp: m.timestamp.toISOString() })));
+}
+
+function deserializeMessages(raw: string): BotMessage[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+  } catch { return []; }
+}
 
 function renderText(text: string) {
   const lines = text.split('\n');
@@ -47,21 +61,48 @@ declare global {
   }
 }
 
+const WELCOME_MSG = (name: string): BotMessage => ({
+  id: 'welcome',
+  role: 'bot',
+  text: `Hello ${name}! 👋 I'm your SkyCity AI Assistant.\n\nI can help you with:\n• **Work Orders** — assign, view, manage\n• **Users** — add new users\n• **Work Types** — add work categories\n• **Properties** — add towers/areas\n• **Reports** — view stats and summaries\n\nType or **speak** your request! 🎤`,
+  timestamp: new Date(),
+});
+
 const AiChat: React.FC = () => {
-  const { user } = useAuth();
-  const [messages, setMessages] = useState<BotMessage[]>([
-    {
-      id: 'welcome',
-      role: 'bot',
-      text: `Hello ${user?.fullName?.split(' ')[0] || 'there'}! 👋 I'm your SkyCity AI Assistant.\n\nI can help you with:\n• **Work Orders** — assign, view, manage\n• **Users** — add new users\n• **Work Types** — add work categories\n• **Properties** — add towers/areas\n• **Reports** — view stats and summaries\n\nType or **speak** your request! 🎤`,
-      timestamp: new Date(),
-    }
-  ]);
+  const { user, hasPermission } = useAuth();
+  const firstName = user?.fullName?.split(' ')[0] || 'there';
+
+  // Load persisted messages from sessionStorage, fall back to welcome message
+  const [messages, setMessages] = useState<BotMessage[]>(() => {
+    try {
+      const stored = sessionStorage.getItem(CHAT_STORAGE_KEY);
+      if (stored) {
+        const msgs = deserializeMessages(stored);
+        if (msgs.length > 0) return msgs;
+      }
+    } catch { /* ignore */ }
+    return [WELCOME_MSG(firstName)];
+  });
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [customDateContext, setCustomDateContext] = useState<string | null>(null);
+  const [customDate, setCustomDate] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  // Persist messages to sessionStorage whenever they change
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(CHAT_STORAGE_KEY, serializeMessages(messages));
+    } catch { /* ignore */ }
+  }, [messages]);
+
+  // Filter quick commands based on user role/permissions
+  const quickCommands = ALL_QUICK_COMMANDS
+    .filter(({ roles }) => user?.role && roles.includes(user.role))
+    .map(({ cmd }) => cmd);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -185,7 +226,7 @@ const AiChat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-violet-600 to-indigo-600 text-white">
         <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
@@ -202,9 +243,9 @@ const AiChat: React.FC = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-4 space-y-4 bg-slate-50/50">
         {messages.map(msg => (
-          <div key={msg.id} className={cn('flex gap-2.5', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+          <div key={msg.id} className={cn('flex gap-2.5 w-full', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
             <div className={cn(
               'h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold',
               msg.role === 'bot' ? 'bg-gradient-to-br from-violet-500 to-indigo-600' : 'bg-primary'
@@ -223,6 +264,8 @@ const AiChat: React.FC = () => {
                 <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-slate-100">
                   {msg.actions.map((action, i) => {
                     let label = action;
+                    let isDateBtn = false;
+
                     if (/^assign task for /i.test(action)) {
                       label = action.replace(/^assign task for /i, '');
                     } else if (/^allocate work (.+?) to .+$/i.test(action)) {
@@ -233,14 +276,27 @@ const AiChat: React.FC = () => {
                     } else if (/^cancel$/i.test(action)) {
                       label = '❌ Cancel';
                     } else if (/^set-due:/i.test(action)) {
-                      label = action.replace(/^set-due:/i, '📅 ');
+                      // Extract just the date from "set-due:allocate work X to Y due YYYY-MM-DD"
+                      const dateMatch = action.match(/due (\d{4}-\d{2}-\d{2})$/i);
+                      if (dateMatch) {
+                        try {
+                          label = '📅 ' + format(parseISO(dateMatch[1]), 'MMM dd');
+                        } catch {
+                          label = '📅 ' + dateMatch[1];
+                        }
+                      } else {
+                        label = '📅 Pick date';
+                      }
+                      isDateBtn = true;
                     } else if (/^role:/i.test(action)) {
                       label = action.replace(/^role:/i, '');
                     } else if (/^priority:/i.test(action)) {
                       label = action.replace(/^priority:/i, '');
                     }
+
                     const isConfirm = /^confirm:/i.test(action);
                     const isCancel = /^cancel$/i.test(action);
+
                     return (
                       <button
                         key={i}
@@ -249,6 +305,7 @@ const AiChat: React.FC = () => {
                           "text-[11px] px-2.5 py-1 rounded-full border transition-colors font-medium",
                           isConfirm ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100" :
                           isCancel ? "bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100" :
+                          isDateBtn ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
                           "bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100"
                         )}
                       >
@@ -256,6 +313,29 @@ const AiChat: React.FC = () => {
                       </button>
                     );
                   })}
+
+                  {/* Custom date picker — shown when there are set-due actions */}
+                  {msg.actions.some(a => /^set-due:/i.test(a)) && (
+                    <div className="w-full mt-2 flex items-center gap-2 pt-2 border-t border-slate-100">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <input
+                        type="date"
+                        className="flex-1 text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-violet-400"
+                        min={format(new Date(), 'yyyy-MM-dd')}
+                        onChange={e => {
+                          if (!e.target.value) return;
+                          // Find the set-due template from the first set-due action
+                          const setDueAction = msg.actions!.find(a => /^set-due:/i.test(a));
+                          if (!setDueAction) return;
+                          // Replace the date in the command with the custom date
+                          const cmd = setDueAction.replace(/^set-due:/i, '').replace(/due \d{4}-\d{2}-\d{2}$/i, `due ${e.target.value}`);
+                          sendMessage(`set-due:${cmd}`);
+                          e.target.value = '';
+                        }}
+                      />
+                      <span className="text-[10px] text-slate-400 shrink-0">custom date</span>
+                    </div>
+                  )}
                 </div>
               )}
               <p className={cn('text-[10px] mt-1.5', msg.role === 'bot' ? 'text-slate-400' : 'text-white/60')}>
@@ -282,9 +362,9 @@ const AiChat: React.FC = () => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Quick commands */}
+      {/* Quick commands — filtered by user role */}
       <div className="px-3 py-2 border-t bg-white flex gap-1.5 overflow-x-auto scrollbar-none">
-        {QUICK_COMMANDS.map(cmd => (
+        {quickCommands.map(cmd => (
           <button
             key={cmd}
             onClick={() => sendMessage(cmd)}

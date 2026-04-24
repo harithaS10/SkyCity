@@ -305,7 +305,9 @@ const GroupChat: React.FC = () => {
         {/* Chat area */}
         <div className={cn('flex-1 flex flex-col min-w-0', mobileView === 'list' ? 'hidden md:flex' : 'flex')}>
           {tab === 'ai' ? (
-            <AiChat />
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <AiChat />
+            </div>
           ) : !selectedUser && !selectedGroup ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-2">
               <MessageSquare className="h-10 w-10 opacity-30" />
