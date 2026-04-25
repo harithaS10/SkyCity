@@ -112,7 +112,8 @@ public class TasksController : ControllerBase
             Status = "pending",
             IsRecurring = dto.IsRecurring ?? false,
             DueDate = dto.DueDate,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = true  // true = active/visible (inverted soft-delete convention)
         };
 
         _context.StaffTasks.Add(task);
