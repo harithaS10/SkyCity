@@ -460,7 +460,7 @@ const Analytics: React.FC = () => {
                         <span className="truncate">Types ({selectedWorks.length})</span>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[92vw] p-0 rounded-2xl shadow-2xl border-none ring-1 ring-black/5" position="popper" side="bottom" sideOffset={8}>
+                    <PopoverContent className="w-[92vw] p-0 rounded-2xl shadow-2xl border-none ring-1 ring-black/5" side="bottom" sideOffset={8}>
                       <div className="p-3 bg-slate-50 border-b">
                         <div className="flex justify-between mb-2"><p className="font-black text-[9px] uppercase text-slate-500">Categories</p>{selectedWorks.length > 0 && <button className="text-[9px] font-black text-primary" onClick={() => setSelectedWorks([])}>Clear</button>}</div>
                         <Input placeholder="Search..." className="h-8 text-xs rounded-lg bg-white border-none ring-1 ring-slate-200" value={workSearchQuery} onChange={e => setWorkSearchQuery(e.target.value)} />

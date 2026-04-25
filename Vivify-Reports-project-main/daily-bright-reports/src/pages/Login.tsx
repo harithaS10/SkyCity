@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth, UserRole } from '@/contexts/AuthContext';
-import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -17,7 +16,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [selectedRole] = useState<UserRole>('user');
+  const [selectedRole] = useState('user');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +25,7 @@ const Login: React.FC = () => {
       setError('Please enter your username and password');
       return;
     }
-    const result = await login({ username, password, role: selectedRole });
+    const result = await login({ username, password });
     if (result.success) {
       toast.success('Login successful!');
       sessionStorage.setItem('show_task_popup', '1');
