@@ -249,6 +249,16 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [user]);
 
+  // Prevent background scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileMenuOpen]);
+
   useSignalRReminders((user?.role === 'staff' || user?.role === 'resident'), (payload: ReminderPayload) => {
     setReminders(prev => {
       const filtered = prev.filter((r: any) => r.taskId !== payload.taskId);
@@ -292,8 +302,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           className={cn(
             'h-8 px-2 gap-1 text-[11px] font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
             activeHrefs.includes(location.pathname)
-              ? 'bg-white text-primary dark:bg-primary dark:text-primary-foreground shadow-lg'
-              : 'text-primary-foreground/90 hover:bg-white/10 hover:text-white dark:text-slate-600 dark:hover:bg-slate-100 dark:hover:text-slate-900'
+              ? 'bg-primary text-primary-foreground shadow-md'
+              : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-100 dark:hover:text-slate-900'
           )}
         >
           <span className="relative z-10 flex items-center gap-1">
@@ -318,11 +328,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden w-full">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header
-        className="sticky top-0 z-50 w-full border-b border-white/10 bg-primary dark:bg-white dark:border-black/5 shadow-lg safe-top"
-        style={user?.themeColor ? { backgroundColor: user.themeColor } : undefined}
+        className="sticky top-0 z-50 w-full border-b border-slate-200 bg-slate-50/95 backdrop-blur-md dark:bg-card/80 dark:border-white/5 shadow-md safe-top"
       >
         <div className="flex h-16 sm:h-14 items-center justify-between px-3 sm:px-3 lg:px-4 xl:px-6 max-w-[1800px] mx-auto w-full gap-2">
 
@@ -331,7 +340,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             <Button
               variant="ghost"
               size="icon"
-              className="xl:hidden text-primary-foreground dark:text-slate-700 hover:bg-white/10 dark:hover:bg-slate-100 h-10 w-10 sm:h-8 sm:w-8 flex-shrink-0"
+              className="xl:hidden text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-100 h-10 w-10 sm:h-8 sm:w-8 flex-shrink-0"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="h-5 w-5 sm:h-4 sm:w-4" /> : <Menu className="h-5 w-5 sm:h-4 sm:w-4" />}
@@ -344,10 +353,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <img src={displayLogo} alt="Logo" className="h-full w-full object-contain" />
               </div>
               <div className="flex flex-col justify-center min-w-0">
-                <span className="text-xl sm:text-xl skycity-logo-text leading-none truncate">
+                <span className="text-2xl sm:text-2xl skycity-logo-text leading-none tracking-tighter !text-primary">
                   {companyName.split(' ')[0].toLowerCase()}
                 </span>
-                <span className="text-[11px] sm:text-[10px] reports-subtext leading-none mt-0.5 truncate">
+                <span className="text-[10px] sm:text-[9px] reports-subtext font-black leading-none mt-1 opacity-90 !text-destructive">
                   REPORTS
                 </span>
               </div>
@@ -368,8 +377,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     className={cn(
                       'h-8 px-2 gap-1 text-[11px] font-semibold transition-all relative overflow-hidden group rounded-md whitespace-nowrap flex-shrink-0',
                       isActive
-                        ? 'bg-white text-primary dark:bg-primary dark:text-primary-foreground shadow-lg'
-                        : 'text-primary-foreground/90 hover:bg-white/10 hover:text-white dark:text-slate-600 dark:hover:bg-slate-100 dark:hover:text-slate-900'
+                        ? 'bg-primary text-primary-foreground shadow-md'
+                        : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-100 dark:hover:text-slate-900'
                     )}
                     onClick={() => {
                       navigate(item.href);
@@ -415,7 +424,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             {/* Association Info Badge (Non-SuperAdmins) */}
             
 
-            <ModeToggle className="text-primary-foreground dark:text-slate-600 dark:hover:bg-slate-100 h-10 w-10 sm:h-8 sm:w-8" />
+            <ModeToggle className="text-slate-600 dark:text-slate-300 dark:hover:bg-slate-100 h-10 w-10 sm:h-8 sm:w-8" />
 
             {/* Reminder Bell (Staff & Resident) */}
             {(user?.role === 'staff' || user?.role === 'resident') && (
@@ -423,7 +432,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-primary-foreground/90 hover:bg-white/10 dark:text-slate-600 dark:hover:bg-slate-100"
+                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-slate-600 hover:bg-slate-200/50 dark:text-slate-300 dark:hover:bg-slate-100"
                   onClick={() => setShowReminderPanel(v => !v)}
                 >
                   <Bell className={cn('h-4 w-4', unreadCount > 0 && 'text-amber-300')} />
@@ -476,18 +485,18 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="h-10 sm:h-8 px-2 sm:px-1.5 gap-1.5 hover:bg-white/10 dark:hover:bg-slate-100 border border-transparent transition-all text-primary-foreground dark:text-slate-700"
+                  className="h-10 sm:h-8 px-2 sm:px-1.5 gap-1.5 hover:bg-slate-200/50 dark:hover:bg-slate-100 border border-transparent transition-all text-slate-700 dark:text-slate-300"
                 >
-                  <div className="flex h-8 w-8 sm:h-6 sm:w-6 items-center justify-center rounded-md bg-white shadow-sm flex-shrink-0">
+                  <div className="flex h-8 w-8 sm:h-6 sm:w-6 items-center justify-center rounded-md bg-primary/10 shadow-sm flex-shrink-0">
                     <User className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-primary" />
                   </div>
                   <div className="hidden sm:block text-left min-w-0 max-w-[100px]">
-                    <p className="text-[11px] font-bold text-white dark:text-slate-900 leading-none mb-0.5 truncate">{user?.fullName}</p>
-                    <p className={cn('text-[9px] capitalize truncate', roleBadge?.color ?? 'text-primary-foreground/70')}>
+                    <p className="text-[11px] font-bold text-slate-900 dark:text-slate-100 leading-none mb-0.5 truncate">{user?.fullName}</p>
+                    <p className={cn('text-[9px] capitalize truncate', roleBadge?.color ?? 'text-slate-500')}>
                       {roleBadge?.label ?? user?.role}
                     </p>
                   </div>
-                  <ChevronDown className="h-4 w-4 sm:h-3 sm:w-3 text-primary-foreground/50 dark:text-slate-400 flex-shrink-0" />
+                  <ChevronDown className="h-4 w-4 sm:h-3 sm:w-3 text-slate-400 dark:text-slate-500 flex-shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 p-1 bg-card border shadow-lg">
@@ -511,8 +520,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       {/* ── Mobile Navigation ─────────────────────────────────────────────── */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 xl:hidden">
-          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <nav className="fixed left-0 top-[calc(4rem+env(safe-area-inset-top))] sm:top-[calc(3.5rem+env(safe-area-inset-top))] z-50 w-72 sm:w-64 bg-card border-r h-[calc(100vh-4rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] sm:h-[calc(100vh-3.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] p-4 sm:p-3 shadow-xl overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <nav className="fixed left-0 top-0 bottom-0 z-40 w-72 sm:w-64 bg-card border-r pt-[calc(5rem+env(safe-area-inset-top))] sm:pt-[calc(4.5rem+env(safe-area-inset-top))] pb-4 px-4 sm:px-3 shadow-xl overflow-y-auto">
             <div className="space-y-0.5 pb-4">
               {filteredNavItems.map((item) => {
                 const unseenCount = item.href === '/my-tasks' ? unseenTasksCount : 0;
@@ -591,13 +600,13 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       )}
 
       {/* ── Main Content ──────────────────────────────────────────────────── */}
-      <main className="px-3 sm:px-6 md:px-8 py-4 sm:py-8 max-w-[1800px] mx-auto w-full pb-20 xl:pb-8">
+      <main className="px-3 sm:px-6 md:px-8 py-4 sm:py-8 max-w-[1800px] mx-auto w-full pb-20 xl:pb-8 overflow-x-hidden">
         {children}
       </main>
 
       {/* ── Mobile Bottom Navigation Bar ─────────────────────────────────── */}
-      <nav className="xl:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg safe-bottom">
-        <div className="flex items-center justify-around px-2 py-1">
+      <nav className="xl:hidden fixed bottom-4 left-4 right-4 z-50 bg-card/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl safe-bottom">
+        <div className="flex items-center justify-around px-2 py-2">
           {(() => {
             const mobileNavItems = filteredNavItems.slice(0, 5).map(item => ({
               ...item,
@@ -637,7 +646,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     {item.label}
                   </span>
                   {item.isActive && (
-                    <div className="h-0.5 w-4 rounded-full bg-primary mt-0.5" />
+                    <div className="h-1 w-1 rounded-full bg-primary mt-1 shadow-glow shadow-primary/50" />
                   )}
                 </button>
               );

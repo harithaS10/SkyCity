@@ -50,7 +50,7 @@ const Login: React.FC = () => {
   return (
     <div className="h-screen flex overflow-hidden">
       {/* Left Panel */}
-      <div className="hidden lg:flex lg:w-3/5 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex-col justify-between p-8 relative overflow-hidden h-full">
+      <div className="hidden lg:flex lg:w-3/5 bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex-col justify-between p-8 relative overflow-hidden h-full">
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
@@ -63,8 +63,8 @@ const Login: React.FC = () => {
             <img src={logo} alt="SkyCity" className="h-full w-full object-contain" />
           </div>
           <div>
-            <h1 className="text-white font-bold text-xl tracking-widest uppercase">SkyCity</h1>
-            <p className="text-slate-400 text-xs tracking-wider uppercase">Daily Reporting System</p>
+            <h1 className="text-white font-black text-2xl tracking-tighter lowercase skycity-logo-text">SkyCity</h1>
+            <p className="text-white/70 text-[10px] tracking-widest uppercase reports-subtext font-bold">Reports Platform</p>
           </div>
         </div>
 
@@ -72,8 +72,8 @@ const Login: React.FC = () => {
         <div className="relative z-10 space-y-6">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold text-white leading-tight">
-              Manage your city<br />
-              <span className="text-blue-400">smarter, faster.</span>
+              Manage your site<br />
+              <span className="text-white/80">smarter, faster.</span>
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
               A unified platform for property management, complaint resolution, and daily workforce reporting.
@@ -83,8 +83,8 @@ const Login: React.FC = () => {
           <div className="grid grid-cols-1 gap-3">
             {features.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-3 p-3 rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur-sm">
-                <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                  <Icon className="h-4 w-4 text-blue-400" />
+                <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Icon className="h-4 w-4 text-white" />
                 </div>
                 <div>
                   <p className="text-white text-sm font-semibold">{title}</p>
@@ -108,12 +108,12 @@ const Login: React.FC = () => {
 
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-3 justify-center">
-            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center p-1.5">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center p-1.5">
               <img src={logo} alt="SkyCity" className="h-full w-full object-contain" />
             </div>
             <div>
-              <h1 className="font-bold text-lg tracking-widest uppercase text-slate-900">SkyCity</h1>
-              <p className="text-slate-500 text-xs tracking-wider uppercase">Daily Reporting System</p>
+              <h1 className="font-black text-2xl tracking-tighter text-primary lowercase skycity-logo-text">SkyCity</h1>
+              <p className="text-primary/60 text-[9px] tracking-widest uppercase reports-subtext font-bold">Reports Platform</p>
             </div>
           </div>
 
@@ -174,7 +174,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-semibold text-sm transition-all duration-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-slate-900/20"
+              className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm transition-all duration-300 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
             >
               {isLoading ? (
                 <>

@@ -26,9 +26,10 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import { FileText, Calendar as CalendarIcon, TrendingUp, Clock, Loader2, Download } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon, TrendingUp, Clock, Loader2, Download, Plus } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval, parseISO, subDays } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
@@ -216,170 +217,294 @@ const MyReports: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">My Reports</h1>
-            <p className="text-muted-foreground">View your submitted work reports and performance</p>
-          </div>
-          <div className="flex gap-2 items-center">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleExport}
-              title="Download my reports as Excel"
-            >
-              <Download className="h-4 w-4" />
-              Export Excel
-            </Button>
-            <Button className="gap-2" onClick={() => window.location.hash = '/daily-report'}>
-              <FileText className="h-4 w-4" />
-              Create Report
-            </Button>
-
-            {timeRange === 'custom' && (
-              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="date"
-                    variant={"outline"}
-                    className={cn(
-                      "w-full sm:w-[300px] justify-start text-left font-normal",
-                      !dateRange && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange?.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "LLL dd, y")} -{" "}
-                          {format(dateRange.to, "LLL dd, y")}
-                        </>
-                      ) : (
-                        format(dateRange.from, "LLL dd, y")
-                      )
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 max-w-[calc(100vw-2rem)]" align="end">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange?.from}
-                    selected={dateRange}
-                    onSelect={(range) => {
-                      setDateRange(range);
-                      // Close when both dates are selected
-                      if (range?.from && range?.to) {
+      {/* Mobile Date Picker Dialog (Moved to Top Level for Stability) */}
+      <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+        <DialogContent className="w-[90%] max-w-[340px] p-0 rounded-3xl overflow-hidden shadow-2xl border-none z-[200]">
+            <DialogHeader className="p-4 bg-primary text-white text-left">
+                <DialogTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4" /> Select Range
+                </DialogTitle>
+            </DialogHeader>
+            <div className="p-2 flex justify-center bg-white">
+                <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={(range) => {
+                    setDateRange(range);
+                    if (range?.from && range?.to) {
                         setIsDatePickerOpen(false);
-                      }
-                    }}
-                    numberOfMonths={1}
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
+                    }
+                }}
+                numberOfMonths={1}
+                className="rounded-2xl"
+                />
+            </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 -mx-3 -mt-4 md:m-0 pb-20 md:pb-0">
+        {/* Mobile Premium Header */}
+        <div className="lg:hidden relative pb-14">
+          <div className="absolute inset-0 bg-primary/95 dark:bg-primary/90 h-[225px] rounded-b-[3.5rem] shadow-2xl shadow-primary/20" />
+          <div className="relative pt-8 px-4 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-1 px-1">
+                <h1 className="text-2xl font-black text-white tracking-tight">My Reports</h1>
+                <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em]">Performance Tracking</p>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                    variant="secondary" 
+                    className="flex-1 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 text-white backdrop-blur-md shadow-lg transition-all active:scale-[0.98] px-2 gap-2 text-[10px] font-black uppercase tracking-widest overflow-hidden"
+                    onClick={handleExport}
+                >
+                    <Download className="h-4 w-4 shrink-0" />
+                    <span className="truncate">Export Excel</span>
+                </Button>
+                <Button 
+                    className="flex-[1.2] h-11 rounded-2xl bg-white text-primary hover:bg-white/90 shadow-xl shadow-black/20 transition-all active:scale-[0.98] px-2 gap-2 text-[10px] font-black uppercase tracking-widest overflow-hidden"
+                    onClick={() => window.location.hash = '/daily-report'}
+                >
+                    <Plus className="h-4 w-4 shrink-0" />
+                    <span className="truncate">Create Report</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Premium Mobile Progress Row - Grid Layout (No Scrolling) */}
+            <div className="grid grid-cols-2 gap-3 py-1">
+              <div className="bg-white rounded-[1.5rem] p-3.5 shadow-lg shadow-black/10 border border-white/20">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <FileText className="h-3 w-3 text-primary" /> Reports
+                </p>
+                <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-slate-800 tracking-tighter">{filteredReports.length}</span>
+                    <span className="text-[10px] font-bold text-slate-400">Total</span>
+                </div>
+              </div>
+              <div className="bg-white rounded-[1.5rem] p-3.5 shadow-lg shadow-black/10 border border-white/20">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <TrendingUp className="h-3 w-3 text-emerald-500" /> Entries
+                </p>
+                <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-slate-800 tracking-tighter">{totalEntries}</span>
+                    <span className="text-[10px] font-bold text-slate-400">Items</span>
+                </div>
+              </div>
+              <div className="col-span-2 bg-white rounded-[2rem] p-4 shadow-lg shadow-black/10 border border-white/20 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="h-10 w-10 rounded-2xl bg-amber-50 flex items-center justify-center">
+                        <Clock className="h-5 w-5 text-amber-500" />
+                   </div>
+                   <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avg Efficiency</p>
+                        <p className="text-sm font-black text-slate-800">Entries Per Report</p>
+                   </div>
+                </div>
+                <div className="text-right">
+                    <span className="text-3xl font-black text-primary tracking-tighter">
+                        {filteredReports.length > 0 ? (totalEntries / filteredReports.length).toFixed(1) : 0}
+                    </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Tabs and rest of content ... */}
-        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-          <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
-            {/* ... triggers ... */}
-            <TabsTrigger value="weekly" className="gap-2"><CalendarIcon className="h-4 w-4" />Weekly</TabsTrigger>
-            <TabsTrigger value="monthly" className="gap-2"><CalendarIcon className="h-4 w-4" />Monthly</TabsTrigger>
-            <TabsTrigger value="yearly" className="gap-2"><CalendarIcon className="h-4 w-4" />Yearly</TabsTrigger>
-            <TabsTrigger value="custom" className="gap-2"><CalendarIcon className="h-4 w-4" />Custom</TabsTrigger>
-          </TabsList>
+        {/* Desktop Header ... (unchanged) */}
+        <div className="hidden lg:flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">My Reports</h1>
+            <p className="text-muted-foreground mt-1 text-sm font-medium">View your submitted work reports and performance tracking</p>
+          </div>
+          <div className="flex gap-3 items-center">
+            <Button
+              variant="outline"
+              className="gap-2 h-11 rounded-xl border-dashed border-2 hover:bg-primary/5 transition-all"
+              onClick={handleExport}
+            >
+              <Download className="h-4 w-4 text-primary" />
+              <span className="font-bold">Export Excel</span>
+            </Button>
+            <Button className="gap-2 h-11 rounded-xl shadow-lg shadow-primary/20 transition-all font-bold px-6" onClick={() => window.location.hash = '/daily-report'}>
+              <Plus className="h-5 w-5" />
+              Create New Report
+            </Button>
+          </div>
+        </div>
 
-          <div className="mt-6 space-y-6">
-            {/* ... stats ... */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Card>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary" />
+        <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)} className="space-y-6">
+          <div className="sticky top-0 z-40 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none px-4 pt-4 lg:p-0 -mx-4 lg:mx-0">
+            <TabsList className={cn(
+              "p-1.5 bg-white dark:bg-card/50 rounded-2xl shadow-sm border border-slate-100 dark:border-white/5 w-full flex"
+            )}>
+              <TabsTrigger value="weekly" className="flex-1 lg:flex-none gap-2 rounded-xl font-black text-[11px] uppercase tracking-wider py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Weekly</TabsTrigger>
+              <TabsTrigger value="monthly" className="flex-1 lg:flex-none gap-2 rounded-xl font-black text-[11px] uppercase tracking-wider py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Monthly</TabsTrigger>
+              <TabsTrigger value="yearly" className="flex-1 lg:flex-none gap-2 rounded-xl font-black text-[11px] uppercase tracking-wider py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Yearly</TabsTrigger>
+              <TabsTrigger value="custom" className="flex-1 lg:flex-none gap-2 rounded-xl font-black text-[11px] uppercase tracking-wider py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Custom</TabsTrigger>
+            </TabsList>
+
+            {timeRange === 'custom' && (
+              <div className="mt-4 px-1 lg:hidden animate-in fade-in slide-in-from-top-2">
+                <Button
+                    id="date-mobile"
+                    variant={"outline"}
+                    className={cn(
+                    "w-full h-12 justify-between text-left font-bold rounded-2xl bg-white border-2 border-dashed border-slate-200 text-slate-500",
+                    !dateRange && "text-muted-foreground"
+                    )}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsDatePickerOpen(true);
+                    }}
+                >
+                    <div className="flex items-center gap-3">
+                        <CalendarIcon className="h-4 w-4 text-primary" />
+                        <span className="text-[13px]">
+                            {dateRange?.from ? (
+                            dateRange.to ? (
+                                <>
+                                {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
+                                </>
+                            ) : (
+                                format(dateRange.from, "LLL dd")
+                            )
+                            ) : (
+                            "Select Date Range"
+                            )}
+                        </span>
+                    </div>
+                    <Plus className="h-4 w-4 opacity-50" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="px-4 lg:p-0 space-y-6">
+            <div className="hidden lg:grid gap-6 sm:grid-cols-3">
+              <Card className="rounded-3xl border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden group">
+                <CardContent className="p-6 flex items-center gap-5">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 group-hover:scale-110 transition-transform">
+                    <FileText className="h-7 w-7 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{filteredReports.length}</p>
-                    <p className="text-sm text-muted-foreground">Reports Submitted</p>
+                    <p className="text-3xl font-black tracking-tight">{filteredReports.length}</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-0.5">Reports Submitted</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
-                    <TrendingUp className="h-5 w-5 text-success" />
+              <Card className="rounded-3xl border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden group">
+                <CardContent className="p-6 flex items-center gap-5">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100/50 group-hover:scale-110 transition-transform text-emerald-600">
+                    <TrendingUp className="h-7 w-7" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{totalEntries}</p>
-                    <p className="text-sm text-muted-foreground">Total Work Entries</p>
+                    <p className="text-3xl font-black tracking-tight">{totalEntries}</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-0.5">Total Work Entries</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-                    <Clock className="h-5 w-5 text-warning" />
+              <Card className="rounded-3xl border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden group">
+                <CardContent className="p-6 flex items-center gap-5">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100/50 group-hover:scale-110 transition-transform text-amber-600">
+                    <Clock className="h-7 w-7" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">
+                    <p className="text-3xl font-black tracking-tight">
                       {filteredReports.length > 0 ? (totalEntries / filteredReports.length).toFixed(1) : 0}
                     </p>
-                    <p className="text-sm text-muted-foreground">Avg. Entries/Report</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-0.5">Avg. Entries/Report</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Performance Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Performance Chart</CardTitle>
+            <Card className="rounded-[2.5rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-2 border-b border-slate-50">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Performance Metrics</CardTitle>
+                    {timeRange === 'custom' && (
+                        <div className="hidden lg:block">
+                            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                                <PopoverTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 rounded-lg font-bold text-xs gap-2">
+                                    <CalendarIcon className="h-3 w-3" />
+                                    Range Settings
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={(range) => {
+                                    setDateRange(range);
+                                    if (range?.from && range?.to) setIsDatePickerOpen(false);
+                                    }}
+                                    numberOfMonths={2}
+                                />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    )}
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <div className="h-64 relative">
                   {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded-3xl">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   )}
                   <ResponsiveContainer width="100%" height="100%">
                     {timeRange === 'yearly' ? (
                       <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                        <XAxis dataKey="label" className="text-xs" />
-                        <YAxis className="text-xs" />
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
+                        <XAxis dataKey="label" className="text-[10px] font-bold text-slate-400" axisLine={false} tickLine={false} />
+                        <YAxis className="text-[10px] font-bold text-slate-400" axisLine={false} tickLine={false} />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            border: 'none',
+                            borderRadius: '16px',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                            padding: '12px',
                           }}
+                          itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                          labelStyle={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginBottom: '4px' }}
                         />
                         <Line
                           type="monotone"
                           dataKey="entries"
                           stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          dot={{ fill: 'hsl(var(--primary))' }}
+                          strokeWidth={4}
+                          dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4, stroke: '#fff' }}
+                          activeDot={{ r: 6, strokeWidth: 0 }}
                         />
                       </LineChart>
                     ) : (
                       <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                        <XAxis dataKey="label" className="text-xs" />
-                        <YAxis className="text-xs" />
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-100" vertical={false} />
+                        <XAxis dataKey="label" className="text-[10px] font-bold text-slate-400" axisLine={false} tickLine={false} />
+                        <YAxis className="text-[10px] font-bold text-slate-400" axisLine={false} tickLine={false} />
                         <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
+                          cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                           contentStyle={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            border: 'none',
+                            borderRadius: '16px',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                            padding: '12px',
                           }}
+                          itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                          labelStyle={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', marginBottom: '4px' }}
                         />
-                        <Bar dataKey="entries" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="entries" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={24} />
                       </BarChart>
                     )}
                   </ResponsiveContainer>
@@ -387,68 +512,132 @@ const MyReports: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Reports Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Report History</CardTitle>
-              </CardHeader>
-              <CardContent>
+            {/* Reports List/Table */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between px-1">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">History Log</h3>
+                    {!isLoading && filteredReports.length > 0 && <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg uppercase tracking-wider">{filteredReports.length} Reports</span>}
+                </div>
+
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="flex flex-col items-center justify-center py-20 bg-white/50 backdrop-blur-sm rounded-[2.5rem] space-y-4 border border-dashed border-slate-200">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Processing records...</p>
                   </div>
                 ) : filteredReports.length === 0 ? (
-                  <EmptyState
-                    icon={<FileText className="h-8 w-8 text-muted-foreground" />}
-                    title="No reports found"
-                    description={`You haven't submitted any reports for this ${timeRange} period.`}
-                  />
+                    <Card className="rounded-[2.5rem] border-dashed border-2 border-slate-200 bg-transparent shadow-none">
+                        <CardContent className="flex flex-col items-center justify-center text-center p-12 space-y-4">
+                            <div className="h-16 w-16 rounded-3xl bg-slate-100 flex items-center justify-center">
+                                <FileText className="h-8 w-8 text-slate-300" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-600">No records found</h4>
+                                <p className="text-xs text-slate-400 font-medium mt-1">You haven't submitted any reports for the selected {timeRange} period.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="border-collapse">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="border-r last:border-r-0 text-center font-bold text-primary">Date</TableHead>
-                          <TableHead className="border-r last:border-r-0 text-center font-bold text-primary">Work Entries</TableHead>
-                          <TableHead className="border-r last:border-r-0 text-center font-bold text-primary">Tasks</TableHead>
-                          <TableHead className="border-r last:border-r-0 text-center font-bold text-primary">Hours Spent</TableHead>
-                          <TableHead className="text-center font-bold text-primary">Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                  <>
+                    {/* Mobile Card List */}
+                    <div className="lg:hidden space-y-3">
                         {filteredReports.map((report) => {
-                          const hasPending = report.entries?.some((e: any) => e.status === 'pending');
-                          return (
-                            <TableRow key={report.id} className="hover:bg-muted/50">
-                              <TableCell className="font-medium border-r last:border-r-0 align-middle">
-                {(() => { const d = report.createdAt || report.date || report.Date; if (!d) return 'N/A'; try { return format(parseISO(d), 'dd-MMM-yyyy'); } catch { return 'N/A'; } })()}
-                              </TableCell>
-                              <TableCell className="border-r last:border-r-0 text-center align-middle">1</TableCell>
-                              <TableCell className="max-w-xs truncate text-xs text-muted-foreground border-r last:border-r-0 align-middle">
-                                {report.title || report.Title || '—'}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground border-r last:border-r-0 text-center align-middle">
-                                {report.duration || report.totalTimeSpent || report.TotalTimeSpent || '0h'}
-                              </TableCell>
-                              <TableCell className="text-center align-middle">
-                                {hasPending ? (
-                                  <Badge variant="outline" className="bg-amber-100/50 text-amber-600 border-amber-200 text-[10px] h-5">Pending</Badge>
-                                ) : (
-                                  <Badge variant="outline" className="bg-emerald-100/50 text-emerald-600 border-emerald-200 text-[10px] h-5">Complete</Badge>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          );
+                             const hasPending = report.entries?.some((e: any) => e.status === 'pending');
+                             const reportDate = report.createdAt || report.date || report.Date;
+                             return (
+                                <div key={report.id} className="bg-white rounded-[2rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all group">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Record Date</span>
+                                            <span className="text-sm font-black text-slate-800 mt-1">
+                                                {reportDate ? (() => { try { return format(parseISO(reportDate), 'dd MMM, yyyy'); } catch { return 'Unknown Date'; } })() : 'Untitled'}
+                                            </span>
+                                        </div>
+                                        {hasPending ? (
+                                            <Badge className="bg-amber-50 text-amber-600 border-none rounded-xl px-3 py-1 font-black text-[9px] uppercase tracking-wider">Incomplete</Badge>
+                                        ) : (
+                                            <Badge className="bg-emerald-50 text-emerald-600 border-none rounded-xl px-3 py-1 font-black text-[9px] uppercase tracking-wider">Finalized</Badge>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="p-3.5 bg-slate-50 rounded-2xl mb-3 border border-slate-100">
+                                        <p className="text-[11px] font-bold text-slate-600 leading-relaxed italic line-clamp-2">"{report.title || report.Title || 'Standard Daily Performance Report'}"</p>
+                                    </div>
+
+                                    <div className="flex items-center justify-between border-t border-slate-50 pt-3">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="h-5 w-5 rounded-lg bg-primary/5 flex items-center justify-center"><FileText className="h-3 w-3 text-primary" /></div>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">1 Task</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="h-5 w-5 rounded-lg bg-primary/5 flex items-center justify-center"><Clock className="h-3 w-3 text-primary" /></div>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{report.duration || report.totalTimeSpent || report.TotalTimeSpent || '0h'}</span>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 rounded-xl bg-slate-50 hover:bg-primary/10 hover:text-primary transition-colors">
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                             )
                         })}
-                      </TableBody>
-                    </Table>
-                  </div>
+                    </div>
+
+                    {/* Desktop Table */}
+                    <Card className="hidden lg:block rounded-[2.5rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader className="bg-slate-50/50">
+                            <TableRow className="hover:bg-transparent border-slate-100">
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 py-6 px-10">Submission Date</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 py-6 text-center">Volume</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 py-6">Key Activity</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 py-6 text-center">Work Time</TableHead>
+                              <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 py-6 text-center pr-10">Record Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredReports.map((report) => {
+                              const hasPending = report.entries?.some((e: any) => e.status === 'pending');
+                              const reportDate = report.createdAt || report.date || report.Date;
+                              return (
+                                <TableRow key={report.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                                  <TableCell className="font-bold py-6 px-10">
+                                    {reportDate ? (() => { try { return format(parseISO(reportDate), 'dd MMM, yyyy'); } catch { return 'N/A'; } })() : 'N/A'}
+                                  </TableCell>
+                                  <TableCell className="text-center font-black py-6">
+                                    <span className="h-8 w-8 rounded-full bg-slate-100 inline-flex items-center justify-center text-xs">1</span>
+                                  </TableCell>
+                                  <TableCell className="max-w-md py-6">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-sm truncate">{report.title || report.Title || '—'}</span>
+                                        <span className="text-[10px] font-medium text-slate-400 mt-0.5 line-clamp-1">{report.description || report.Description || 'No detailed description provided'}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-center font-bold text-primary py-6">
+                                    {report.duration || report.totalTimeSpent || report.TotalTimeSpent || '0h'}
+                                  </TableCell>
+                                  <TableCell className="text-center py-6 pr-10">
+                                    <div className="flex items-center justify-center">
+                                        {hasPending ? (
+                                        <Badge variant="outline" className="bg-amber-100/50 text-amber-600 border-none text-[10px] h-6 px-4 font-black uppercase rounded-lg">Incomplete</Badge>
+                                        ) : (
+                                        <Badge variant="outline" className="bg-emerald-100/50 text-emerald-600 border-none text-[10px] h-6 px-4 font-black uppercase rounded-lg">Complete</Badge>
+                                        )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </>
                 )}
-              </CardContent>
-            </Card>
+            </div>
           </div>
         </Tabs>
-
       </div>
     </DashboardLayout>
   );

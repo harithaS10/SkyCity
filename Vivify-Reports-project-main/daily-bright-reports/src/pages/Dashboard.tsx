@@ -288,11 +288,16 @@ const UserDashboard: React.FC = () => {
   });
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-500">
+    <div className="w-full">
+      {/* ===== DESKTOP VIEW ===== */}
+      <div className="hidden lg:block space-y-5 animate-in fade-in duration-500">
 
       {/* Greeting Header */}
-      <div className="rounded-2xl bg-gradient-to-r from-primary to-primary/80 px-5 py-5 text-white shadow-lg shadow-primary/20">
-        <div className="flex items-start justify-between gap-3">
+      <div className="rounded-2xl bg-gradient-to-br from-sky-500 to-sky-400 px-6 py-6 text-white shadow-xl shadow-sky-500/15 relative overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex items-start justify-between gap-3 relative z-10">
           <div>
             <p className="text-sm font-medium text-white/70">{getGreeting()},</p>
             <h1 className="text-2xl font-bold text-white mt-0.5">
@@ -314,8 +319,8 @@ const UserDashboard: React.FC = () => {
                 My Tasks
               </Button>
               <Button size="sm" onClick={() => navigate('/daily-report')}
-                className="gap-1.5 text-xs h-8 bg-white text-primary hover:bg-white/90 font-semibold">
-                <FileText className="h-3.5 w-3.5" />
+                className="gap-1.5 text-xs h-9 bg-white text-sky-600 hover:bg-white/90 font-bold px-4 shadow-sm border-none">
+                <FileText className="h-4 w-4" />
                 {todayReport ? 'Update Report' : 'Create Report'}
               </Button>
             </div>
@@ -719,6 +724,178 @@ const UserDashboard: React.FC = () => {
           </Card>
         </div>
       </div>
+      </div> {/* END DESKTOP VIEW */}
+
+      {/* ===== MOBILE VIEW (App-Like) ===== */}
+      <div className="block lg:hidden min-h-screen bg-slate-50 dark:bg-slate-950 -mt-5 pb-[80px] -mx-3">
+        {/* Mobile App Header (Curved Bottom) */}
+        <div className="bg-primary pt-10 pb-24 px-6 rounded-b-[3rem] shadow-xl relative z-0">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <p className="text-sm text-primary-foreground/90 font-medium">{getGreeting()},</p>
+              <h1 className="text-2xl font-black tracking-tight text-white">{user?.fullName?.split(' ')[0] || 'there'}</h1>
+              <p className="text-xs text-primary-foreground/70 mt-1 font-semibold tracking-wide uppercase">{format(new Date(), 'EEEE, MMM dd')}</p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-[42px] w-[42px] text-white rounded-full bg-white/10 hover:bg-white/20 ring-1 ring-white/20" onClick={handleRefresh}>
+                 <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            </Button>
+          </div>
+          
+          <div className="flex flex-col items-center justify-center mt-2">
+            <p className="text-[10px] text-white/60 font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
+              <Award className="h-3.5 w-3.5" /> Performance Score
+            </p>
+            <div className="text-6xl font-black tracking-tighter text-white">
+              {completionRate}<span className="text-3xl opacity-50 font-bold">%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Quick Action Cards */}
+        <div className="px-5 -mt-10 relative z-10">
+          <div className="bg-card rounded-[1.5rem] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.08)] ring-1 ring-black/5 flex justify-between items-center bg-white dark:bg-card">
+            <div className="flex flex-col items-center gap-2 flex-1 border-r border-slate-100 last:border-0 cursor-pointer group" onClick={() => navigate('/my-tasks')}>
+               <div className="h-11 w-11 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center group-active:scale-95 transition-transform">
+                 <ListTodo className="h-5 w-5" />
+               </div>
+               <div className="text-center">
+                 <span className="block text-sm font-black text-slate-800">{pendingTasks.length}</span>
+                 <span className="block text-[9px] font-bold text-amber-600 uppercase tracking-wider">Pending</span>
+               </div>
+            </div>
+            
+            <div className="flex flex-col items-center gap-2 flex-1 border-r border-slate-100 last:border-0 cursor-pointer group" onClick={() => navigate('/my-tasks')}>
+               <div className="h-11 w-11 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center group-active:scale-95 transition-transform">
+                 <Clock className="h-5 w-5" />
+               </div>
+               <div className="text-center">
+                 <span className="block text-sm font-black text-slate-800">{inProgressTasks.length}</span>
+                 <span className="block text-[9px] font-bold text-blue-600 uppercase tracking-wider">Active</span>
+               </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2 flex-1 cursor-pointer group" onClick={() => navigate('/my-tasks')}>
+               <div className="h-11 w-11 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center group-active:scale-95 transition-transform">
+                 <CheckCircle2 className="h-5 w-5" />
+               </div>
+               <div className="text-center">
+                 <span className="block text-sm font-black text-slate-800">{completedTasks.length}</span>
+                 <span className="block text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Done</span>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Interface Grid */}
+        <div className="px-5 mt-8 space-y-7">
+          {/* Action Menu */}
+          <div>
+            <div className="flex justify-between items-end mb-3.5">
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-tight">Quick Tools</h3>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {[
+                { label: 'Tasks', icon: ListTodo, path: '/my-tasks', color: 'bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/20' },
+                { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20' },
+                { label: 'Chat', icon: MessageSquare, path: '/chat', color: 'bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-indigo-500/20' },
+                { label: 'Issues', icon: AlertCircle, path: '/complaints', color: 'bg-gradient-to-br from-rose-400 to-rose-600 shadow-rose-500/20' }
+              ].map(({ label, icon: Icon, path, color }) => (
+                <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-2.5">
+                   <div className={cn("h-14 w-14 rounded-[1.25rem] flex items-center justify-center text-white shadow-lg transition-transform active:scale-90", color)}>
+                     <Icon className="h-6 w-6" strokeWidth={2.5} />
+                   </div>
+                   <span className="text-[11px] font-bold text-slate-600">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Overdue Warning */}
+          {overdueTasks.length > 0 && (
+            <div className="bg-rose-500 shadow-lg shadow-rose-500/20 rounded-[1.5rem] p-4 flex justify-between items-center cursor-pointer active:scale-[0.98] transition-transform text-white" onClick={() => setShowAllOverdue(true)}>
+               <div className="flex items-center gap-3.5">
+                 <div className="h-11 w-11 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                   <AlertCircle className="h-6 w-6" />
+                 </div>
+                 <div>
+                   <p className="text-sm font-black tracking-tight">Overdue Tasks Detected</p>
+                   <p className="text-[11px] font-medium text-rose-100">Action required on {overdueTasks.length} items</p>
+                 </div>
+               </div>
+               <ArrowRight className="h-5 w-5 text-rose-200" />
+            </div>
+          )}
+
+          {/* Today's Tasks */}
+          <div>
+            <div className="flex justify-between items-end mb-3.5">
+              <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-tight">Today's Focus</h3>
+              <button 
+                className="text-xs font-bold text-primary active:opacity-50"
+                onClick={() => navigate('/my-tasks')}
+              >
+                See all
+              </button>
+            </div>
+            
+            <div className="bg-white dark:bg-card rounded-[1.5rem] shadow-[0_4px_20px_rgb(0,0,0,0.05)] ring-1 ring-slate-100 dark:ring-slate-800 p-2 space-y-1">
+              {(() => {
+                const todayTasksMobile = allTasks.filter(t => { try { return isToday(new Date(t.dueDate || t.DueDate)); } catch { return false; } });
+                const toShow = todayTasksMobile.length > 0 ? todayTasksMobile.slice(0, 5) : [...pendingTasks, ...inProgressTasks].slice(0, 5);
+                
+                if (toShow.length === 0) {
+                  return (
+                    <div className="py-12 flex flex-col items-center justify-center text-center">
+                      <div className="h-16 w-16 mb-3 rounded-full bg-slate-50 flex items-center justify-center">
+                        <CheckCircle2 className="h-8 w-8 text-slate-300" />
+                      </div>
+                      <p className="text-sm font-black text-slate-500 tracking-tight">You're all caught up!</p>
+                      <p className="text-xs font-medium text-slate-400 mt-0.5">No immediate tasks pending.</p>
+                    </div>
+                  );
+                }
+
+                return toShow.map((task: any) => {
+                  const isBusy = quickUpdatingId === task.id;
+                  const isTaskDone = task.status === 'completed';
+                  return (
+                    <div key={`${task._source}-${task.id}`} className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 transition-colors active:bg-slate-100" onClick={() => { setSelectedTask(task); setIsStatusDialogOpen(true); }}>
+                       <div className="flex items-center gap-3.5 min-w-0">
+                          <button 
+                             onClick={(e) => { 
+                               e.stopPropagation();
+                               handleQuickStatus(e, task, isTaskDone ? 'pending' : 'completed');
+                             }}
+                             disabled={isBusy}
+                             className={cn("h-7 w-7 rounded-full border-[2.5px] flex items-center justify-center shrink-0 transition-all", 
+                               isTaskDone ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/20' : 'border-slate-300 text-transparent'
+                             )}
+                          >
+                             {isBusy ? <RefreshCw className="h-3 w-3 animate-spin text-primary" /> : <Check className="h-4 w-4" strokeWidth={3} />}
+                          </button>
+                          
+                          <div className="min-w-0">
+                            <p className={cn("text-[13px] font-black truncate transition-colors tracking-tight", isTaskDone ? 'text-slate-400 line-through' : 'text-slate-800 dark:text-slate-200')}>
+                              {task.title || task.taskName}
+                            </p>
+                            <p className="text-[10px] font-bold text-slate-400 tracking-wide uppercase mt-0.5">
+                              {task._source === 'task' ? 'Admin' : 'Me'} {task.priority && ` • ${task.priority}`}
+                            </p>
+                          </div>
+                       </div>
+                       <div className={cn("h-2 w-2 rounded-full shrink-0", 
+                         isTaskDone && 'bg-emerald-500',
+                         (task.status === 'in_progress' || task.status === 'in-progress') && 'bg-blue-500',
+                         (!isTaskDone && task.status !== 'in_progress' && task.status !== 'in-progress') && 'bg-amber-400'
+                       )} />
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Login Popup — pending tasks reminder on first visit per session */}
       <Dialog open={showLoginPopup} onOpenChange={setShowLoginPopup}>
@@ -1089,7 +1266,9 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="w-full">
+      {/* ===== DESKTOP VIEW ===== */}
+      <div className="hidden lg:flex flex-col space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin Terminal</h1>
@@ -1478,6 +1657,163 @@ const AdminDashboard: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
+
+        </div>
+      </div>
+      </div>
+
+      {/* ===== MOBILE VIEW (App-Like) ===== */}
+      <div className="flex lg:hidden flex-col min-h-screen bg-slate-50 dark:bg-slate-950 -mt-5 pb-24 -mx-3 animate-in fade-in duration-300">
+        {/* Mobile App Header (Curved Bottom) */}
+        <div className="bg-primary pt-10 pb-20 px-6 rounded-b-[3rem] shadow-xl relative z-0 overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none" />
+          
+          <div className="flex justify-between items-start mb-6 relative z-10">
+            <div>
+              <p className="text-sm text-primary-foreground/90 font-medium">System Control</p>
+              <h1 className="text-2xl font-black tracking-tight text-white uppercase">Admin Terminal</h1>
+              <p className="text-[10px] text-primary-foreground/70 mt-1 font-black tracking-widest uppercase italic">Operational Overview</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="icon" className="h-10 w-10 text-white rounded-xl bg-white/10 hover:bg-white/20 ring-1 ring-white/20 shadow-lg" onClick={() => window.location.reload()}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mt-4 relative z-10">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Global Reports</p>
+              <p className="text-2xl font-black text-white">{totalReports}</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Active Personnel</p>
+              <p className="text-2xl font-black text-white">{totalUsers}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Quick Action Cards */}
+        <div className="px-5 -mt-8 relative z-10">
+          <div className="bg-card rounded-[2rem] p-5 shadow-[0_10px_40px_rgb(0,0,0,0.12)] ring-1 ring-black/5 flex justify-between items-center bg-white dark:bg-card">
+            <div className="flex flex-col items-center gap-2 flex-1 border-r border-slate-100 last:border-0 cursor-pointer group active:scale-95 transition-transform" onClick={() => navigate('/admin/work-allocation')}>
+               <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                 <ListTodo className="h-5 w-5" />
+               </div>
+               <div className="text-center">
+                 <span className="block text-[10px] font-black text-slate-800 uppercase tracking-tighter">Allocate</span>
+               </div>
+            </div>
+            
+            <div className="flex flex-col items-center gap-2 flex-1 border-r border-slate-100 last:border-0 cursor-pointer group active:scale-95 transition-transform" onClick={() => navigate('/admin/analytics')}>
+               <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                 <TrendingUp className="h-5 w-5" />
+               </div>
+               <div className="text-center">
+                 <span className="block text-[10px] font-black text-slate-800 uppercase tracking-tighter">Analytics</span>
+               </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2 flex-1 cursor-pointer group active:scale-95 transition-transform" onClick={() => navigate('/admin/users')}>
+               <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm">
+                 <Users className="h-5 w-5" />
+               </div>
+               <div className="text-center">
+                 <span className="block text-[10px] font-black text-slate-800 uppercase tracking-tighter">Personnel</span>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Sections */}
+        <div className="px-5 mt-8 space-y-8">
+          
+          {/* Priority Alerts */}
+          {(pendingWork.length > 0 || (taskStats?.overdueTasks || 0) > 0) && (
+            <div>
+              <div className="flex justify-between items-end mb-3">
+                <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Priority Alerts</h3>
+                <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest animate-pulse">Critical</span>
+              </div>
+              <div className="bg-rose-500 rounded-[2rem] p-5 shadow-lg shadow-rose-500/20 text-white relative overflow-hidden group active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-8 -mt-8 blur-xl pointer-events-none" />
+                 <div className="flex justify-between items-center relative z-10">
+                   <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center shadow-inner">
+                       <AlertCircle className="h-6 w-6 text-white" />
+                     </div>
+                     <div>
+                       <p className="text-lg font-black tracking-tight leading-none">Incomplete Items</p>
+                       <p className="text-xs font-bold text-rose-100 mt-1 uppercase tracking-wider">{pendingWork.length + (taskStats?.overdueTasks || 0)} issues need review</p>
+                     </div>
+                   </div>
+                   <ArrowRight className="h-5 w-5 opacity-50 group-hover:translate-x-1 transition-transform" />
+                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Live Feed */}
+          <div>
+            <div className="flex justify-between items-end mb-4 px-1">
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Live Activity</h3>
+              <Badge className="bg-emerald-500 text-white border-none text-[8px] font-black h-4 px-1.5 animate-pulse">SYNCING</Badge>
+            </div>
+            <div className="bg-white dark:bg-card rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/5 p-2 overflow-hidden border border-slate-100">
+              <div className="max-h-[320px] overflow-y-auto space-y-1 p-1">
+                {liveActivities.length > 0 ? (
+                  liveActivities.map((activity, idx) => (
+                    <div key={idx} className="flex items-center gap-4 p-3.5 rounded-[1.8rem] hover:bg-slate-50 active:bg-slate-100 transition-colors">
+                      <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center text-primary shrink-0 shadow-sm">
+                        <User className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex justify-between items-start">
+                          <p className="text-sm font-black text-slate-800 dark:text-slate-200 truncate tracking-tight">{activity.assigneeName}</p>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter italic shrink-0 ml-2">
+                             {activity.lastProgressUpdate ? formatDistanceToNow(new Date(activity.lastProgressUpdate), { addSuffix: true }) : ''}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-bold text-primary truncate uppercase tracking-tight mt-0.5">{activity.workTitle || activity.title}</p>
+                        <p className="text-[10px] text-slate-400 font-medium truncate italic mt-1 leading-none">"{activity.progressNote}"</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-20 text-center opacity-30 italic text-xs font-black uppercase tracking-widest text-slate-400">
+                    No live data available
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats Grid */}
+          <div>
+            <div className="flex justify-between items-end mb-4 px-1">
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Key Metrics</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+               <div className="bg-white dark:bg-card p-5 rounded-[2rem] shadow-sm ring-1 ring-black/5 border border-slate-100 flex flex-col gap-3 active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
+                  <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                    <ListTodo className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tighter leading-none">{taskStats?.totalTasks || 0}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Total Tasks</p>
+                  </div>
+               </div>
+               <div className="bg-white dark:bg-card p-5 rounded-[2rem] shadow-sm ring-1 ring-black/5 border border-slate-100 flex flex-col gap-3 active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
+                  <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-emerald-600 tracking-tighter leading-none">{taskStats?.completedTasks || 0}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Completed</p>
+                  </div>
+               </div>
+            </div>
+          </div>
 
         </div>
       </div>

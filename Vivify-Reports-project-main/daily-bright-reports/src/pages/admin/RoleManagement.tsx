@@ -124,49 +124,88 @@ const RoleManagement: React.FC = () => {
   };
 
   const renderPermissionsGrid = () => (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50">
-          <tr>
-            <th className="px-4 py-2 font-semibold text-left text-muted-foreground">Module</th>
-            {PERM_KEYS.map(k => (
-              <th key={k} className="px-3 py-2 font-semibold text-center text-muted-foreground capitalize">{k}</th>
+    <>
+      {/* Desktop View */}
+      <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-4 py-3 font-semibold text-left text-muted-foreground whitespace-nowrap">Module</th>
+              {PERM_KEYS.map(k => (
+                <th key={k} className="px-3 py-3 font-semibold text-center text-muted-foreground capitalize text-xs">{k}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {MODULES.map(m => (
+              <tr key={m} className="border-t border-slate-100">
+                <td className="px-4 py-3 font-medium text-sm whitespace-nowrap">{MODULE_LABELS[m]}</td>
+                {PERM_KEYS.map(k => {
+                  const checked = !!(perms as any)[m]?.[k];
+                  return (
+                    <td key={k} className="px-3 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => togglePerm(m, k)}
+                        className={cn(
+                          'h-6 w-6 rounded border-2 flex items-center justify-center mx-auto transition-colors',
+                          checked ? 'bg-[#1e293b] border-[#1e293b] text-white' : 'border-slate-300 hover:border-[#1e293b]/50 bg-white'
+                        )}
+                      >
+                        {checked && <Check className="h-4 w-4 stroke-[3]" />}
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {MODULES.map(m => (
-            <tr key={m} className="border-t">
-              <td className="px-4 py-2 font-medium">{MODULE_LABELS[m]}</td>
+          </tbody>
+        </table>
+        <div className="border-t px-4 py-4 flex items-center justify-between bg-slate-50/50">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">Allow Data Export / Download</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Users with this role can export reports and analytics</p>
+          </div>
+          <Switch checked={canExportPerm} onCheckedChange={setCanExportPerm} className="shrink-0 ml-4" />
+        </div>
+      </div>
+
+      {/* Mobile View */}
+      <div className="block sm:hidden space-y-4">
+        {MODULES.map(m => (
+          <div key={m} className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+            <h4 className="font-bold text-slate-800 mb-3">{MODULE_LABELS[m]}</h4>
+            <div className="grid grid-cols-2 gap-3">
               {PERM_KEYS.map(k => {
                 const checked = !!(perms as any)[m]?.[k];
                 return (
-                  <td key={k} className="px-3 py-2 text-center">
+                  <div key={k} onClick={() => togglePerm(m, k)} className="flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-xl shadow-sm cursor-pointer hover:border-[#1e293b]/30 transition-colors">
+                    <span className="text-xs font-bold text-slate-600 capitalize">{k}</span>
                     <button
                       type="button"
-                      onClick={() => togglePerm(m, k)}
                       className={cn(
-                        'h-6 w-6 rounded border-2 flex items-center justify-center mx-auto transition-colors',
-                        checked ? 'bg-primary border-primary text-white' : 'border-slate-300 hover:border-primary/50'
+                        'h-6 w-6 rounded border-2 flex items-center justify-center transition-colors shrink-0',
+                        checked ? 'bg-[#1e293b] border-[#1e293b] text-white' : 'border-slate-300 bg-white'
                       )}
                     >
-                      {checked && <Check className="h-3.5 w-3.5" />}
+                      {checked && <Check className="h-4 w-4 stroke-[3]" />}
                     </button>
-                  </td>
+                  </div>
                 );
               })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="border-t px-4 py-3 flex items-center justify-between bg-slate-50/50">
-        <div>
-          <p className="text-sm font-medium">Allow Data Export / Download</p>
-          <p className="text-xs text-muted-foreground">Users with this role can export reports and analytics</p>
+            </div>
+          </div>
+        ))}
+        
+        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between mt-4">
+          <div className="flex-1 pr-4">
+            <h4 className="font-bold text-slate-800 text-sm">Data Export</h4>
+            <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-tight">Allow downloading reports and analytics</p>
+          </div>
+          <Switch checked={canExportPerm} onCheckedChange={setCanExportPerm} className="shrink-0" />
         </div>
-        <Switch checked={canExportPerm} onCheckedChange={setCanExportPerm} />
       </div>
-    </div>
+    </>
   );
 
   const headerBg = 'bg-primary';
@@ -174,132 +213,237 @@ const RoleManagement: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold">Role Management</h1>
-              <p className="text-muted-foreground text-sm">Create custom roles with module-level permissions</p>
+      <div className="animate-fade-in">
+        {/* ===== DESKTOP VIEW ===== */}
+        <div className="hidden sm:block space-y-6 mb-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-6 w-6 text-primary" />
+              <div>
+                <h1 className="text-2xl font-bold">Role Management</h1>
+                <p className="text-muted-foreground text-sm">Create custom roles with module-level permissions</p>
+              </div>
             </div>
+            <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4" />New Role
+            </Button>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={open => { setIsCreateOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="h-4 w-4" />New Role</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card max-w-2xl">
-              <DialogHeader><DialogTitle>Create Custom Role</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="roleName">Role Name *</Label>
-                  <Input id="roleName" placeholder="e.g. Senior Manager" value={roleName} onChange={e => setRoleName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Permissions</Label>
-                  {renderPermissionsGrid()}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => { setIsCreateOpen(false); resetForm(); }}>Cancel</Button>
-                <Button onClick={handleCreate} disabled={isCreating}>{isCreating ? 'Creating...' : 'Create Role'}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
 
-          {/* Edit Dialog */}
-          <Dialog open={!!editTarget} onOpenChange={v => { if (!v) { setEditTarget(null); resetForm(); } }}>
-            <DialogContent className="bg-card max-w-2xl">
-              <DialogHeader><DialogTitle>Edit Role — {editTarget?.roleName}</DialogTitle></DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Role Name</Label>
-                  <Input value={roleName} onChange={e => setRoleName(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Permissions</Label>
-                  {renderPermissionsGrid()}
+          {/* Stats */}
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{roles.length}</p>
+                <p className="text-sm text-muted-foreground">Custom Roles Defined</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Table */}
+          <Card className="overflow-hidden border-none shadow-md">
+            <CardHeader className="bg-white"><CardTitle className="text-lg">All Roles</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
+                <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className={headerBg}>
+                    <TableRow className="hover:bg-transparent border-none">
+                      {['Role Name', 'Complaints', 'Work Orders', 'Daily Reports', 'Analytics', 'Chat', 'Export', 'Actions'].map(h => (
+                        <TableHead key={h} className={headerText}>{h}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">Loading...</TableCell></TableRow>
+                    ) : roles.length === 0 ? (
+                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">No custom roles yet. Create your first role.</TableCell></TableRow>
+                    ) : roles.map(r => {
+                      const p = r.permissions ?? {};
+                      const hasAny = (mod: any) => mod && Object.values(mod).some(Boolean);
+                      const tick = (v?: boolean) => v
+                        ? <Check className="h-6 w-6 text-emerald-500 mx-auto stroke-[3]" />
+                        : <X className="h-6 w-6 text-slate-300 mx-auto stroke-[3]" />;
+                      return (
+                        <TableRow key={r.id} className="hover:bg-slate-50/50">
+                          <TableCell className="font-medium">{r.roleName}</TableCell>
+                          <TableCell className="text-center">{tick(hasAny(p.complaints))}</TableCell>
+                          <TableCell className="text-center">{tick(hasAny(p.work_orders))}</TableCell>
+                          <TableCell className="text-center">{tick(hasAny(p.daily_reports))}</TableCell>
+                          <TableCell className="text-center">{tick(hasAny(p.analytics))}</TableCell>
+                          <TableCell className="text-center">{tick(hasAny(p.chat))}</TableCell>
+                          <TableCell className="text-center">{tick(p.export)}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-card">
+                                <DropdownMenuItem onClick={() => openEdit(r)} className="cursor-pointer">
+                                  <Pencil className="mr-2 h-4 w-4" />Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(r.id, r.roleName)} className="text-destructive cursor-pointer">
+                                  <Trash2 className="mr-2 h-4 w-4" />Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => { setEditTarget(null); resetForm(); }}>Cancel</Button>
-                <Button onClick={handleUpdate}>Save Changes</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Stats */}
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <Shield className="h-5 w-5 text-primary" />
+        {/* ===== MOBILE VIEW ===== */}
+        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen">
+          <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
+            <div className="flex justify-between items-start mb-6 gap-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-black tracking-tight truncate">Roles</h1>
+                <p className="text-[10px] text-white/70 font-bold uppercase mt-1 italic tracking-widest leading-relaxed">Role Management</p>
+              </div>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setIsCreateOpen(true)}>
+                <Plus className="h-6 w-6" />
+              </Button>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{roles.length}</p>
-              <p className="text-sm text-muted-foreground">Custom Roles Defined</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Table */}
-        <Card className="overflow-hidden border-none shadow-md">
-          <CardHeader className="bg-white"><CardTitle className="text-lg">All Roles</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
-              <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className={headerBg}>
-                  <TableRow className="hover:bg-transparent border-none">
-                    {['Role Name', 'Complaints', 'Work Orders', 'Daily Reports', 'Analytics', 'Chat', 'Export', 'Actions'].map(h => (
-                      <TableHead key={h} className={headerText}>{h}</TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">Loading...</TableCell></TableRow>
-                  ) : roles.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">No custom roles yet. Create your first role.</TableCell></TableRow>
-                  ) : roles.map(r => {
-                    const p = r.permissions ?? {};
-                    const hasAny = (mod: any) => mod && Object.values(mod).some(Boolean);
-                    const tick = (v?: boolean) => v
-                      ? <Check className="h-6 w-6 text-emerald-500 mx-auto stroke-[3]" />
-                      : <X className="h-6 w-6 text-slate-300 mx-auto stroke-[3]" />;
-                    return (
-                      <TableRow key={r.id} className="hover:bg-slate-50/50">
-                        <TableCell className="font-medium">{r.roleName}</TableCell>
-                        <TableCell className="text-center">{tick(hasAny(p.complaints))}</TableCell>
-                        <TableCell className="text-center">{tick(hasAny(p.work_orders))}</TableCell>
-                        <TableCell className="text-center">{tick(hasAny(p.daily_reports))}</TableCell>
-                        <TableCell className="text-center">{tick(hasAny(p.analytics))}</TableCell>
-                        <TableCell className="text-center">{tick(hasAny(p.chat))}</TableCell>
-                        <TableCell className="text-center">{tick(p.export)}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-card">
-                              <DropdownMenuItem onClick={() => openEdit(r)} className="cursor-pointer">
-                                <Pencil className="mr-2 h-4 w-4" />Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete(r.id, r.roleName)} className="text-destructive cursor-pointer">
-                                <Trash2 className="mr-2 h-4 w-4" />Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+            
+            <div className="grid grid-cols-1 mt-4">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 border border-white/10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
+                  <Shield className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-black">{roles.length}</p>
+                  <p className="text-[10px] uppercase font-bold tracking-widest opacity-70">Total Defined Roles</p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="px-5 -mt-6 relative z-20 space-y-4 pb-8">
+            <div className="space-y-3">
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
+                  <p className="text-sm font-bold text-slate-500">Loading roles...</p>
+                </div>
+              ) : roles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
+                  <Shield className="h-8 w-8 mb-2 text-slate-400" />
+                  <p className="text-sm font-bold text-slate-500">No roles defined</p>
+                </div>
+              ) : (
+                roles.map((r) => {
+                  const p = r.permissions ?? {};
+                  const hasAny = (mod: any) => mod && Object.values(mod).some(Boolean);
+                  
+                  // Helper for rendering tick boxes
+                  const TickPerm = ({ label, active }: { label: string, active: boolean }) => (
+                    <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-100">
+                      {active ? (
+                        <Check className="h-5 w-5 text-emerald-500 stroke-[3] mb-1" />
+                      ) : (
+                        <X className="h-5 w-5 text-slate-300 stroke-[3] mb-1" />
+                      )}
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">{label}</span>
+                    </div>
+                  );
+
+                  return (
+                    <div key={r.id} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-black/5 flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary shadow-sm shrink-0">
+                            <Shield className="h-5 w-5" />
+                          </div>
+                          <h4 className="text-sm font-black text-slate-800 truncate">{r.roleName}</h4>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-xl bg-slate-50 text-slate-500">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-white rounded-2xl shadow-xl p-2 border-slate-100">
+                            <DropdownMenuItem onClick={() => openEdit(r)} className="cursor-pointer text-xs font-bold rounded-xl py-2 px-3">
+                              <Pencil className="mr-2 h-3.5 w-3.5" /> Edit Role
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDelete(r.id, r.roleName)} className="text-rose-600 cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-rose-50 hover:text-rose-700">
+                              <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      
+                      <div className="pt-3 border-t border-slate-50">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Module Access</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <TickPerm label="Complaints" active={hasAny(p.complaints)} />
+                          <TickPerm label="Works" active={hasAny(p.work_orders)} />
+                          <TickPerm label="Reports" active={hasAny(p.daily_reports)} />
+                          <TickPerm label="Analytics" active={hasAny(p.analytics)} />
+                          <TickPerm label="Chat" active={hasAny(p.chat)} />
+                          <TickPerm label="Export" active={!!p.export} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ===== SHARED CREATE DIALOG ===== */}
+        <Dialog open={isCreateOpen} onOpenChange={open => { setIsCreateOpen(open); if (!open) resetForm(); }}>
+          <DialogContent className="bg-card max-h-[90vh] overflow-y-auto max-w-2xl sm:rounded-lg rounded-3xl">
+            <DialogHeader><DialogTitle>Create Custom Role</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="roleName">Role Name *</Label>
+                <Input className="rounded-xl h-11" id="roleName" placeholder="e.g. Senior Manager" value={roleName} onChange={e => setRoleName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Permissions</Label>
+                {renderPermissionsGrid()}
+              </div>
+            </div>
+            <DialogFooter className="mt-2">
+              <Button variant="outline" className="rounded-xl" onClick={() => { setIsCreateOpen(false); resetForm(); }}>Cancel</Button>
+              <Button className="rounded-xl" onClick={handleCreate} disabled={isCreating}>{isCreating ? 'Creating...' : 'Create Role'}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ===== SHARED EDIT DIALOG ===== */}
+        <Dialog open={!!editTarget} onOpenChange={v => { if (!v) { setEditTarget(null); resetForm(); } }}>
+          <DialogContent className="bg-card max-h-[90vh] overflow-y-auto max-w-2xl sm:rounded-lg rounded-3xl">
+            <DialogHeader><DialogTitle>Edit Role — {editTarget?.roleName}</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Role Name</Label>
+                <Input className="rounded-xl h-11" value={roleName} onChange={e => setRoleName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Permissions</Label>
+                {renderPermissionsGrid()}
+              </div>
+            </div>
+            <DialogFooter className="mt-2">
+              <Button variant="outline" className="rounded-xl" onClick={() => { setEditTarget(null); resetForm(); }}>Cancel</Button>
+              <Button className="rounded-xl" onClick={handleUpdate}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </DashboardLayout>
   );

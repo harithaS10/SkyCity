@@ -19,7 +19,8 @@ import {
   Plus,
   Building2,
   PlayCircle,
-  Trash2
+  Trash2,
+  FileText
 } from "lucide-react";
 import {
   Dialog,
@@ -75,6 +76,7 @@ const MyTasks: React.FC = () => {
   const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
   const [isSelfAssignDialogOpen, setIsSelfAssignDialogOpen] = useState(false);
   const [taskTypeFilter, setTaskTypeFilter] = useState<TaskTypeFilter>('all');
+  const [mobileTab, setMobileTab] = useState<'pending' | 'in-progress' | 'completed'>('pending');
   const [selfAssignData, setSelfAssignData] = useState({
     title: '',
     description: '',
@@ -261,8 +263,9 @@ const MyTasks: React.FC = () => {
   };
 
   const handleQuickProgressUpdate = async () => {
-    const targetTask = selectedTask || inProgressTasks.find(t => t._source !== 'task');
-    if (!targetTask || !progressNote.trim() || targetTask._source === 'task') return;
+    const targetTask = selectedTask || null;
+    if (!targetTask) { toast.error('Please select a task first'); return; }
+    if (!progressNote.trim() || targetTask._source === 'task') return;
 
     setIsUpdatingProgress(true);
     try {
@@ -318,7 +321,7 @@ const MyTasks: React.FC = () => {
       if (response.success) {
         // Upload attachments if any
         if (attachments.length > 0 && response.data?.id) {
-          await api.allocations.uploadAttachmentsBase64(response.data.id, attachments).catch(() => {});
+          await api.allocations.uploadAttachmentsBase64(response.data.id, attachments).catch(() => { });
           setAttachments([]);
         }
         toast.success("Work started and admin notified");
@@ -344,7 +347,7 @@ const MyTasks: React.FC = () => {
 
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
-  const parseAttachments = (raw: string): Array<{name: string; src: string; isImage: boolean}> => {
+  const parseAttachments = (raw: string): Array<{ name: string; src: string; isImage: boolean }> => {
     if (!raw) return [];
     try {
       const parsed = JSON.parse(raw);
@@ -355,7 +358,7 @@ const MyTasks: React.FC = () => {
           isImage: (f.Type || f.type || '').startsWith('image/'),
         }));
       }
-    } catch {}
+    } catch { }
     // fallback: comma-separated URLs
     return raw.split(',').filter(Boolean).map(url => ({
       name: url.split('/').pop() || 'File',
@@ -503,7 +506,8 @@ const MyTasks: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 animate-in fade-in duration-500">
+      {/* ===== DESKTOP VIEW ===== */}
+      <div className="hidden lg:block space-y-8 animate-in fade-in duration-500">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-3xl font-bold tracking-tight">My Tasks</h1>
@@ -543,8 +547,8 @@ const MyTasks: React.FC = () => {
                     ? type === 'daily'
                       ? 'bg-blue-600 text-white border-blue-600'
                       : type === 'monthly'
-                      ? 'bg-purple-600 text-white border-purple-600'
-                      : 'bg-slate-800 text-white border-slate-800'
+                        ? 'bg-purple-600 text-white border-purple-600'
+                        : 'bg-slate-800 text-white border-slate-800'
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-400'
                 )}
               >
@@ -637,6 +641,7 @@ const MyTasks: React.FC = () => {
                             setSelectedTask(task || null);
                           }}
                         >
+                          <option value="" disabled>Select a task...</option>
                           {inProgressTasks.map(t => (
                             <option key={t.id} value={t.id}>{t.title}</option>
                           ))}
@@ -644,7 +649,7 @@ const MyTasks: React.FC = () => {
                       </div>
                       <Button
                         onClick={handleQuickProgressUpdate}
-                        disabled={!progressNote.trim() || isUpdatingProgress}
+                        disabled={!progressNote.trim() || isUpdatingProgress || !selectedTask}
                         className="bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200"
                       >
                         {isUpdatingProgress ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
@@ -716,6 +721,202 @@ const MyTasks: React.FC = () => {
             </TabsContent>
           </Tabs>
         )}
+      </div>
+
+      {/* ===== MOBILE VIEW ===== */}
+      <div className="block lg:hidden min-h-screen bg-slate-50 dark:bg-slate-950 -mx-3 -mt-4 pb-[80px]">
+        {/* Premium Header */}
+        <div className="bg-primary/95 pt-10 pb-16 px-6 rounded-b-[2.5rem] shadow-lg text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+
+          <div className="relative z-10 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight">My Tasks</h1>
+              <p className="text-[10px] text-white/70 font-black tracking-[0.2em] uppercase mt-1">Staff Portal · Task Center</p>
+            </div>
+            {canCreate && (
+              <Button
+                onClick={() => setIsSelfAssignDialogOpen(true)}
+                className="bg-white/10 hover:bg-white/20 text-white rounded-2xl h-11 w-11 p-0 flex items-center justify-center shrink-0 active:scale-90 transition-all border border-white/10 backdrop-blur-md shadow-xl"
+              >
+                <Plus className="h-6 w-6 text-white" strokeWidth={3} />
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-6 flex items-center justify-between">
+            <div className="flex-1 mr-4">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Completion Progress</span>
+                <span className="text-[10px] font-black text-white/90">{completionRate}%</span>
+              </div>
+              <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${completionRate}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-2xl font-black text-white">{allItems.length}</span>
+              <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">Total</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3-Stat Summary Row */}
+        <div className="px-5 -mt-7 relative z-20 flex gap-2">
+          {[
+            { label: 'Pending', count: pendingTasks.length, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/30', icon: AlertCircle, tab: 'pending' },
+            { label: 'Active', count: inProgressTasks.length, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/30', icon: Clock, tab: 'in-progress' },
+            { label: 'Done', count: completedTasks.length, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/30', icon: CheckCircle2, tab: 'completed' },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              onClick={() => setMobileTab(stat.tab as any)}
+              className={cn(
+                "flex-1 bg-white dark:bg-card rounded-3xl p-3 shadow-lg ring-1 transition-all active:scale-95 cursor-pointer",
+                mobileTab === stat.tab ? "ring-primary/40 shadow-primary/10" : "ring-black/5"
+              )}
+            >
+              <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center mb-2", stat.bg)}>
+                <stat.icon className={cn("h-4 w-4", stat.color)} />
+              </div>
+              <div>
+                <p className={cn("text-lg font-black tracking-tight leading-none", stat.color)}>{stat.count}</p>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Task Type Filters */}
+        {adminTasks.length > 0 && (
+          <div className="px-5 mt-6">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+              {(['all', 'daily', 'monthly'] as TaskTypeFilter[]).map(type => (
+                <button
+                  key={type}
+                  onClick={() => setTaskTypeFilter(type)}
+                  className={cn(
+                    "shrink-0 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95",
+                    taskTypeFilter === type
+                      ? type === 'daily' ? 'bg-blue-500 text-white shadow-md' : type === 'monthly' ? 'bg-purple-500 text-white shadow-md' : 'bg-primary text-white shadow-md'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 ring-1 ring-slate-100'
+                  )}
+                >
+                  {type === 'all' ? 'All Tasks' : type === 'daily' ? 'Daily' : 'Monthly'}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Task List */}
+        <div className="px-5 mt-4 space-y-4 pb-12">
+          {isLoading ? (
+            <div className="py-12 flex flex-col items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">Syncing...</p>
+            </div>
+          ) : (
+            <>
+              {(mobileTab === 'pending' ? pendingTasks : mobileTab === 'in-progress' ? inProgressTasks : completedTasks).map(task => {
+                const isDone = task.status === 'completed';
+                const isActive = task.status === 'in-progress' || task.status === 'in_progress';
+                const overdue = isOverdue(task.dueDate || task.DueDate, task.status);
+
+                return (
+                  <div
+                    key={`${task._source}-${task.id}`}
+                    className={cn(
+                      "bg-white dark:bg-card rounded-[1.8rem] p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 transition-all active:scale-[0.98]",
+                      overdue ? "ring-rose-100 bg-rose-50/10" : isActive ? "ring-blue-100 bg-blue-50/10" : "ring-black/5"
+                    )}
+                    onClick={() => { setSelectedTask(task); setIsDetailDialogOpen(true); }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge variant="outline" className={cn("text-[8px] font-black uppercase tracking-wider h-5 px-2 rounded-full border", priorityColors[task.priority] || 'bg-slate-50 text-slate-500 border-slate-200')}>
+                          {task.priority || 'medium'}
+                        </Badge>
+                        {overdue && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider h-5 px-2 rounded-full bg-rose-500 text-white border-none">Overdue</Badge>}
+                        {task._source === 'task' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider h-5 px-2 rounded-full bg-slate-900 text-white border-none">Admin</Badge>}
+                      </div>
+                      <div className="text-[10px] font-black text-slate-300">#{task.id}</div>
+                    </div>
+
+                    <h3 className={cn("text-base font-black tracking-tight leading-tight mb-2", isDone && "line-through opacity-50")}>
+                      {task.title || task.workTitle || task.taskName}
+                    </h3>
+
+                    {task.description && (
+                      <p className="text-xs text-slate-500 line-clamp-2 mb-4 font-medium leading-relaxed">
+                        {task.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-50 dark:border-slate-800">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Due Date</span>
+                        <div className={cn("flex items-center gap-1 text-[11px] font-black", overdue ? "text-rose-500" : "text-slate-700 dark:text-slate-300")}>
+                          <Calendar className="h-3 w-3" />
+                          {task.dueDate ? format(new Date(task.dueDate || task.DueDate), 'MMM dd, yyyy') : 'No date'}
+                        </div>
+                      </div>
+
+                      {!isDone && (
+                        <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                          {task.status === 'pending' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleStatusChange(task.id, task._source === 'task' ? 'in_progress' : 'in-progress')}
+                              className="h-9 px-4 rounded-xl bg-blue-600 text-white font-black text-[10px] uppercase tracking-wider shadow-lg shadow-blue-200"
+                            >
+                              <PlayCircle className="h-3.5 w-3.5 mr-1.5" /> Start
+                            </Button>
+                          )}
+                          {isActive && (
+                            <Button
+                              size="sm"
+                              onClick={() => { setSelectedTask(task); setCompletionDuration({ hours: '0', minutes: '0' }); setIsDurationDialogOpen(true); }}
+                              className="h-9 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] uppercase tracking-wider shadow-lg shadow-emerald-200"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Finish
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {isDone && (
+                        <div className="flex items-center gap-1.5 text-emerald-500 font-black text-[10px] uppercase tracking-widest">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Completed
+                        </div>
+                      )}
+                    </div>
+
+                    {!isDone && (
+                      <p className={cn("text-[9px] font-black uppercase tracking-widest mt-2", overdue ? 'text-rose-500' : 'text-slate-400')}>
+                        {getDaysRemaining(task.dueDate || task.DueDate)}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
+              {(mobileTab === 'pending' ? pendingTasks : mobileTab === 'in-progress' ? inProgressTasks : completedTasks).length === 0 && (
+                <div className="py-20 flex flex-col items-center justify-center text-center px-8">
+                  <div className="h-20 w-20 rounded-[2.5rem] bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-6">
+                    <ClipboardList className="h-10 w-10 text-slate-300" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-800 dark:text-slate-100">Empty List</h3>
+                  <p className="text-xs text-slate-400 mt-2 font-medium">No tasks found in the "{mobileTab}" category. Great job keeping up!</p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Request Change Dialog */}
@@ -983,13 +1184,12 @@ const MyTasks: React.FC = () => {
           {selectedTask && (
             <div className="flex flex-col h-full">
               {/* Mobile header with back button */}
-              <div className={`flex items-center gap-3 px-4 py-3 text-white ${
-                selectedTask.priority === 'high' ? 'bg-rose-500' :
-                selectedTask.priority === 'medium' ? 'bg-amber-500' : 'bg-[#1E5FA8]'
-              }`}>
+              <div className={`flex items-center gap-3 px-4 py-3 text-white ${selectedTask.priority === 'high' ? 'bg-rose-500' :
+                  selectedTask.priority === 'medium' ? 'bg-amber-500' : 'bg-[#1E5FA8]'
+                }`}>
                 <button onClick={() => setIsDetailDialogOpen(false)}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
                 </button>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wide">Task Detail</p>
@@ -1003,11 +1203,10 @@ const MyTasks: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {/* Status badges */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={`text-xs font-semibold ${
-                    selectedTask.priority === 'high' ? 'border-rose-300 text-rose-600 bg-rose-50' :
-                    selectedTask.priority === 'medium' ? 'border-amber-300 text-amber-600 bg-amber-50' :
-                    'border-emerald-300 text-emerald-600 bg-emerald-50'
-                  }`}>
+                  <Badge variant="outline" className={`text-xs font-semibold ${selectedTask.priority === 'high' ? 'border-rose-300 text-rose-600 bg-rose-50' :
+                      selectedTask.priority === 'medium' ? 'border-amber-300 text-amber-600 bg-amber-50' :
+                        'border-emerald-300 text-emerald-600 bg-emerald-50'
+                    }`}>
                     {selectedTask.priority?.toUpperCase()} PRIORITY
                   </Badge>
                   {selectedTask._source === 'task' && (
@@ -1153,4 +1352,3 @@ const MyTasks: React.FC = () => {
 };
 
 export default MyTasks;
-

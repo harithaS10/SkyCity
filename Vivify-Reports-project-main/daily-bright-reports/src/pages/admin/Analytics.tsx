@@ -61,6 +61,7 @@ import {
   Filter,
   X,
   ArrowRight,
+  Check,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -68,7 +69,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -99,18 +100,19 @@ const Analytics: React.FC = () => {
   const [workSearchQuery, setWorkSearchQuery] = useState('');
   const [selectedWorks, setSelectedWorks] = useState<string[]>([]);
   const [isWorkFilterOpen, setIsWorkFilterOpen] = useState(false);
+  const [isMobileWorkFilterOpen, setIsMobileWorkFilterOpen] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
-
-  // Close work filter popover on scroll
-  React.useEffect(() => {
-    const handleScroll = () => setIsWorkFilterOpen(false);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [clientsMap, setClientsMap] = useState<Record<string, string>>({});
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,18 +122,11 @@ const Analytics: React.FC = () => {
           api.works.getAll(),
           api.clients.getAll()
         ]);
-
-        if (usersRes.success && usersRes.data) {
-          setUsers(usersRes.data.map((u: any) => ({ ...u, name: u.fullName })));
-        }
-        if (worksRes.success && worksRes.data) {
-          setAvailableWorks(worksRes.data);
-        }
+        if (usersRes.success && usersRes.data) setUsers(usersRes.data.map((u: any) => ({ ...u, name: u.fullName })));
+        if (worksRes.success && worksRes.data) setAvailableWorks(worksRes.data);
         if (clientsRes.success && clientsRes.data) {
           const map: Record<string, string> = {};
-          clientsRes.data.forEach((c: any) => {
-            map[c.id.toString()] = c.name;
-          });
+          clientsRes.data.forEach((c: any) => { map[c.id.toString()] = c.name; });
           setClientsMap(map);
         }
       } catch (error) {
@@ -143,14 +138,12 @@ const Analytics: React.FC = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-
     const fetchAnalytics = async (showLoading = true) => {
       if (showLoading) setIsLoading(true);
       try {
         const params: any = {};
         if (selectedUser !== 'all') params.userId = selectedUser;
         if (selectedWorks.length > 0) params.workTitles = selectedWorks.join(',');
-
         const now = new Date();
         if (timeRange === 'week') {
           params.startDate = format(startOfWeek(now), 'yyyy-MM-dd');
@@ -158,23 +151,20 @@ const Analytics: React.FC = () => {
         } else if (timeRange === 'month') {
           params.startDate = format(startOfMonth(now), 'yyyy-MM-dd');
           params.endDate = format(endOfMonth(now), 'yyyy-MM-dd');
+        } else if (timeRange === 'year') {
+          params.startDate = format(new Date(now.getFullYear(), 0, 1), 'yyyy-MM-dd');
+          params.endDate = format(new Date(now.getFullYear(), 11, 31), 'yyyy-MM-dd');
         } else if (timeRange === 'custom') {
           params.startDate = customStartDate;
           params.endDate = customEndDate;
         }
-
         const [analyticsRes, reportsRes] = await Promise.all([
           api.admin.getAnalytics(params),
           api.admin.getAllReports(params)
         ]);
-
         if (!controller.signal.aborted) {
-          if (analyticsRes.success && analyticsRes.data) {
-            setAnalyticsData(analyticsRes.data);
-          }
-          if (reportsRes.success) {
-            setReports(reportsRes.data || []);
-          }
+          if (analyticsRes.success && analyticsRes.data) setAnalyticsData(analyticsRes.data);
+          if (reportsRes.success) setReports(reportsRes.data || []);
         }
       } catch (error: any) {
         if (error.name !== 'AbortError') {
@@ -182,877 +172,428 @@ const Analytics: React.FC = () => {
           if (showLoading) toast.error("Failed to load analytics");
         }
       } finally {
-        if (!controller.signal.aborted && showLoading) {
-          setIsLoading(false);
-        }
+        if (!controller.signal.aborted && showLoading) setIsLoading(false);
       }
     };
-
     fetchAnalytics(true);
-
-    // Auto-refresh every 30 seconds
-    const intervalId = setInterval(() => {
-      fetchAnalytics(false); // Don't show loading spinner for background updates
-    }, 30000);
-
-    return () => {
-      controller.abort();
-      clearInterval(intervalId);
-    };
+    const intervalId = setInterval(() => { fetchAnalytics(false); }, 30000);
+    return () => { controller.abort(); clearInterval(intervalId); };
   }, [selectedUser, timeRange, selectedWorks, customStartDate, customEndDate]);
 
   const filteredReports = (() => {
     let result = reports || [];
-    // Filter by user
     if (selectedUser !== 'all') {
-      result = result.filter(report => {
-        const userId = report.userId || report.UserId || report.userid;
-        return userId?.toString() === selectedUser;
-      });
+      result = result.filter(report => (report.userId || report.UserId || report.userid)?.toString() === selectedUser);
     }
-    // Filter by work types on the frontend (backend filter is unreliable)
     if (selectedWorks.length > 0) {
-      result = result.filter(report =>
-        report.entries?.some((e: any) =>
-          selectedWorks.includes(e.workTitle || e.WorkTitle || report.workTitle || report.title || '')
-        )
-      );
+      result = result.filter(report => report.entries?.some((e: any) => selectedWorks.includes(e.workTitle || e.WorkTitle || report.workTitle || report.title || '')));
     }
     return result;
   })();
 
   const trendData = (() => {
     if (!analyticsData) return [];
-
-    const rawTrend = analyticsData.type === 'comparison'
-      ? (analyticsData.trendData || [])
-      : (analyticsData.data || []);
-
-    return rawTrend
-      .filter((item: any) => item && item.date)
-      .map((item: any) => ({
-        date: safeFormatDate(item.date, timeRange === 'year' ? 'MMM' : 'MMM dd'),
-        entries: item.workCount || 0
-      }));
+    const rawTrend = analyticsData.type === 'comparison' ? (analyticsData.trendData || []) : (analyticsData.data || []);
+    return rawTrend.filter((item: any) => item && item.date).map((item: any) => ({
+      date: safeFormatDate(item.date, timeRange === 'year' ? 'MMM' : 'MMM dd'),
+      entries: item.workCount || 0
+    }));
   })();
 
-  // Process data for the chart - Productivity Focus (Completed vs Pending)
   const employeeStats = users.map(user => {
     const userReports = filteredReports.filter(r => r.userId === user.id);
     const totalEntries = userReports.reduce((acc, r) => acc + (r.entries?.length || 0), 0);
-
-    // Calculate status breakdown
     let completedCount = 0;
     let pendingCount = 0;
-
     userReports.forEach(report => {
       if (report.entries) {
         report.entries.forEach((entry: any) => {
-          // Check entry status if available, otherwise assume completed if report is old? 
-          // For now, let's look at the entry status property if it exists
-          if (entry.status && entry.status === 'pending') {
-            pendingCount++;
-          } else {
-            // If status is 'completed' or undefined (legacy), count as completed
-            completedCount++;
-          }
+          if (entry.status && entry.status === 'pending') pendingCount++;
+          else completedCount++;
         });
       }
     });
-
-    return {
-      name: user.name.split(' ')[0],
-      completed: completedCount,
-      pending: pendingCount,
-      total: totalEntries
-    };
+    return { name: user.name.split(' ')[0], completed: completedCount, pending: pendingCount, total: totalEntries };
   }).filter(stat => stat.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
 
   const workTypeDistribution = (() => {
     const counts: Record<string, number> = {};
-    if (filteredReports && filteredReports.length > 0) {
-      filteredReports.forEach((report) => {
-        if (report && report.entries) {
-          report.entries.forEach((entry: any) => {
-            if (entry) {
-              const type = entry.workTitle || entry.WorkTitle || 'Other';
-              counts[type] = (counts[type] || 0) + 1;
-            }
-          });
-        }
-      });
-    }
-    return Object.entries(counts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
+    filteredReports.forEach((report) => {
+      if (report?.entries) {
+        report.entries.forEach((entry: any) => {
+          const type = entry.workTitle || entry.WorkTitle || 'Other';
+          counts[type] = (counts[type] || 0) + 1;
+        });
+      }
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5);
   })();
 
-  const handleUpdateDueDate = async (reportId: number, entryIndex: number, newDate: string) => {
-    if (!newDate) return;
-
-    try {
-      const response = await api.admin.updateEntryDueDate(reportId, entryIndex, newDate);
-      if (response.success) {
-        toast.success("Due date updated successfully.");
-      } else {
-        toast.error(response.message || "Failed to update due date");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred");
-    }
-  };
-
-  const handleUpdateEntryStatus = async (reportId: number, entryIndex: number, status: string) => {
-    // Optimistic update
-    setReports(prev => prev.map(r => {
-      if (r.id !== reportId) return r;
-      const entries = [...(r.entries || [])];
-      entries[entryIndex] = { ...entries[entryIndex], status };
-      return { ...r, entries };
-    }));
-
-    try {
-      const response = await api.admin.updateEntryStatus(reportId, entryIndex, status);
-      if (response.success) {
-        toast.success(`Status updated to ${status === 'in_progress' ? 'In Progress' : 'Completed'}.`);
-      } else {
-        toast.error(response.message || "Failed to update status");
-        // Revert on failure
-        setReports(prev => prev.map(r => {
-          if (r.id !== reportId) return r;
-          const entries = [...(r.entries || [])];
-          entries[entryIndex] = { ...entries[entryIndex], status: 'pending' };
-          return { ...r, entries };
-        }));
-      }
-    } catch (error: any) {
-      toast.error(error.message || "An error occurred");
-    }
-  };
-
   const handleExport = async (formatType: 'excel' | 'csv') => {
-    if (filteredReports.length === 0) {
-      toast.info("No data available to export.");
-      return;
-    }
-
-    toast.info(`Preparing ${formatType.toUpperCase()} file...`);
-
+    if (filteredReports.length === 0) { toast.info("No data available to export."); return; }
     try {
-      // Flatten reports into a row-based format for CSV
       const rows: any[] = [];
       filteredReports.forEach(report => {
-        if (report.entries && report.entries.length > 0) {
-          report.entries.forEach((entry: any) => {
-            // Resolve Client Name (Company)
-            let companyName = 'N/A';
-            if (entry.newClientName) {
-              companyName = entry.newClientName;
-            } else if (entry.clientId) {
-              companyName = clientsMap[entry.clientId.toString()] || 'Unknown Client';
-            }
-
-            rows.push({
-              'Date': safeFormatDate(report.date || report.Date),
-              'Username': report.userName || 'Unknown',
-              'Work Code': entry.workCode || 'N/A',
-              'Work': entry.workTitle || entry.WorkTitle || 'N/A',
-              'Count': entry.quantity || 0,
-              'Completed or Not': entry.status === 'pending' ? 'Pending' : 'Completed',
-              'Due Date': entry.status === 'pending' ? (safeFormatDate(entry.adminDueDate || entry.dueDate)) : 'N/A',
-              'Company': companyName,
-              'Description': entry.description || 'N/A',
-              'Time Spent': entry.hoursSpent || entry.timeSpent || '0'
-            });
-          });
-        } else {
+        report.entries?.forEach((entry: any) => {
           rows.push({
             'Date': safeFormatDate(report.date || report.Date),
             'Username': report.userName || 'Unknown',
-            'Work Code': 'N/A',
-            'Work': 'No entries',
-            'Count': 0,
-            'Completed or Not': 'N/A',
-            'Due Date': 'N/A',
-            'Company': 'N/A',
-            'Description': 'N/A',
-            'Time Spent': '0'
+            'Work': entry.workTitle || 'N/A',
+            'Status': entry.status === 'pending' ? 'Pending' : 'Completed',
+            'Company': entry.newClientName || (entry.clientId ? clientsMap[entry.clientId.toString()] : 'N/A'),
+            'Description': entry.description || 'N/A'
           });
-        }
+        });
       });
-
       const fileName = `reports-export-${new Date().toISOString().split('T')[0]}.${formatType === 'excel' ? 'xlsx' : 'csv'}`;
-
       let fileContent: any;
-      let mimeType: string;
-
       if (formatType === 'excel') {
         const worksheet = XLSX.utils.json_to_sheet(rows);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Reports");
-
-        if (Capacitor.isNativePlatform()) {
-          fileContent = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
-        } else {
-          const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-          fileContent = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        }
-        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        fileContent = Capacitor.isNativePlatform() ? XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' }) : new Blob([XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       } else {
         const headers = Object.keys(rows[0]);
-        const csvText = [
-          headers.join(','),
-          ...rows.map(row =>
-            headers.map(header => {
-              const val = row[header] === null || row[header] === undefined ? '' : row[header];
-              const escaped = String(val).replace(/"/g, '""');
-              return escaped.includes(',') || escaped.includes('\n') || escaped.includes('"')
-                ? `"${escaped}"`
-                : escaped;
-            }).join(',')
-          )
-        ].join('\r\n');
-
+        const csvText = [headers.join(','), ...rows.map(row => headers.map(h => `"${String(row[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\r\n');
         fileContent = csvText;
-        mimeType = 'text/csv;charset=utf-8;';
       }
-
       if (Capacitor.isNativePlatform()) {
-        try {
-          const savedFile = await Filesystem.writeFile({
-            path: fileName,
-            data: fileContent,
-            encoding: formatType === 'csv' ? ('utf8' as any) : undefined,
-            directory: Directory.Cache,
-          });
-
-          await Share.share({
-            title: 'Export Reports',
-            text: `Your report export is ready.`,
-            url: savedFile.uri,
-            dialogTitle: 'Share or Save Export',
-          });
-          toast.success('File ready to share/save');
-        } catch (error) {
-          console.error('File saving error:', error);
-          toast.error('Failed to save file on device');
-        }
+        const savedFile = await Filesystem.writeFile({ path: fileName, data: fileContent, directory: Directory.Cache });
+        await Share.share({ title: 'Export Reports', url: savedFile.uri });
       } else {
-        const downloadUrl = formatType === 'excel'
-          ? window.URL.createObjectURL(fileContent as Blob)
-          : window.URL.createObjectURL(new Blob([fileContent], { type: mimeType }));
-
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(downloadUrl);
-        toast.success('Download started');
+        const url = formatType === 'excel' ? window.URL.createObjectURL(fileContent as Blob) : window.URL.createObjectURL(new Blob([fileContent], { type: 'text/csv' }));
+        const a = document.createElement('a'); a.href = url; a.download = fileName; a.click();
       }
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export data');
-    }
+      toast.success('Export successful');
+    } catch (error) { toast.error('Export failed'); }
   };
 
   const handleWhatsAppExport = async () => {
-    if (filteredReports.length === 0) {
-      toast.info("No data available to export.");
-      return;
-    }
-
-    toast.info("Preparing Excel file...");
-
+    if (filteredReports.length === 0) { toast.info("No data available to export."); return; }
     try {
       const rows: any[] = [];
       filteredReports.forEach(report => {
-        if (report.entries && report.entries.length > 0) {
-          report.entries.forEach((entry: any) => {
-            let companyName = 'N/A';
-            if (entry.newClientName) {
-              companyName = entry.newClientName;
-            } else if (entry.clientId) {
-              companyName = clientsMap[entry.clientId.toString()] || 'Unknown Client';
-            }
-            rows.push({
-              'Date': safeFormatDate(report.date || report.Date),
-              'Username': report.userName || 'Unknown',
-              'Work Code': entry.workCode || 'N/A',
-              'Work': entry.workTitle || entry.WorkTitle || 'N/A',
-              'Count': entry.quantity || 0,
-              'Completed or Not': entry.status === 'pending' ? 'Pending' : 'Completed',
-              'Due Date': entry.status === 'pending' ? (safeFormatDate(entry.adminDueDate || entry.dueDate)) : 'N/A',
-              'Company': companyName,
-              'Description': entry.description || 'N/A',
-              'Time Spent': entry.hoursSpent || entry.timeSpent || '0'
-            });
+        report.entries?.forEach((entry: any) => {
+          rows.push({
+            'Date': safeFormatDate(report.date || report.Date),
+            'Username': report.userName || 'Unknown',
+            'Work': entry.workTitle || 'N/A',
+            'Status': entry.status === 'pending' ? 'Pending' : 'Completed'
           });
-        }
+        });
       });
-
       const fileName = `analytics-report-${new Date().toISOString().split('T')[0]}.xlsx`;
       const worksheet = XLSX.utils.json_to_sheet(rows);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Reports");
-
       if (Capacitor.isNativePlatform()) {
-        // Native app — save and share via native share sheet
         const fileContent = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
-        const savedFile = await Filesystem.writeFile({
-          path: fileName,
-          data: fileContent,
-          directory: Directory.Cache,
-        });
-        await Share.share({
-          title: 'Analytics Report',
-          text: 'Here is the analytics report.',
-          url: savedFile.uri,
-          dialogTitle: 'Share via WhatsApp'
-        });
-        toast.success('Share sheet opened');
+        const savedFile = await Filesystem.writeFile({ path: fileName, data: fileContent, directory: Directory.Cache });
+        await Share.share({ title: 'Analytics Report', url: savedFile.uri });
       } else {
-        // Web — download the file first
         const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
         const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(downloadUrl);
-
-        // Show persistent toast with WhatsApp button
-        const waText = encodeURIComponent(`Hi, please find the analytics report attached: ${fileName}`);
-        toast.success('Excel file downloaded!', {
-          description: 'Now open WhatsApp and attach the downloaded file.',
-          duration: 10000,
-          action: {
-            label: '📲 Open WhatsApp',
-            onClick: () => window.open(`https://wa.me/?text=${waText}`, '_blank'),
-          },
-        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = fileName; a.click();
+        const waText = encodeURIComponent('Analytics Report Attached');
+        toast.success('File ready!', { action: { label: 'WhatsApp', onClick: () => window.open(`https://wa.me/?text=${waText}`, '_blank') } });
       }
-    } catch (error) {
-      console.error('WhatsApp export error:', error);
-      toast.error('Failed to prepare file');
-    }
+    } catch (error) { toast.error('WhatsApp export failed'); }
   };
 
   const totalReports = filteredReports.length;
-  const totalEntries = filteredReports.reduce((sum, r) => sum + r.entries.length, 0);
+  const totalEntries = filteredReports.reduce((sum, r) => sum + (r.entries?.length || 0), 0);
   const avgEntriesPerReport = totalReports > 0 ? (totalEntries / totalReports).toFixed(1) : 0;
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 animate-in fade-in duration-500">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="flex items-center justify-between">
+      <div className="w-full">
+        {/* Use CSS-based responsiveness for smoothness, but keep separate states for filters */}
+        <div className="hidden lg:block space-y-8 animate-in fade-in duration-500">
+          {/* Desktop Content exactly as before */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 bg-gradient-to-r from-sky-500 to-sky-400 p-8 rounded-3xl text-white shadow-xl shadow-sky-500/10">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
-              <p className="text-muted-foreground">Monitor performance and report distribution</p>
+              <h1 className="text-3xl font-black tracking-tight text-white">Analytics Dashboard</h1>
+              <p className="text-white/80 font-medium">Monitor performance and report distribution</p>
             </div>
-            <Button onClick={handleWhatsAppExport} className="lg:hidden btn-gradient rounded-xl gap-2 shadow-md" size="sm" disabled={!canExport}>
-              <Download className="h-4 w-4" />
-              Share Excel
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-4 items-center">
-            <Select value={selectedUser} onValueChange={setSelectedUser}>
-              <SelectTrigger className="w-[200px] bg-card">
-                <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue placeholder="Select Employee" />
-              </SelectTrigger>
-              <SelectContent className="max-h-60 overflow-y-auto">
-                <SelectItem value="all">All Employees</SelectItem>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id.toString()}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-4 items-center">
+              <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <SelectTrigger className="w-[200px] bg-card">
+                  <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Select Employee" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 overflow-y-auto">
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {users.map((u) => <SelectItem key={u.id} value={u.id.toString()}>{u.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
 
-            <Popover open={isWorkFilterOpen} onOpenChange={setIsWorkFilterOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="bg-card gap-2" onClick={() => setIsWorkFilterOpen(v => !v)}>
-                  <Filter className="h-4 w-4" />
-                  Work Types ({selectedWorks.length})
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end" onInteractOutside={() => setIsWorkFilterOpen(false)}>
-                <div className="p-4 border-b">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-sm">Filter by Work Type</p>
-                    {selectedWorks.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-xs text-primary font-bold"
-                        onClick={() => setSelectedWorks([])}
-                      >
-                        Clear All
+              <Popover open={isWorkFilterOpen} onOpenChange={setIsWorkFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="bg-card gap-2"><Filter className="h-4 w-4" />Work Types ({selectedWorks.length})</Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
+                  <div className="p-4 border-b">
+                    <div className="flex justify-between mb-2"><p className="font-semibold text-sm">Filter Work</p>{selectedWorks.length > 0 && <Button variant="ghost" size="sm" onClick={() => setSelectedWorks([])}>Clear</Button>}</div>
+                    <Input placeholder="Search..." className="h-9" value={workSearchQuery} onChange={e => setWorkSearchQuery(e.target.value)} />
+                  </div>
+                  <div className="max-h-60 overflow-y-auto p-2">{availableWorks.filter(w => w.workTitle.toLowerCase().includes(workSearchQuery.toLowerCase())).map(work => (
+                    <div key={work.id} className="flex items-center gap-2 p-2 hover:bg-muted cursor-pointer" onClick={() => setSelectedWorks(prev => prev.includes(work.workTitle) ? prev.filter(t => t !== work.workTitle) : [...prev, work.workTitle])}>
+                      <Checkbox checked={selectedWorks.includes(work.workTitle)} /><label className="text-sm cursor-pointer truncate flex-1">{work.workTitle}</label>
+                    </div>
+                  ))}</div>
+                </PopoverContent>
+              </Popover>
+
+              <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                <SelectTrigger className="w-[160px] bg-card"><Calendar className="h-4 w-4 mr-2" /><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="week">This Week</SelectItem><SelectItem value="month">This Month</SelectItem><SelectItem value="year">Full Year</SelectItem><SelectItem value="custom">Custom Range</SelectItem></SelectContent>
+              </Select>
+
+              {timeRange === 'custom' && (
+                <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
+                  <Input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="w-[150px] bg-card" />
+                  <span className="text-muted-foreground">to</span>
+                  <Input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="w-[150px] bg-card" />
+                </div>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button className="bg-white text-sky-600 hover:bg-white/90 border-none rounded-xl font-bold" disabled={!canExport}><Download className="h-4 w-4" />Export Data</Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport('excel')}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('csv')}><FileText className="mr-2 h-4 w-4" />CSV</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="border-none shadow-md"><CardContent className="p-6 flex justify-between items-center"><div><p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Coverage</p><p className="text-3xl font-black">{users.length} Users</p></div><div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Users className="h-6 w-6" /></div></CardContent></Card>
+            <Card className="border-none shadow-md"><CardContent className="p-6 flex justify-between items-center"><div><p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Active Reports</p><p className="text-3xl font-black">{totalReports}</p></div><div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500"><FileText className="h-6 w-6" /></div></CardContent></Card>
+            <Card className="border-none shadow-md"><CardContent className="p-6 flex justify-between items-center"><div><p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Work Items</p><p className="text-3xl font-black">{totalEntries}</p></div><div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500"><TrendingUp className="h-6 w-6" /></div></CardContent></Card>
+            <Card className="border-none shadow-md"><CardContent className="p-6 flex justify-between items-center"><div><p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Avg Tasks</p><p className="text-3xl font-black">{avgEntriesPerReport}</p></div><div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500"><BarChart3 className="h-6 w-6" /></div></CardContent></Card>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            <Card className="border-none shadow-lg"><CardHeader><CardTitle>Productivity Breakdown</CardTitle></CardHeader><CardContent><div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={employeeStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barGap={12}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" opacity={0.4} /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }} dy={10} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#4b5563', fontSize: 12 }} dx={-10} /><Tooltip cursor={{ fill: 'rgba(0,0,0,0.04)' }} contentStyle={{ borderRadius: '12px', border: 'none' }} /><Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" /><Bar dataKey="completed" name="Done" fill="#10b981" radius={[4, 4, 0, 0]} barSize={32} /><Bar dataKey="pending" name="Pending" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={32} /></BarChart></ResponsiveContainer></div></CardContent></Card>
+            <Card className="border-none shadow-lg"><CardHeader><CardTitle>Work Distribution</CardTitle></CardHeader><CardContent><div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={workTypeDistribution} cx="50%" cy="50%" innerRadius={80} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, percent, x, y }) => percent < 0.05 ? null : <text x={x} y={y} fill="#1f2937" fontSize={11} fontWeight={600} textAnchor="middle" dominantBaseline="central">{`${name.slice(0, 12)} ${(percent * 100).toFixed(0)}%`}</text>}>{workTypeDistribution.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip contentStyle={{ borderRadius: '12px' }} /></PieChart></ResponsiveContainer></div></CardContent></Card>
+          </div>
+
+          <Card className="border-none shadow-lg overflow-hidden">
+            <CardHeader className="bg-muted/30"><CardTitle>Submission Trend</CardTitle></CardHeader>
+            <CardContent className="pt-6"><div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={trendData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" /><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} /><Tooltip contentStyle={{ borderRadius: '12px' }} /><Line type="monotone" dataKey="entries" stroke="hsl(var(--primary))" strokeWidth={4} dot={{ fill: 'hsl(var(--primary))', r: 5, strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8, strokeWidth: 0 }} /></LineChart></ResponsiveContainer></div></CardContent>
+          </Card>
+
+          <Card className="border-none shadow-xl overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b"><CardTitle>Detailed Records</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-primary hover:bg-primary"><TableRow className="hover:bg-transparent border-none"><TableHead className="text-white italic">Employee</TableHead><TableHead className="text-white">Date</TableHead><TableHead className="text-white text-center">Entries</TableHead><TableHead className="text-white">Overview</TableHead><TableHead className="text-right text-white px-4">Status</TableHead></TableRow></TableHeader>
+                <TableBody>{filteredReports.slice(0, 50).map((report) => (
+                  <TableRow key={report.id} className="transition-colors group hover:bg-slate-50/50 cursor-pointer" onClick={() => setSelectedReport(report)}>
+                    <TableCell className="font-bold border-r"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center border font-normal">{report.userName?.charAt(0)}</div>{report.userName}</div></TableCell>
+                    <TableCell className="font-medium text-muted-foreground border-r">{safeFormatDate(report.date || report.Date)}</TableCell>
+                    <TableCell className="text-center border-r"><Badge variant="outline">{report.entries?.length || 0}</Badge></TableCell>
+                    <TableCell className="max-w-[300px] border-r truncate italic">{(report.entries || []).map((e: any) => e.workTitle).join(', ')}</TableCell>
+                    <TableCell className="text-right border-r">{report.entries?.some((e: any) => e.status === 'pending') ? <Badge className="bg-warning/10 text-warning border-none">Pending</Badge> : <Badge className="bg-emerald-500/10 text-emerald-500 border-none">Done</Badge>}</TableCell>
+                  </TableRow>
+                ))}</TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ===== MOBILE VIEW ===== */}
+        <div className="block lg:hidden min-h-screen bg-slate-50 dark:bg-slate-950 pb-[100px] -mx-4 -mt-4 animate-in fade-in duration-300">
+          <div className="bg-primary pt-10 pb-16 px-6 rounded-b-[3rem] shadow-xl relative z-10 text-white">
+            <div className="flex justify-between items-center mb-6">
+              <div><h1 className="text-2xl font-black tracking-tight">Analytics</h1><p className="text-[10px] text-white/60 font-black uppercase tracking-widest">Performance Insights</p></div>
+              <Button onClick={handleWhatsAppExport} className="bg-white/20 text-white rounded-xl h-11 px-4 border-none backdrop-blur-md" size="sm" disabled={!canExport}><Download className="h-4 w-4 mr-2" /><span className="text-[11px] font-black uppercase">Export</span></Button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10"><span className="text-[8px] font-black uppercase text-white/50 block mb-1">Users</span><p className="text-xl font-black">{users.length}</p></div>
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10"><span className="text-[8px] font-black uppercase text-white/50 block mb-1">Reports</span><p className="text-xl font-black">{totalReports}</p></div>
+            </div>
+          </div>
+
+          <div className="px-4 -mt-5 relative z-20 space-y-4">
+            <div className="bg-white dark:bg-card rounded-[2rem] p-5 shadow-2xl ring-1 ring-black/5 flex items-center justify-between gap-4">
+              <div className="flex-1"><span className="text-[9px] font-black uppercase text-amber-500 block mb-1">Tasks</span><p className="text-2xl font-black tracking-tight text-slate-800 dark:text-white">{totalEntries}</p></div>
+              <div className="w-px h-10 bg-slate-100 dark:bg-slate-800 shrink-0" />
+              <div className="flex-1"><span className="text-[9px] font-black uppercase text-primary block mb-1">Avg/Day</span><p className="text-2xl font-black tracking-tight text-slate-800 dark:text-white">{avgEntriesPerReport}</p></div>
+            </div>
+
+            <div className="bg-white dark:bg-card rounded-[1.5rem] p-4 shadow-xl ring-1 ring-black/5 space-y-3">
+              <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-2"><Filter className="h-3.5 w-3.5 text-primary" /><span className="text-[10px] font-black uppercase text-slate-400">Filters</span></div>
+                 {timeRange === 'custom' && <span className="text-[8px] font-black text-primary px-2 py-0.5 bg-primary/5 rounded-md">Custom Range Active</span>}
+              </div>
+              
+              <div className="grid grid-cols-1 gap-2">
+                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                  <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-xs">
+                    <Users className="h-3.5 w-3.5 mr-2 text-primary" />
+                    <SelectValue placeholder="All Employees" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-60 overflow-y-auto w-[var(--radix-select-trigger-width)] rounded-xl">
+                    <SelectItem value="all" className="text-xs font-bold">All Employees</SelectItem>
+                    {users.map(u => <SelectItem key={u.id} value={u.id.toString()} className="text-xs font-bold">{u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                    <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-[10px]">
+                      <Calendar className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="popper" side="bottom" className="rounded-xl">
+                      <SelectItem value="week">Week</SelectItem><SelectItem value="month">Month</SelectItem><SelectItem value="year">Year</SelectItem><SelectItem value="custom">Range</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Popover open={isMobileWorkFilterOpen} onOpenChange={setIsMobileWorkFilterOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-[10px] gap-1.5 justify-start">
+                        <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                        <span className="truncate">Types ({selectedWorks.length})</span>
                       </Button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search categories..."
-                      className="pl-8 h-9"
-                      value={workSearchQuery}
-                      onChange={(e) => setWorkSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="max-h-60 overflow-y-auto p-2 space-y-1">
-                  {availableWorks
-                    .filter(w => w.workTitle.toLowerCase().includes(workSearchQuery.toLowerCase()))
-                    .map((work) => (
-                      <div
-                        key={work.id}
-                        className="flex items-center gap-2 p-2 hover:bg-muted rounded-md cursor-pointer transition-colors"
-                        onClick={() => {
-                          setSelectedWorks(prev =>
-                            prev.includes(work.workTitle)
-                              ? prev.filter(t => t !== work.workTitle)
-                              : [...prev, work.workTitle]
-                          );
-                          setIsWorkFilterOpen(false);
-                        }}
-                      >
-                        <Checkbox
-                          id={`work-${work.id}`}
-                          checked={selectedWorks.includes(work.workTitle)}
-                          onCheckedChange={() => { }}
-                        />
-                        <label className="text-sm cursor-pointer flex-1 truncate">{work.workTitle}</label>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[92vw] p-0 rounded-2xl shadow-2xl border-none ring-1 ring-black/5" position="popper" side="bottom" sideOffset={8}>
+                      <div className="p-3 bg-slate-50 border-b">
+                        <div className="flex justify-between mb-2"><p className="font-black text-[9px] uppercase text-slate-500">Categories</p>{selectedWorks.length > 0 && <button className="text-[9px] font-black text-primary" onClick={() => setSelectedWorks([])}>Clear</button>}</div>
+                        <Input placeholder="Search..." className="h-8 text-xs rounded-lg bg-white border-none ring-1 ring-slate-200" value={workSearchQuery} onChange={e => setWorkSearchQuery(e.target.value)} />
                       </div>
-                    ))}
+                      <div className="max-h-48 overflow-y-auto p-2">{availableWorks.filter(w => w.workTitle.toLowerCase().includes(workSearchQuery.toLowerCase())).map(work => (
+                        <div key={work.id} className="flex items-center gap-2 p-2.5 rounded-lg active:bg-slate-50" onClick={() => setSelectedWorks(prev => prev.includes(work.workTitle) ? prev.filter(t => t !== work.workTitle) : [...prev, work.workTitle])}>
+                          <Checkbox checked={selectedWorks.includes(work.workTitle)} className="h-3.5 w-3.5" /><label className="text-[11px] font-bold text-slate-700 truncate flex-1">{work.workTitle}</label>
+                        </div>
+                      ))}</div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-              </PopoverContent>
-            </Popover>
 
-            <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-              <SelectTrigger className="w-[160px] bg-card">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="year">Full Year</SelectItem>
-                <SelectItem value="custom">Custom Range</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {timeRange === 'custom' && (
-              <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
-                <Input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-[150px] bg-card"
-                />
-                <span className="text-muted-foreground">to</span>
-                <Input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-[150px] bg-card"
-                />
+                {timeRange === 'custom' && (
+                  <div className="flex gap-2 pt-1">
+                    <Input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} className="h-9 rounded-lg bg-slate-50 border-none ring-1 ring-slate-100 text-[10px] font-bold" />
+                    <Input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="h-9 rounded-lg bg-slate-50 border-none ring-1 ring-slate-100 text-[10px] font-bold" />
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="gap-2 btn-gradient border-none rounded-xl" disabled={!canExport} title={!canExport ? "You don't have export permission" : undefined}>
-                  <Download className="h-4 w-4" />
-                  Export Data
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport('excel')} className="cursor-pointer">
-                  <FileSpreadsheet className="mr-2 h-4 w-4 text-success" />
-                  Export as Excel
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('csv')} className="cursor-pointer">
-                  <FileText className="mr-2 h-4 w-4 text-primary" />
-                  Export as CSV
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Card className="border-none shadow-lg rounded-[1.5rem] overflow-hidden">
+               <CardHeader className="p-4 pb-0"><CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Productivity</CardTitle></CardHeader>
+               <CardContent className="p-2"><div className="h-48 w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={employeeStats} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" /><XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 700 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 8 }} /><Tooltip contentStyle={{ borderRadius: '12px', fontSize: '10px' }} /><Bar dataKey="completed" fill="#10b981" radius={[3, 3, 0, 0]} barSize={10} /><Bar dataKey="pending" fill="#f59e0b" radius={[3, 3, 0, 0]} barSize={10} /></BarChart></ResponsiveContainer></div></CardContent>
+            </Card>
+
+            <div className="space-y-3 pb-10">
+              <div className="flex justify-between items-center px-2"><h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Detailed Logs</h3><span className="text-[9px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">{filteredReports.length}</span></div>
+              <div className="space-y-2.5">{filteredReports.slice(0, 15).map((report) => (
+                <div key={report.id} onClick={() => setSelectedReport(report)} className="bg-white dark:bg-card rounded-[1.25rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all flex items-center justify-between">
+                   <div className="flex items-center gap-3 min-w-0">
+                     <div className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center font-black text-primary text-[11px] shrink-0">{report.userName?.charAt(0)}</div>
+                     <div className="min-w-0">
+                       <h4 className="text-[11px] font-black text-slate-800 truncate">{report.userName}</h4>
+                       <p className="text-[9px] font-bold text-slate-400">{safeFormatDate(report.date || report.Date)}</p>
+                     </div>
+                   </div>
+                   <div className="flex items-center gap-2 shrink-0">
+                     <Badge variant="outline" className={cn("text-[8px] px-2 py-0.5 font-black uppercase border-0 rounded-md", report.entries?.some((e: any) => e.status === 'pending') ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-600")}>
+                        {report.entries?.some((e: any) => e.status === 'pending') ? 'Pending' : 'Done'}
+                     </Badge>
+                     <ArrowRight className="h-3.5 w-3.5 text-slate-300" />
+                   </div>
+                </div>
+              ))}</div>
+            </div>
           </div>
         </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-none shadow-md overflow-hidden group rounded-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Coverage</p>
-                  <p className="text-3xl font-black">{users.length} <span className="text-sm font-normal text-muted-foreground">Users</span></p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <Users className="h-6 w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-none shadow-md overflow-hidden group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Active Employees</p>
-                  <p className="text-3xl font-black">{totalReports}</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center text-success group-hover:bg-success group-hover:text-success-foreground transition-colors">
-                  <FileText className="h-6 w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-none shadow-md overflow-hidden group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Work Items</p>
-                  <p className="text-3xl font-black">{totalEntries}</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center text-warning group-hover:bg-warning group-hover:text-warning-foreground transition-colors">
-                  <TrendingUp className="h-6 w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-none shadow-md overflow-hidden group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Avg Tasks / Employee</p>
-                  <p className="text-3xl font-black">{avgEntriesPerReport}</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
-                  <BarChart3 className="h-6 w-6" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-8 lg:grid-cols-2">
-          <Card className="border-none shadow-lg">
-            <CardHeader>
-              <CardTitle>Team Productivity Breakdown</CardTitle>
-              <CardDescription>Completed vs. Pending tasks per employee</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80 w-full mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={employeeStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }} barGap={12}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" opacity={0.4} />
-                    <XAxis
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 600 }}
-                      dy={10}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#4b5563', fontSize: 12 }}
-                      dx={-10}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                    />
-                    <Legend wrapperStyle={{ paddingTop: '20px' }} iconType="circle" />
-                    <Bar
-                      dataKey="completed"
-                      name="Completed Tasks"
-                      fill="#10b981"
-                      radius={[4, 4, 0, 0]}
-                      barSize={32}
-                    />
-                    <Bar
-                      dataKey="pending"
-                      name="Pending Actions"
-                      fill="#f59e0b"
-                      radius={[4, 4, 0, 0]}
-                      barSize={32}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-lg">
-            <CardHeader>
-              <CardTitle>Work Category Distribution</CardTitle>
-              <CardDescription>Top 5 most frequent work categories in this period</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80 w-full mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={workTypeDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={80}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                      label={({ name, percent, x, y, midAngle }) => {
-                        // Only render label if segment is big enough
-                        if (percent < 0.05) return null;
-                        return (
-                          <text x={x} y={y} fill="#1f2937" fontSize={11} fontWeight={600} textAnchor="middle" dominantBaseline="central">
-                            {`${name.slice(0, 12)} ${(percent * 100).toFixed(0)}%`}
-                          </text>
-                        );
-                      }}
-                    >
-                      {workTypeDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="border-none shadow-lg overflow-hidden">
-          <CardHeader className="bg-muted/30">
-            <CardTitle>Submission Trend</CardTitle>
-            <CardDescription>Volume of work entries filed over current timeframe</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="h-80 w-full mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="entries"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={4}
-                    dot={{ fill: 'hsl(var(--primary))', r: 5, strokeWidth: 2, stroke: '#fff' }}
-                    activeDot={{ r: 8, strokeWidth: 0 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-xl overflow-hidden">
-          <CardHeader className="bg-muted/30 border-b">
-            <CardTitle>Detailed Log Records</CardTitle>
-            <CardDescription>Click any row to view full details</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            {filteredReports.length === 0 ? (
-              <div className="p-20">
-                <EmptyState
-                  icon={<FileText className="h-16 w-16 text-muted-foreground/20" />}
-                  title="No Matching Records"
-                  description="Adjust your filters to see more results"
-                  className="bg-transparent"
-                />
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table className="border-x">
-                  <TableHeader className="bg-primary hover:bg-primary">
-                    <TableRow className="hover:bg-transparent border-none">
-                      <TableHead className="text-white font-semibold last:border-r-0 h-11 italic">Employee</TableHead>
-                      <TableHead className="text-white font-semibold last:border-r-0 h-11">Report Date</TableHead>
-                      <TableHead className="text-white font-semibold last:border-r-0 h-11 text-center">Entries</TableHead>
-                      <TableHead className="text-white font-semibold last:border-r-0 h-11">Work Overview</TableHead>
-                      <TableHead className="text-white font-semibold last:border-r-0 h-11">Complaints</TableHead>
-                      <TableHead className="text-right text-white font-semibold px-4 h-11">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredReports.slice(0, 50).map((report) => {
-                      const hasPending = report.entries?.some((e: any) => e.status === 'pending');
-                      return (
-                        <TableRow
-                          key={report.id}
-                          className="transition-colors group hover:bg-slate-50/50 cursor-pointer"
-                          onClick={() => setSelectedReport(report)}
-                        >
-                          <TableCell className="font-bold text-base border-r border-slate-200 last:border-r-0">
-                            <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center border font-normal text-muted-foreground">
-                                {report.userName?.charAt(0) || 'U'}
-                              </div>
-                              {report.userName || 'Unknown'}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium text-muted-foreground border-r border-slate-200 last:border-r-0">
-                            {safeFormatDate(report.date || report.Date)}
-                          </TableCell>
-                          <TableCell className="text-center border-r border-slate-200 last:border-r-0">
-                            <Badge variant="outline" className="bg-background group-hover:bg-primary/10 transition-colors font-mono font-bold px-3">
-                              {report.entries?.length || 0}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-[300px] border-r border-slate-200 last:border-r-0">
-                            <p className="text-sm text-muted-foreground truncate font-medium group-hover:text-foreground transition-colors">
-                              {(report.entries || []).map((e: any) => e.workTitle).join(', ')}
-                            </p>
-                          </TableCell>
-                          <TableCell className="border-r border-slate-200 last:border-r-0">
-                            {report.complaints?.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {report.complaints.slice(0, 2).map((c: any) => (
-                                  <Badge key={c.id} variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">
-                                    {c.complaintNumber}
-                                  </Badge>
-                                ))}
-                                {report.complaints.length > 2 && (
-                                  <Badge variant="outline" className="text-[10px]">+{report.complaints.length - 2}</Badge>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right border-r border-slate-200 last:border-r-0">
-                            {hasPending ? (
-                              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-bold px-3">Pending Items</Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-bold px-3">Completed</Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Report Detail Popup */}
+      {/* Report Detail Modal - Compact & Premium */}
       {selectedReport && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setSelectedReport(null)}
-        >
-          <div
-            className="bg-background rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b bg-primary text-primary-foreground rounded-t-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200" onClick={() => setSelectedReport(null)}>
+          <div className="bg-white dark:bg-card rounded-[2rem] shadow-2xl w-full max-w-sm max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            {/* Compact Header */}
+            <div className="flex items-center justify-between px-6 py-5 bg-primary text-white">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg">
-                  {selectedReport.userName?.charAt(0) || 'U'}
-                </div>
+                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center font-black text-sm ring-2 ring-white/10">{selectedReport.userName?.charAt(0)}</div>
                 <div>
-                  <p className="font-bold text-base leading-tight">{selectedReport.userName}</p>
-                  <p className="text-xs text-primary-foreground/70">{safeFormatDate(selectedReport.date || selectedReport.Date)}</p>
+                  <p className="font-black text-base leading-none">{selectedReport.userName}</p>
+                  <p className="text-[11px] font-bold opacity-80 mt-1 uppercase tracking-wider">{safeFormatDate(selectedReport.date || selectedReport.Date)}</p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedReport(null)}
-                className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <button onClick={() => setSelectedReport(null)} className="h-9 w-9 rounded-full bg-white/15 flex items-center justify-center backdrop-blur-md hover:bg-white/25 transition-colors"><X className="h-5 w-5" /></button>
             </div>
 
-            {/* Body */}
-            <div className="overflow-y-auto flex-1 p-6 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
-                {selectedReport.entries?.length || 0} Work {selectedReport.entries?.length === 1 ? 'Entry' : 'Entries'}
-              </p>
-              {(selectedReport.entries || []).map((e: any, i: number) => {
-                const isPending = e.status === 'pending';
-                const isOverdue = e.dueDate && new Date(e.dueDate) < new Date();
-                return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "p-4 rounded-xl border-2 cursor-pointer hover:shadow-md transition-all",
-                      isOverdue && isPending ? "border-destructive/30 bg-destructive/5 hover:border-destructive/50"
-                        : isPending ? "border-amber-200 bg-amber-50/50 hover:border-amber-300"
-                        : "border-emerald-200 bg-emerald-50/50 hover:border-emerald-300"
-                    )}
-                    onClick={() => {
-                      setSelectedReport(null);
-                      navigate(`/admin/work-allocation?userId=${selectedReport.userId}`);
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <p className="font-bold text-sm">{e.workTitle || 'Untitled'}</p>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] h-5",
-                            isOverdue && isPending ? "bg-destructive/10 text-destructive border-destructive/20"
-                              : isPending ? "bg-amber-100 text-amber-700 border-amber-200"
-                              : "bg-emerald-100 text-emerald-700 border-emerald-200"
-                          )}
-                        >
-                          {isOverdue && isPending ? 'Overdue' : isPending ? 'Pending' : 'Completed'}
-                        </Badge>
-                        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                      </div>
-                    </div>
-                    {e.description && (
-                      <p className="text-xs text-muted-foreground mb-2">{e.description}</p>
-                    )}
-                    {e.dueDate && (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        Due: {safeFormatDate(e.dueDate)}
-                      </div>
-                    )}
+            {/* Compact Body */}
+            <div className="overflow-y-auto flex-1 p-4 space-y-3 no-scrollbar bg-slate-50/50">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Log Entries ({selectedReport.entries?.length || 0})</span>
+              </div>
+              
+              {(selectedReport.entries || []).map((e: any, i: number) => (
+                <div 
+                  key={i} 
+                  className={cn(
+                    "p-4 rounded-2xl border bg-white shadow-sm transition-all active:scale-[0.98]", 
+                    e.status === 'pending' ? "border-amber-100" : "border-emerald-100"
+                  )} 
+                  onClick={() => { setSelectedReport(null); navigate(`/admin/work-allocation?userId=${selectedReport.userId}`); }}
+                >
+                  <div className="flex justify-between items-start gap-2 mb-2">
+                    <h4 className="font-black text-xs text-slate-800 leading-tight flex-1">{e.workTitle}</h4>
+                    <Badge className={cn(
+                      "text-[7px] h-4 px-1.5 border-0 rounded-md font-black uppercase tracking-tighter", 
+                      e.status === 'pending' ? "bg-amber-400 text-white" : "bg-emerald-500 text-white"
+                    )}>
+                      {e.status === 'pending' ? 'Pending' : 'Done'}
+                    </Badge>
                   </div>
-                );
-              })}
+                  
+                  {e.description && (
+                    <p className="text-[10px] font-bold text-slate-500 italic mb-3 line-clamp-2 leading-snug">"{e.description}"</p>
+                  )}
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                    <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400">
+                      <Clock className="h-3 w-3" />
+                      {e.dueDate ? safeFormatDate(e.dueDate, 'MMM dd') : 'No date'}
+                    </div>
+                    <div className="flex items-center gap-1 text-[9px] font-black text-primary">
+                      Allocations <ArrowRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </div>
+              ))}
 
               {selectedReport.complaints?.length > 0 && (
                 <div className="pt-2">
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Complaints</p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Issues</p>
+                  <div className="flex flex-wrap gap-2">
                     {selectedReport.complaints.map((c: any) => (
-                      <Badge key={c.id} variant="outline" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
-                        {c.complaintNumber}
-                      </Badge>
+                      <div key={c.id} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-100">
+                        <span className="text-[10px] font-black text-rose-600">{c.complaintNumber}</span>
+                        <div className="h-1 w-1 rounded-full bg-rose-300" />
+                        <span className="text-[8px] font-black text-rose-400 uppercase">Alert</span>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Compact Footer */}
+            <div className="p-4 bg-white border-t">
+              <Button className="w-full h-11 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/10" onClick={() => setSelectedReport(null)}>
+                Dismiss
+              </Button>
+            </div>
           </div>
         </div>
       )}
-
     </DashboardLayout>
   );
 };

@@ -71,6 +71,7 @@ interface Task {
   isRecurring: boolean;
   groupId?: number | null;
   createdAt: string;
+  _source: 'allocation' | 'stafftask';
 }
 
 const EmployeeTaskAssignment: React.FC = () => {
@@ -105,15 +106,19 @@ const EmployeeTaskAssignment: React.FC = () => {
 
   const fetchEmployeeTasks = async () => {
     if (!employeeId) return;
-    
+
     setIsLoading(true);
     try {
-      // Fetch work allocations for this employee
-      const allocRes = await api.allocations.getAll().catch(() => ({ success: false, data: [] }));
+      // Fetch both work allocations AND admin-assigned tasks (daily + monthly)
+      const [allocRes, tasksRes] = await Promise.all([
+        api.allocations.getAll().catch(() => ({ success: false, data: [] })),
+        api.tasks.getUserTasks(parseInt(employeeId)).catch(() => ({ success: false, data: [] })),
+      ]);
+
       const allocs: any[] = allocRes.success ? (allocRes.data || []) : [];
       const empAllocs = allocs.filter((a: any) => a.assignedTo === parseInt(employeeId));
 
-      // Map allocations to Task shape
+      // Map work allocations → daily tasks
       const allocTasks: Task[] = empAllocs.map((a: any) => ({
         id: a.id,
         taskName: a.workTitle || a.title || 'Work Task',
@@ -125,9 +130,26 @@ const EmployeeTaskAssignment: React.FC = () => {
         isRecurring: false,
         groupId: null,
         createdAt: a.createdAt,
+        _source: 'allocation' as const,
       }));
 
-      setTasks(allocTasks);
+      // Map admin-assigned StaffTasks (daily + monthly) — getUserTasks already filters by employee
+      const adminTaskList: any[] = tasksRes.success ? (tasksRes.data || []) : [];
+      const adminTasksMapped: Task[] = adminTaskList.map((t: any) => ({
+        id: t.id,
+        taskName: t.taskName || t.title || 'Task',
+        description: t.description || '',
+        priority: (t.priority || 'medium').toLowerCase(),
+        status: (t.status || 'pending').toLowerCase().replace('-', '_'),
+        dueDate: t.dueDate,
+        assigneeName: t.assigneeName || '',
+        isRecurring: t.isRecurring === true,
+        groupId: t.groupId || null,
+        createdAt: t.createdAt,
+        _source: 'stafftask' as const,
+      }));
+
+      setTasks([...allocTasks, ...adminTasksMapped]);
     } catch (error) {
       console.error("Error fetching employee tasks:", error);
       toast.error("Failed to load employee tasks");
@@ -142,7 +164,7 @@ const EmployeeTaskAssignment: React.FC = () => {
 
   const handleCreateTask = async (taskType: 'daily' | 'monthly') => {
     const formData = taskType === 'daily' ? dailyTaskForm : monthlyTaskForm;
-    
+
     if (!formData.taskName || !employeeId) {
       toast.error("Please fill in all required fields");
       return;
@@ -150,7 +172,7 @@ const EmployeeTaskAssignment: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const dueDateTime = taskType === 'daily' && formData.dueTime 
+      const dueDateTime = taskType === 'daily' && formData.dueTime
         ? `${formData.dueDate}T${formData.dueTime}:00`
         : `${formData.dueDate}T23:59:59`;
 
@@ -172,7 +194,7 @@ const EmployeeTaskAssignment: React.FC = () => {
         toast.success(`${taskType === 'daily' ? 'Daily' : 'Monthly'} task created successfully`);
         // Open chatbox with the assigned user so they can see the task message
         window.dispatchEvent(new CustomEvent('open-chat-with', { detail: { userId: parseInt(employeeId) } }));
-        
+
         // Reset form
         if (taskType === 'daily') {
           setDailyTaskForm({
@@ -193,7 +215,7 @@ const EmployeeTaskAssignment: React.FC = () => {
             taskType: 'monthly'
           });
         }
-        
+
         setIsCreateDialogOpen(false);
         fetchEmployeeTasks();
       } else {
@@ -209,7 +231,10 @@ const EmployeeTaskAssignment: React.FC = () => {
   const handleDeleteTask = async (taskId: number) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
     try {
-      const response = await api.allocations.delete(taskId);
+      const task = tasks.find(t => t.id === taskId);
+      const response = task?._source === 'stafftask'
+        ? await api.tasks.delete(taskId).catch(() => api.allocations.delete(taskId))
+        : await api.allocations.delete(taskId).catch(() => api.tasks.delete(taskId));
       if (response.success) {
         toast.success("Task deleted successfully");
         fetchEmployeeTasks();
@@ -221,13 +246,23 @@ const EmployeeTaskAssignment: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (taskId: number, newStatus: string) => {
+  const handleStatusChange = async (taskId: number, newStatus: string, source?: 'allocation' | 'stafftask') => {
     try {
-      // Map back from task status to allocation status
-      const allocStatus = newStatus === 'in_progress' ? 'in-progress' : newStatus;
-      const res = await api.allocations.updateStatus(taskId, allocStatus);
+      const task = source
+        ? tasks.find(t => t.id === taskId && t._source === source)
+        : tasks.find(t => t.id === taskId);
+      const isStaffTask = (source ?? task?._source) === 'stafftask';
+      let res;
+      if (isStaffTask) {
+        res = await api.tasks.updateStatus(taskId, newStatus);
+      } else {
+        const allocStatus = newStatus === 'in_progress' ? 'in-progress' : newStatus;
+        res = await api.allocations.updateStatus(taskId, allocStatus);
+      }
       if (res.success) {
-        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+        setTasks(prev => prev.map(t =>
+          t.id === taskId && t._source === (source ?? task?._source) ? { ...t, status: newStatus } : t
+        ));
         toast.success('Status updated');
       } else toast.error(res.message || 'Failed to update status');
     } catch (e: any) { toast.error(e.message); }
@@ -351,7 +386,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                     <Label htmlFor="daily-priority">Priority</Label>
                     <Select
                       value={dailyTaskForm.priority}
-                      onValueChange={(value: 'low' | 'medium' | 'high') => 
+                      onValueChange={(value: 'low' | 'medium' | 'high') =>
                         setDailyTaskForm({ ...dailyTaskForm, priority: value })
                       }
                     >
@@ -465,128 +500,128 @@ const EmployeeTaskAssignment: React.FC = () => {
 
                   <TabsContent value="daily" className="mt-6">
                     <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Task Name</TableHead>
-                          <TableHead>Priority</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dailyTasks.map((task) => (
-                          <TableRow key={task.id}>
-                            <TableCell className="font-medium">
-                              {task.taskName}
-                              {task.groupId && (
-                                <Badge className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200 h-5">Group</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={priorityColors[task.priority]}>
-                                {task.priority}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v)}>
-                                <SelectTrigger className={`h-7 text-xs w-32 ${statusColors[task.status]}`}>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="pending">To Do</SelectItem>
-                                  <SelectItem value="in_progress">In Progress</SelectItem>
-                                  <SelectItem value="completed">Done</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy HH:mm') : '-'}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteTask(task.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-rose-600" />
-                              </Button>
-                            </TableCell>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Task Name</TableHead>
+                            <TableHead>Priority</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {dailyTasks.map((task) => (
+                            <TableRow key={task.id}>
+                              <TableCell className="font-medium">
+                                {task.taskName}
+                                {task.groupId && (
+                                  <Badge className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200 h-5">Group</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={priorityColors[task.priority]}>
+                                  {task.priority}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v, task._source)}>
+                                  <SelectTrigger className={`h-7 text-xs w-32 ${statusColors[task.status]}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">To Do</SelectItem>
+                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                    <SelectItem value="completed">Done</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy HH:mm') : '-'}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteTask(task.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-rose-600" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   </TabsContent>
 
                   <TabsContent value="monthly" className="mt-6">
                     <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Task Name</TableHead>
-                          <TableHead>Priority</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Due Date</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {monthlyTasks.map((task) => (
-                          <TableRow key={task.id}>
-                            <TableCell className="font-medium">
-                              {task.taskName}
-                              {task.groupId && (
-                                <Badge className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200 h-5">Group</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={priorityColors[task.priority]}>
-                                {task.priority}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v)}>
-                                <SelectTrigger className={`h-7 text-xs w-32 ${statusColors[task.status]}`}>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="pending">To Do</SelectItem>
-                                  <SelectItem value="in_progress">In Progress</SelectItem>
-                                  <SelectItem value="completed">Done</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : '-'}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className="bg-purple-100 text-purple-800 border-purple-200">
-                                <Target className="h-3 w-3 mr-1" />
-                                Recurring
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteTask(task.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-rose-600" />
-                              </Button>
-                            </TableCell>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Task Name</TableHead>
+                            <TableHead>Priority</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {monthlyTasks.map((task) => (
+                            <TableRow key={task.id}>
+                              <TableCell className="font-medium">
+                                {task.taskName}
+                                {task.groupId && (
+                                  <Badge className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200 h-5">Group</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={priorityColors[task.priority]}>
+                                  {task.priority}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v, task._source)}>
+                                  <SelectTrigger className={`h-7 text-xs w-32 ${statusColors[task.status]}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">To Do</SelectItem>
+                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                    <SelectItem value="completed">Done</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : '-'}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+                                  <Target className="h-3 w-3 mr-1" />
+                                  Recurring
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteTask(task.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-rose-600" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -602,17 +637,17 @@ const EmployeeTaskAssignment: React.FC = () => {
               <ArrowLeft className="h-3 w-3" /> Back
             </button>
             <div className="flex items-center gap-4 mb-6">
-               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md text-white font-black text-2xl shadow-inner border border-white/20 shrink-0">
-                 {employeeName.charAt(0).toUpperCase()}
-               </div>
-               <div className="flex-1 min-w-0">
-                 <h1 className="text-2xl font-black tracking-tight truncate">{employeeName}</h1>
-                 <p className="text-[10px] text-white/90 font-bold uppercase mt-1 tracking-widest bg-black/20 w-fit px-2.5 py-1 rounded-md border border-white/10 shadow-sm">
-                   EMP-{employeeId?.padStart(3, '0') || '000'}
-                 </p>
-               </div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md text-white font-black text-2xl shadow-inner border border-white/20 shrink-0">
+                {employeeName.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-black tracking-tight truncate">{employeeName}</h1>
+                <p className="text-[10px] text-white/90 font-bold uppercase mt-1 tracking-widest bg-black/20 w-fit px-2.5 py-1 rounded-md border border-white/10 shadow-sm">
+                  EMP-{employeeId?.padStart(3, '0') || '000'}
+                </p>
+              </div>
             </div>
-            
+
             <div className="grid grid-cols-4 gap-2 mt-4">
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-2.5 border border-white/10 flex flex-col items-center justify-center text-center">
                 <p className="text-[8px] uppercase font-bold tracking-widest opacity-80 mb-0.5">Total</p>
@@ -794,7 +829,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                           <Clock className="h-3 w-3 text-slate-400" />
                           {task.dueDate ? format(new Date(task.dueDate), 'HH:mm') : '-'}
                         </div>
-                        <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v)}>
+                        <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v, task._source)}>
                           <SelectTrigger className={`h-8 rounded-lg text-xs font-bold w-[120px] border-0 focus:ring-0 ${statusColors[task.status]}`}>
                             <SelectValue />
                           </SelectTrigger>
@@ -841,7 +876,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                           <Calendar className="h-3 w-3 text-slate-400" />
                           {task.dueDate ? format(new Date(task.dueDate), 'MMM dd') : '-'}
                         </div>
-                        <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v)}>
+                        <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v, task._source)}>
                           <SelectTrigger className={`h-8 rounded-lg text-xs font-bold w-[120px] border-0 focus:ring-0 ${statusColors[task.status]}`}>
                             <SelectValue />
                           </SelectTrigger>

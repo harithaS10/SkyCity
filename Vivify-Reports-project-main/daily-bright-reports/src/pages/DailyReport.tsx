@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 import {
   CalendarIcon,
   Plus,
@@ -29,6 +30,7 @@ import {
   PencilLine,
   ChevronLeft,
   ChevronRight,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   Table,
@@ -382,26 +384,43 @@ const DailyReport: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (activeDropdown) {
+      document.body.style.overflow = 'hidden';
+      // To prevent layout shift
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [activeDropdown]);
+
   const filledRowsCount = rows.filter((row) => row.workDescription.trim()).length;
   const hasOthersWork = rows.some(r => r.workCode === 'OTHERS');
   const hasOthersClient = rows.some(r => r.clientId === 'others');
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 animate-in fade-in duration-500">
-        {/* Mobile-first header */}
-        <div className="flex items-center justify-between gap-3">
+      <div className="w-full">
+        {/* ===== DESKTOP HEADER (Hidden on Mobile) ===== */}
+        <div className="hidden lg:flex items-center justify-between gap-3 mb-8 animate-in fade-in duration-500 bg-gradient-to-r from-sky-500 to-sky-400 p-8 rounded-3xl text-white shadow-xl shadow-sky-500/10">
           <div>
-            <h1 className="text-xl sm:text-3xl font-bold tracking-tight">Daily Report</h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">Log your daily activities and time spent</p>
+            <h1 className="text-3xl font-black tracking-tight text-white">Daily Report</h1>
+            <p className="text-white/80 font-medium">Log your daily activities and time spent</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
-                  <CalendarIcon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{format(date, 'MMM dd, yyyy')}</span>
-                  <span className="sm:hidden">{format(date, 'MMM dd')}</span>
+                <Button variant="outline" size="sm" className="h-11 gap-2 px-5 bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-xl shadow-sm backdrop-blur-md">
+                  <CalendarIcon className="h-4 w-4 text-white" />
+                  <span className="font-bold uppercase tracking-wider text-xs">{format(date, 'MMMM dd, yyyy')}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -411,42 +430,109 @@ const DailyReport: React.FC = () => {
               </PopoverContent>
             </Popover>
             <Button onClick={handleSubmit} disabled={isSubmitting || filledRowsCount === 0}
-              size="sm" className="h-9 gap-1.5 text-xs bg-[#1E5FA8] hover:bg-blue-700 text-white font-semibold rounded-xl">
-              {isSubmitting ? <span className="animate-spin">⏳</span> : <Save className="h-3.5 w-3.5" />}
-              <span className="hidden sm:inline">Submit Report</span>
-              <span className="sm:hidden">Submit</span>
+              size="sm" className="h-11 gap-2 px-8 bg-white text-sky-600 hover:bg-white/90 font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs">
+              {isSubmitting ? <span className="animate-spin text-lg">⏳</span> : <Save className="h-4 w-4" />}
+              Submit Report
             </Button>
           </div>
         </div>
 
-        {/* Filled count + clear autofill — mobile friendly */}
-        {(filledRowsCount > 0 || autoFilledRowIds.size > 0) && (
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs text-muted-foreground">
-              <span className="font-semibold text-primary">{filledRowsCount}</span> entr{filledRowsCount === 1 ? 'y' : 'ies'} filled
-            </span>
-            {autoFilledRowIds.size > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearAutoFilledRows} className="h-7 text-xs gap-1 text-muted-foreground">
-                <Trash2 className="h-3 w-3" /> Clear auto-filled ({autoFilledRowIds.size})
-              </Button>
-            )}
-          </div>
-        )}
+        {/* ===== MOBILE HEADER (Curved Style) ===== */}
+        <div className="lg:hidden -mx-3 -mt-4 mb-8">
+          <div className="bg-primary/95 pt-10 pb-16 px-6 rounded-b-[2.5rem] shadow-lg text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+            <div className="relative z-10 flex justify-between items-start">
+              <div>
+                <h1 className="text-3xl font-black tracking-tight">Daily log</h1>
+                <p className="text-[10px] text-white/70 font-black tracking-[0.2em] uppercase mt-1">Staff Portal · {format(date, 'MMM dd')}</p>
+              </div>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" className="bg-white/10 hover:bg-white/20 text-white rounded-2xl h-11 px-4 gap-2 border-none backdrop-blur-md active:scale-95 transition-transform">
+                    <CalendarIcon className="h-5 w-5" />
+                    <span className="font-black text-xs uppercase tracking-wider">{format(date, 'MMM dd')}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-[100]" align="end">
+                  <Calendar mode="single" selected={date}
+                    onSelect={(newDate) => { if (newDate) { setDate(newDate); setIsCalendarOpen(false); } }}
+                    initialFocus />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-        <Card className="border shadow-xl overflow-hidden rounded-xl">
-          <CardHeader className="bg-muted/50 pb-4 border-b">
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex-1 mr-4">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">Filing Progress</span>
+                  <span className="text-[10px] font-black text-white/90">{filledRowsCount}/10 rows</span>
+                </div>
+                <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-white rounded-full transition-all duration-700 ease-out" 
+                    style={{ width: `${Math.min((filledRowsCount/10)*100, 100)}%` }} 
+                  />
+                </div>
+              </div>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isSubmitting || filledRowsCount === 0}
+                className="bg-white text-primary hover:bg-slate-100 rounded-2xl h-12 px-5 font-black text-xs uppercase tracking-wider shadow-xl active:scale-95 transition-all"
+              >
+                {isSubmitting ? "Wait..." : "Submit"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats Summary Row */}
+          <div className="px-5 -mt-7 relative z-20 flex gap-3">
+             <div className="flex-1 bg-white dark:bg-card rounded-3xl p-4 shadow-lg ring-1 ring-black/5 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100 leading-none">{filledRowsCount}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Filled</p>
+                </div>
+             </div>
+             <div className="flex-1 bg-white dark:bg-card rounded-3xl p-4 shadow-lg ring-1 ring-black/5 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-xl font-black tracking-tight text-slate-800 dark:text-slate-100 leading-none">10+</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Goal</p>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Global Save Indicator Area — hidden lg */}
+        <div className="hidden lg:flex items-center justify-between px-1 mb-4">
+          <span className="text-xs text-muted-foreground">
+            <span className="font-semibold text-primary">{filledRowsCount}</span> entr{filledRowsCount === 1 ? 'y' : 'ies'} filled
+          </span>
+          {autoFilledRowIds.size > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearAutoFilledRows} className="h-7 text-xs gap-1 text-muted-foreground hover:text-destructive">
+              <Trash2 className="h-3 w-3" /> Clear auto-filled ({autoFilledRowIds.size})
+            </Button>
+          )}
+        </div>
+
+        <Card className="border shadow-xl overflow-hidden rounded-[2rem] lg:rounded-xl">
+          <CardHeader className="bg-muted/30 lg:bg-muted/50 pb-4 border-b hidden lg:block">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base sm:text-xl flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base sm:text-xl flex items-center gap-2 font-bold">
+                <FileText className="h-5 w-5 text-primary" />
                 Work Entries
               </CardTitle>
               <div className="hidden lg:flex items-center gap-1 bg-background/50 p-1 rounded-lg border border-primary/10">
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => scrollTable('left')} title="Scroll Left">
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-5 w-5" />
                 </Button>
                 <div className="h-4 w-px bg-border mx-1" />
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => scrollTable('right')} title="Scroll Right">
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
             </div>
@@ -455,7 +541,7 @@ const DailyReport: React.FC = () => {
             {/* Desktop View (Table) */}
             <div className="hidden lg:block overflow-x-auto relative" ref={tableContainerRef}>
               <Table className="min-w-[1300px] table-fixed">
-                <TableHeader>
+                <TableHeader className="bg-muted/20">
                   <TableRow>
                     <TableHead className="w-10 italic text-muted-foreground">#</TableHead>
                     <TableHead className="w-52">Work / Code</TableHead>
@@ -472,15 +558,15 @@ const DailyReport: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {rows.map((row, index) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium align-top">{index + 1}</TableCell>
-                      <TableCell className="align-top">
+                    <TableRow key={row.id} className="hover:bg-muted/10 transition-colors">
+                      <TableCell className="font-medium align-top py-4">{index + 1}</TableCell>
+                      <TableCell className="align-top py-4">
                         <div className="relative" ref={activeDropdown === `work-${row.id}` ? dropdownRef : null}>
                           <div className="flex gap-1.5 h-10">
                             <Button
                               variant={row.workCode === 'OTHERS' ? 'default' : 'outline'}
                               size="icon"
-                              className="h-10 w-10 shrink-0"
+                              className={cn("h-10 w-10 shrink-0", row.workCode === 'OTHERS' ? "bg-primary shadow-md" : "border-slate-200")}
                               onClick={() => {
                                 if (row.workCode === 'OTHERS') {
                                   handleRowUpdate(row.id, { workCode: '', otherWorkTitle: '' });
@@ -494,8 +580,8 @@ const DailyReport: React.FC = () => {
                             </Button>
                             <div
                               className={cn(
-                                "flex-1 border rounded-md px-3 py-2 text-sm bg-background/50 hover:bg-background cursor-pointer transition-colors flex items-center justify-between truncate",
-                                row.workCode ? "border-primary/30" : "border-input",
+                                "flex-1 border rounded-md px-3 py-2 text-sm bg-background/50 hover:bg-background cursor-pointer transition-all flex items-center justify-between truncate",
+                                row.workCode ? "border-primary/40 ring-1 ring-primary/20" : "border-slate-200",
                                 row.workCode === 'OTHERS' && "opacity-50 pointer-events-none"
                               )}
                               onClick={() => {
@@ -503,44 +589,45 @@ const DailyReport: React.FC = () => {
                                 setSearchTerm('');
                               }}
                             >
-                              <span className="truncate">
+                              <span className="truncate font-medium">
                                 {row.workCode === 'OTHERS' ? "Custom Work" : (row.workCode ? `[${row.workCode}] ${row.workTitle || ''}` : "Select Work")}
                               </span>
+                              <Search className="h-4 w-4 opacity-30 ml-2" />
                             </div>
                           </div>
 
                           {activeDropdown === `work-${row.id}` && (
-                            <div className="absolute z-50 mt-1 w-full min-w-[300px] rounded-md border bg-popover p-2 text-popover-foreground shadow-2xl animate-in fade-in zoom-in-95">
+                            <div className="absolute z-50 mt-2 w-full min-w-[340px] rounded-xl border bg-popover p-2 text-popover-foreground shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-200">
                               <div className="flex items-center border-b px-2 pb-2 mb-2">
-                                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-primary" />
                                 <input
-                                  className="flex h-8 w-full rounded-md bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                                  className="flex h-10 w-full rounded-md bg-transparent text-sm outline-none placeholder:text-muted-foreground font-medium"
                                   placeholder="Search work or code..."
                                   value={searchTerm}
                                   onChange={(e) => setSearchTerm(e.target.value)}
                                   autoFocus
                                 />
                               </div>
-                              <div className="max-h-[200px] overflow-y-auto scrollbar-thin">
+                              <div className="max-h-[240px] overflow-y-auto scrollbar-thin px-1">
                                 {filteredWorks.map((work) => (
                                   <div
                                     key={work.id}
-                                    className="relative flex cursor-default select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                                    className="relative flex cursor-default select-none items-center rounded-lg px-2.5 py-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground transition-all mb-1 last:mb-0"
                                     onClick={() => handleSelectWork(row.id, work)}
                                   >
-                                    <span className="font-semibold text-primary mr-2">[{work.workCode}]</span>
-                                    <span>{work.workTitle}</span>
+                                    <span className="font-bold text-primary mr-3 bg-primary/5 px-2 py-0.5 rounded text-[11px] min-w-[65px] text-center shrink-0">[{work.workCode}]</span>
+                                    <span className="font-semibold truncate">{work.workTitle}</span>
                                   </div>
                                 ))}
                                 {filteredWorks.length === 0 && (
-                                  <div className="py-6 text-center text-sm text-muted-foreground">No work found.</div>
+                                  <div className="py-8 text-center text-sm text-muted-foreground italic">No work matching "{searchTerm}" found.</div>
                                 )}
                                 <div className="border-t mt-2 pt-2">
                                   <div
-                                    className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm font-medium text-primary hover:bg-accent"
+                                    className="relative flex cursor-pointer select-none items-center rounded-lg px-2.5 py-3 text-sm font-bold text-primary hover:bg-primary/5 transition-colors"
                                     onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); }}
                                   >
-                                    Others (Manual Entry)
+                                    <Plus className="h-4 w-4 mr-2" /> Others (Manual Entry)
                                   </div>
                                 </div>
                               </div>
@@ -549,23 +636,22 @@ const DailyReport: React.FC = () => {
                         </div>
                       </TableCell>
                       {hasOthersWork && (
-                        <TableCell className="align-top pt-3 w-52 animate-in slide-in-from-left-2 duration-300">
+                        <TableCell className="align-top py-4 w-52 animate-in slide-in-from-left-2 duration-300">
                           <Input
                             placeholder="Type Work Title..."
-                            className="h-10 text-xs border-primary/40 bg-white font-bold text-primary shadow-inner"
+                            className="h-10 text-xs border-primary/30 bg-white font-bold text-primary shadow-sm"
                             value={row.otherWorkTitle || ''}
                             onChange={(e) => handleRowUpdate(row.id, { otherWorkTitle: e.target.value })}
                           />
                         </TableCell>
                       )}
-                      <TableCell className="align-top pt-3 min-w-[300px]">
+                      <TableCell className="align-top py-4 min-w-[300px]">
                         <textarea
                           placeholder="What did you work on?..."
-                          className="description-textarea resize-none"
+                          className="description-textarea focus:ring-1 focus:ring-primary/20 transition-all font-medium py-2"
                           value={row.workDescription}
                           onChange={(e) => {
                             handleDescriptionChange(row.id, e.target.value);
-                            // Auto-resize
                             e.target.style.height = 'auto';
                             e.target.style.height = e.target.scrollHeight + 'px';
                           }}
@@ -576,40 +662,40 @@ const DailyReport: React.FC = () => {
                           rows={1}
                         />
                       </TableCell>
-                      <TableCell className="align-top pt-3 w-24">
+                      <TableCell className="align-top py-4 w-24">
                         <Input
                           type="number"
                           min="0"
-                          className="h-11 text-center font-black text-black border-2 border-primary/60 bg-white shadow-md placeholder:text-slate-400 focus-visible:ring-primary px-2"
+                          className="h-10 text-center font-black text-black border-2 border-primary/30 bg-white shadow-sm placeholder:text-slate-200 focus-visible:ring-primary px-1"
                           value={row.quantity || ''}
                           onChange={(e) => handleRowUpdate(row.id, { quantity: parseInt(e.target.value) || 0 })}
                           placeholder="0"
                         />
                       </TableCell>
-                      <TableCell className="align-top pt-3 w-32">
+                      <TableCell className="align-top py-4 w-32">
                         <div className="flex items-center gap-1.5 h-10">
                           <select
                             value={getTimeParts(row.timeSpent).h}
                             onChange={(e) => handleTimeUpdate(row.id, 'h', e.target.value)}
-                            className="bg-white border-2 border-primary/40 rounded-md px-2 h-11 text-sm w-full font-black text-slate-900 appearance-none cursor-pointer shadow-sm"
+                            className="bg-white border-2 border-slate-200 hover:border-primary/20 rounded-md px-1 h-10 text-xs w-full font-black text-slate-900 appearance-none cursor-pointer shadow-sm transition-colors text-center"
                           >
-                            {Array.from({ length: 13 }, (_, i) => (<option key={i} value={i} className="text-slate-900">{i}h</option>))}
+                            {Array.from({ length: 13 }, (_, i) => (<option key={i} value={i}>{i}h</option>))}
                           </select>
                           <select
                             value={getTimeParts(row.timeSpent).m}
                             onChange={(e) => handleTimeUpdate(row.id, 'm', e.target.value)}
-                            className="bg-white border-2 border-primary/40 rounded-md px-2 h-11 text-sm w-full font-black text-slate-900 appearance-none cursor-pointer shadow-sm"
+                            className="bg-white border-2 border-slate-200 hover:border-primary/20 rounded-md px-1 h-10 text-xs w-full font-black text-slate-900 appearance-none cursor-pointer shadow-sm transition-colors text-center"
                           >
-                            {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (<option key={m} value={m} className="text-slate-900">{m}m</option>))}
+                            {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (<option key={m} value={m}>{m}m</option>))}
                           </select>
                         </div>
                       </TableCell>
-                      <TableCell className="align-top pt-3">
+                      <TableCell className="align-top py-4">
                         <div className="flex gap-1.5 h-10">
                           <Button
                             variant={row.clientId === 'others' ? 'default' : 'outline'}
                             size="icon"
-                            className="h-10 w-10 shrink-0"
+                            className={cn("h-10 w-10 shrink-0", row.clientId === 'others' ? "bg-primary shadow-md" : "border-slate-200")}
                             onClick={() => {
                               if (row.clientId === 'others') {
                                 handleRowUpdate(row.id, { clientId: '', otherClientName: '' });
@@ -626,55 +712,61 @@ const DailyReport: React.FC = () => {
                             onValueChange={(val) => handleRowUpdate(row.id, { clientId: val })}
                             disabled={row.clientId === 'others'}
                           >
-                            <SelectTrigger className="h-10 overflow-hidden"><SelectValue placeholder="Client" /></SelectTrigger>
-                            <SelectContent>
+                            <SelectTrigger className="h-10 border-slate-200 hover:border-primary/20 overflow-hidden font-medium text-xs">
+                              <SelectValue placeholder="Client" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl overflow-hidden shadow-2xl border-none">
                               {clients.map((c) => (
-                                <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                                <SelectItem key={c.id} value={c.id.toString()} className="font-semibold">{c.name}</SelectItem>
                               ))}
-                              <SelectItem value="others">Others</SelectItem>
+                              <SelectItem value="others" className="font-black text-primary bg-primary/5">Others (Manual) +</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </TableCell>
                       {hasOthersClient && (
-                        <TableCell className="align-top pt-3 w-44 animate-in slide-in-from-left-2 duration-300">
+                        <TableCell className="align-top py-4 w-44 animate-in slide-in-from-left-2 duration-300">
                           <Input
-                            placeholder="New Client Name..."
-                            className="h-10 text-xs border-primary/40 bg-white font-bold text-primary shadow-inner"
+                            placeholder="Client Name..."
+                            className="h-10 text-xs border-primary/30 bg-white font-bold text-primary shadow-sm"
                             value={row.otherClientName || ''}
                             onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
                           />
                         </TableCell>
                       )}
-                      <TableCell className="align-top pt-3">
+                      <TableCell className="align-top py-4">
                         <Select value={row.status} onValueChange={(val: 'completed' | 'pending') => handleRowUpdate(row.id, { status: val })}>
-                          <SelectTrigger className={cn("h-10 text-[10px]", row.status === 'completed' ? "text-success" : "text-warning")}><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="completed">Done</SelectItem>
-                            <SelectItem value="pending">To Do</SelectItem>
+                          <SelectTrigger className={cn("h-10 text-[10px] font-black uppercase tracking-widest border-slate-200", row.status === 'completed' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100")}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl overflow-hidden shadow-xl border-none">
+                            <SelectItem value="completed" className="text-emerald-600 font-bold">DONE</SelectItem>
+                            <SelectItem value="pending" className="text-amber-600 font-bold">TO DO</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="align-top pt-3">
+                      <TableCell className="align-top py-4">
                         {row.status === 'pending' ? (
                           <Input
                             type="date"
-                            className="h-10"
+                            className="h-10 text-[10px] font-bold border-slate-200"
                             value={row.dueDate}
                             onChange={(e) => handleRowUpdate(row.id, { dueDate: e.target.value })}
                             min={format(new Date(), 'yyyy-MM-dd')}
                           />
                         ) : (
-                          <span className="text-xs text-muted-foreground italic">N/A</span>
+                          <div className="flex h-10 items-center justify-center">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                          </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-center align-top pt-3">
+                      <TableCell className="text-center align-top py-4">
                         <div className="flex items-center justify-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleManualSave(index)}
-                            className="text-primary hover:text-primary hover:bg-primary/10 h-8 w-8"
+                            className="text-primary hover:text-white hover:bg-primary h-9 w-9 rounded-xl transition-all"
                             title="Save Row"
                           >
                             <Save className="h-4 w-4" />
@@ -683,7 +775,7 @@ const DailyReport: React.FC = () => {
                             variant="ghost"
                             size="icon"
                             onClick={() => removeRow(row.id)}
-                            className="text-muted-foreground hover:text-destructive h-8 w-8"
+                            className="text-muted-foreground hover:text-white hover:bg-destructive h-9 w-9 rounded-xl transition-all"
                             title="Remove Row"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -696,33 +788,52 @@ const DailyReport: React.FC = () => {
               </Table>
             </div>
 
-            {/* Mobile View (Cards) */}
-            <div className="lg:hidden divide-y">
+            {/* Mobile View (Premium Cards) */}
+            <div className="lg:hidden bg-slate-50/50 dark:bg-slate-950/50 p-3 space-y-5 pb-24 overflow-visible">
               {rows.map((row, index) => (
-                <div key={row.id} className="p-4 space-y-4 bg-background">
-                  <div className="flex items-center justify-between">
+                <div 
+                  key={row.id} 
+                  className={cn(
+                    "bg-white dark:bg-card rounded-[1.5rem] p-4 shadow-[0_4px_20px_rgb(0,0,0,0.04)] ring-1 transition-all",
+                    row.workDescription.trim() || row.workCode ? "ring-primary/20 shadow-primary/5" : "ring-black/5"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded">Entry #{index + 1}</span>
+                      <span className="text-[9px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-widest">Row {index + 1}</span>
+                      {row.workCode === 'OTHERS' && <Badge variant="outline" className="text-[7px] bg-amber-50 text-amber-600 border-amber-200 font-black px-1.5 py-0 h-4">CUSTOM</Badge>}
+                    </div>
+                    <div className="flex items-center gap-0.5">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleManualSave(index)}
-                        className="h-7 px-2 text-[10px] gap-1 border-primary/30 text-primary"
+                        className="h-8 w-8 rounded-lg text-primary hover:bg-primary/5 active:scale-90 transition-transform"
                       >
-                        <Save className="h-3 w-3" /> Save
+                        <Save className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeRow(row.id)} 
+                        className="h-8 w-8 rounded-lg text-destructive hover:bg-destructive/5 active:scale-90 transition-transform"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => removeRow(row.id)} className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button>
                   </div>
 
-                  {/* Work Selector */}
-                  <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Work / Activity</Label>
-                    <div className="flex gap-2">
+                  {/* Work Selector Mobile */}
+                  <div className="space-y-1.5 mb-4 px-0.5">
+                    <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest ml-1">Work / Activity</Label>
+                    <div className="flex items-center gap-2">
                       <Button
                         variant={row.workCode === 'OTHERS' ? 'default' : 'outline'}
                         size="icon"
-                        className="h-11 w-11 shrink-0"
+                        className={cn(
+                          "h-10 w-10 rounded-xl shrink-0 transition-all border-slate-200", 
+                          row.workCode === 'OTHERS' ? "bg-primary shadow-md border-none" : "hover:border-primary/30"
+                        )}
                         onClick={() => {
                           if (row.workCode === 'OTHERS') {
                             handleRowUpdate(row.id, { workCode: '', otherWorkTitle: '' });
@@ -733,43 +844,52 @@ const DailyReport: React.FC = () => {
                       >
                         <PencilLine className="h-4 w-4" />
                       </Button>
-                      <div className="relative flex-1" ref={activeDropdown === `work-${row.id}` ? mobileDropdownRef : null}>
-                        <div
+                      <div className="relative flex-1 h-10 min-w-0" ref={activeDropdown === `work-${row.id}` ? mobileDropdownRef : null}>
+                        <button
                           className={cn(
-                            "border rounded-md px-3 py-2 text-sm bg-muted/30 min-h-[44px] flex items-center justify-between",
-                            row.workCode === 'OTHERS' && "opacity-50 pointer-events-none"
+                            "w-full h-10 border-none rounded-xl px-3.5 py-2 text-[13px] bg-slate-50 dark:bg-slate-900 flex items-center justify-between font-bold ring-1 transition-all text-left min-w-0",
+                            row.workCode ? "ring-primary/20 bg-primary/5 text-primary" : "ring-slate-100 text-slate-500",
+                            row.workCode === 'OTHERS' && "opacity-50 pointer-events-none grayscale"
                           )}
                           onClick={() => {
                             setActiveDropdown(activeDropdown === `work-${row.id}` ? null : `work-${row.id}`);
                             setSearchTerm('');
                           }}
                         >
-                          <span className="truncate">{row.workCode === 'OTHERS' ? "Custom Work" : (row.workCode ? `[${row.workCode}] ${row.workTitle || ''}` : "Select Work")}</span>
-                          <Search className="h-4 w-4 opacity-30" />
-                        </div>
+                          <span className="truncate block flex-1 mr-1">{row.workCode === 'OTHERS' ? "Custom Entry" : (row.workCode ? `[${row.workCode}] ${row.workTitle || ''}` : "Select Work...")}</span>
+                          <Search className="h-3.5 w-3.5 opacity-30 shrink-0" />
+                        </button>
                         {activeDropdown === `work-${row.id}` && (
-                          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-2xl p-2 animate-in fade-in zoom-in-95">
-                            <div className="flex items-center border-b px-2 pb-2 mb-2">
-                              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                              <input
-                                className="flex h-10 w-full rounded-md bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                                placeholder="Search work or code..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                autoFocus
-                              />
+                          <div className="fixed inset-x-2 top-[12%] bottom-[12%] z-[200] rounded-[2rem] border bg-card/95 backdrop-blur-3xl shadow-[0_40px_120px_rgba(0,0,0,0.3)] flex flex-col animate-in fade-in zoom-in-95 duration-300 ring-1 ring-black/5">
+                            <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
+                               <h3 className="text-xs font-black uppercase tracking-widest text-primary">Service Catalog</h3>
+                               <Button variant="ghost" size="sm" onClick={() => setActiveDropdown(null)} className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200">✕</Button>
                             </div>
-                            <div className="max-h-[250px] overflow-y-auto">
+                            <div className="p-3 shrink-0">
+                              <div className="flex items-center bg-slate-50 rounded-xl px-3 py-0.5 ring-1 ring-slate-100 focus-within:ring-primary/30 transition-all">
+                                <Search className="mr-2 h-3.5 w-3.5 shrink-0 opacity-40 text-primary" />
+                                <input
+                                  className="flex h-10 w-full min-w-0 bg-transparent text-[13px] outline-none placeholder:text-slate-400 font-bold"
+                                  placeholder="Type code or title..."
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                  autoFocus
+                                />
+                              </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5 scrollbar-thin">
                               {filteredWorks.map((work) => (
-                                <div key={work.id} className="p-3 border-b last:border-0 text-sm active:bg-accent hover:bg-accent rounded-sm transition-colors" onClick={() => handleSelectWork(row.id, work)}>
-                                  <span className="font-bold text-primary mr-2">[{work.workCode}]</span> {work.workTitle}
+                                <div key={work.id} className="p-3 bg-slate-50/50 hover:bg-primary/10 rounded-2xl text-[13px] active:scale-[0.98] transition-all flex items-center gap-3 border border-transparent hover:border-primary/10 group" onClick={() => handleSelectWork(row.id, work)}>
+                                  <span className="font-black text-[9px] bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-100 text-primary shrink-0">[{work.workCode}]</span> 
+                                  <span className="font-bold text-slate-700 leading-snug truncate">{work.workTitle}</span>
                                 </div>
                               ))}
                               {filteredWorks.length === 0 && (
-                                <div className="p-4 text-center text-sm text-muted-foreground">No work matching "{searchTerm}"</div>
+                                <div className="py-12 text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] opacity-40 italic">Nothing found</div>
                               )}
-                              <div className="p-3 text-primary font-bold border-t mt-1 flex items-center gap-2 hover:bg-primary/5 rounded-sm transition-colors" onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); }}>
-                                <Plus className="h-4 w-4" /> Others (Manual Entry)
+                              <div className="p-3 text-primary font-black border-t mt-3 flex items-center gap-3 hover:bg-primary/5 rounded-2xl transition-all cursor-pointer" onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); }}>
+                                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Plus className="h-4 w-4" /></div>
+                                <span className="text-[11px]">Define custom title</span>
                               </div>
                             </div>
                           </div>
@@ -777,98 +897,132 @@ const DailyReport: React.FC = () => {
                       </div>
                     </div>
                     {row.workCode === 'OTHERS' && (
-                      <Input
-                        placeholder="Enter Work Title (e.g. Server Maintenance)"
-                        className="text-sm border-primary/20 mt-2"
-                        value={row.otherWorkTitle || ''}
-                        onChange={(e) => handleRowUpdate(row.id, { otherWorkTitle: e.target.value })}
-                      />
+                      <div className="mt-2.5 animate-in slide-in-from-top-2 duration-300">
+                        <Input
+                          placeholder="Type custom work name..."
+                          className="text-xs border-none bg-amber-50/50 dark:bg-amber-900/10 placeholder:text-amber-300 font-bold text-amber-700 h-10 rounded-xl ring-1 ring-amber-100 px-3.5 focus-visible:ring-amber-200"
+                          value={row.otherWorkTitle || ''}
+                          onChange={(e) => handleRowUpdate(row.id, { otherWorkTitle: e.target.value })}
+                        />
+                      </div>
                     )}
                   </div>
 
-                  {/* Description - Added for Mobile */}
-                  <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Description</Label>
+                  {/* Description Mobile */}
+                  <div className="space-y-1.5 mb-4 px-0.5">
+                    <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest ml-1">Description</Label>
                     <textarea
-                      placeholder="Activity description..."
-                      className="flex min-h-[60px] w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                      placeholder="Specify your tasks..."
+                      className="flex min-h-[80px] w-full rounded-xl border-none bg-slate-50 dark:bg-slate-900 px-3.5 py-3 text-[13px] font-semibold ring-1 ring-slate-100 placeholder:text-slate-400 focus-visible:ring-primary/20 transition-all resize-none leading-relaxed"
                       value={row.workDescription}
                       onChange={(e) => handleDescriptionChange(row.id, e.target.value)}
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Count</Label>
-                      <Input type="number" className="h-11" value={row.quantity || ''} onChange={(e) => handleRowUpdate(row.id, { quantity: parseInt(e.target.value) || 0 })} />
+                  {/* Grid Layout for compact fields */}
+                  <div className="grid grid-cols-5 gap-4 mb-4 px-0.5">
+                    <div className="col-span-2 space-y-1.5">
+                       <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest ml-1">Quantity</Label>
+                       <Input
+                          type="number"
+                          className="h-10 rounded-xl border-none bg-slate-50 font-black text-center text-base ring-1 ring-slate-100 focus-visible:ring-primary/30 shadow-inner p-0"
+                          value={row.quantity || ''}
+                          onChange={(e) => handleRowUpdate(row.id, { quantity: parseInt(e.target.value) || 0 })}
+                          placeholder="0"
+                        />
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Hours</Label>
-                      <div className="flex gap-1">
-                        <select className="flex-1 h-11 border rounded-md px-2" value={getTimeParts(row.timeSpent).h} onChange={(e) => handleTimeUpdate(row.id, 'h', e.target.value)}>
-                          {Array.from({ length: 13 }, (_, i) => (<option key={i} value={i}>{i}h</option>))}
-                        </select>
-                        <select className="flex-1 h-11 border rounded-md px-2" value={getTimeParts(row.timeSpent).m} onChange={(e) => handleTimeUpdate(row.id, 'm', e.target.value)}>
-                          {[0, 15, 30, 45].map((m) => (<option key={m} value={m}>{m}m</option>))}
-                        </select>
-                      </div>
+                    <div className="col-span-3 space-y-1.5">
+                       <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest ml-1">Time Spent</Label>
+                       <div className="flex gap-2 h-10">
+                          <select
+                            value={getTimeParts(row.timeSpent).h}
+                            onChange={(e) => handleTimeUpdate(row.id, 'h', e.target.value)}
+                            className="flex-1 bg-slate-50 border-none ring-1 ring-slate-100 rounded-xl h-full text-[13px] font-black text-slate-800 text-center appearance-none shadow-sm focus:ring-primary/20 outline-none"
+                          >
+                            {Array.from({ length: 13 }, (_, i) => (<option key={i} value={i}>{i}h</option>))}
+                          </select>
+                          <select
+                            value={getTimeParts(row.timeSpent).m}
+                            onChange={(e) => handleTimeUpdate(row.id, 'm', e.target.value)}
+                            className="flex-1 bg-slate-50 border-none ring-1 ring-slate-100 rounded-xl h-full text-[13px] font-black text-slate-800 text-center appearance-none shadow-sm focus:ring-primary/20 outline-none"
+                          >
+                            {[0, 15, 30, 45].map((m) => (<option key={m} value={m}>{m}m</option>))}
+                          </select>
+                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Client</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          variant={row.clientId === 'others' ? 'default' : 'outline'}
-                          size="icon"
-                          className="h-11 w-11 shrink-0"
-                          onClick={() => {
-                            if (row.clientId === 'others') {
-                              handleRowUpdate(row.id, { clientId: '', otherClientName: '' });
-                            } else {
-                              handleRowUpdate(row.id, { clientId: 'others' });
-                            }
-                          }}
-                        >
-                          <PencilLine className="h-4 w-4" />
-                        </Button>
-                        <Select
-                          value={row.clientId}
-                          onValueChange={(val) => handleRowUpdate(row.id, { clientId: val })}
-                          disabled={row.clientId === 'others'}
-                        >
-                          <SelectTrigger className="h-11 flex-1"><SelectValue placeholder="Client" /></SelectTrigger>
-                          <SelectContent>
-                            {clients.map(c => (<SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>))}
-                            <SelectItem value="others">Others</SelectItem>
+                  <div className="grid grid-cols-2 gap-5 px-0.5">
+                    <div className="space-y-1.5 min-w-0">
+                       <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest ml-1">Client</Label>
+                       <div className="flex items-center gap-1.5 min-w-0">
+                          <Button
+                            variant={row.clientId === 'others' ? 'default' : 'outline'}
+                            size="icon"
+                            className={cn(
+                              "h-10 w-10 min-w-[40px] rounded-xl shrink-0 border-slate-200 active:scale-90 transition-all", 
+                              row.clientId === 'others' ? "bg-primary border-none shadow-md" : "hover:border-primary/30"
+                            )}
+                            onClick={() => {
+                              if (row.clientId === 'others') handleRowUpdate(row.id, { clientId: '', otherClientName: '' });
+                              else handleRowUpdate(row.id, { clientId: 'others' });
+                            }}
+                          >
+                            <PencilLine className="h-4 w-4" />
+                          </Button>
+                          <Select
+                            value={row.clientId}
+                            onValueChange={(val) => handleRowUpdate(row.id, { clientId: val })}
+                            disabled={row.clientId === 'others'}
+                          >
+                            <SelectTrigger className="h-10 border-none ring-1 ring-slate-100 bg-slate-50 rounded-xl font-bold text-[11px] px-2 focus:ring-primary/20 min-w-0 overflow-hidden">
+                              <SelectValue placeholder="Client..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-none shadow-2xl p-1.5 z-[250]">
+                              {clients.map((c) => (
+                                <SelectItem key={c.id} value={c.id.toString()} className="rounded-xl font-bold text-xs">{c.name}</SelectItem>
+                              ))}
+                              <SelectItem value="others" className="font-black text-primary bg-primary/5 rounded-xl text-xs mt-1">Other +</SelectItem>
+                            </SelectContent>
+                          </Select>
+                       </div>
+                    </div>
+                    <div className="space-y-1.5 min-w-0">
+                       <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest ml-1">Status</Label>
+                       <Select value={row.status} onValueChange={(val: 'completed' | 'pending') => handleRowUpdate(row.id, { status: val })}>
+                          <SelectTrigger className={cn(
+                            "h-10 rounded-xl border-none ring-1 font-black text-[11px] uppercase tracking-wider px-2 shadow-none focus:ring-offset-0 min-w-0 overflow-hidden", 
+                            row.status === 'completed' ? "ring-emerald-100 bg-emerald-50/50 text-emerald-600" : "ring-amber-100 bg-amber-50/50 text-amber-600"
+                          )}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-none shadow-2xl z-[250]">
+                            <SelectItem value="completed" className="font-black text-emerald-600 text-xs">DONE</SelectItem>
+                            <SelectItem value="pending" className="font-black text-amber-600 text-xs">TO DO</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                      {row.clientId === 'others' && (
-                        <Input
-                          placeholder="New Client Name"
-                          className="h-11 mt-2 text-sm"
-                          value={row.otherClientName || ''}
-                          onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Status</Label>
-                      <Select value={row.status} onValueChange={(val: 'completed' | 'pending') => handleRowUpdate(row.id, { status: val })}>
-                        <SelectTrigger className={cn("h-11", row.status === 'completed' ? "text-emerald-600" : "text-amber-600")}><SelectValue /></SelectTrigger>
-                        <SelectContent><SelectItem value="completed">Completed</SelectItem><SelectItem value="pending">To Do</SelectItem></SelectContent>
-                      </Select>
                     </div>
                   </div>
 
+                  {/* New Client Mobile */}
+                  {row.clientId === 'others' && (
+                    <div className="mt-3 px-1 animate-in slide-in-from-top-2 duration-300">
+                      <Input
+                        placeholder="Enter client name..."
+                        className="h-10 border-none bg-primary/5 placeholder:text-primary/30 font-bold text-primary rounded-xl ring-1 ring-primary/10 px-3.5 text-xs"
+                        value={row.otherClientName || ''}
+                        onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  {/* Due Date Mobile */}
                   {row.status === 'pending' && (
-                    <div className="space-y-1">
-                      <Label className="text-[10px] uppercase font-bold text-muted-foreground">Due Date</Label>
+                    <div className="mt-3 px-1 animate-in slide-in-from-top-2 duration-300">
+                      <Label className="text-[9px] uppercase font-black text-amber-600 tracking-widest mb-1.5 block ml-1">Scheduled Date</Label>
                       <Input
                         type="date"
-                        className="h-11"
+                        className="h-10 border-none bg-amber-50/50 font-bold text-amber-700 rounded-xl ring-1 ring-amber-100 px-3.5 text-xs"
                         value={row.dueDate}
                         onChange={(e) => handleRowUpdate(row.id, { dueDate: e.target.value })}
                         min={format(new Date(), 'yyyy-MM-dd')}
@@ -877,16 +1031,35 @@ const DailyReport: React.FC = () => {
                   )}
                 </div>
               ))}
+
+              <div className="pt-2 pb-16">
+                <Button 
+                  onClick={addRow} 
+                  variant="outline" 
+                  className="w-full h-14 rounded-[1.5rem] border-dashed border-2 border-slate-200 text-slate-400 font-black uppercase tracking-[0.15em] text-[10px] gap-2.5 hover:bg-white hover:text-primary hover:border-primary/30 transition-all active:scale-[0.98] shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Additional Entry
+                </Button>
+              </div>
             </div>
 
-            <div className="p-6 bg-muted/20 border-t">
+            {/* Desktop Footer (Add Rows) */}
+            <div className="hidden lg:block p-8 bg-muted/10 border-t">
               <Button
                 variant="outline"
-                className="w-full border-dashed border-2 py-6 sm:py-8 flex flex-col gap-2 h-auto"
+                className="w-full border-dashed border-2 py-10 transition-all hover:bg-muted/30 group h-auto rounded-xl"
                 onClick={addRow}
               >
-                <Plus className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-sm">Add New Entry Row</span>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Plus className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-bold text-base">Add New Entry Row</p>
+                    <p className="text-xs text-muted-foreground font-medium">Click here to add another line to your daily report</p>
+                  </div>
+                </div>
               </Button>
             </div>
           </CardContent>

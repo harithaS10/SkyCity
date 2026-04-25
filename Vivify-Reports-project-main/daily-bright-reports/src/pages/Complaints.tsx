@@ -163,21 +163,23 @@ const Complaints: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="w-full">
+        {/* ===== DESKTOP VIEW ===== */}
+        <div className="hidden lg:block space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-sky-500 to-sky-400 p-8 rounded-3xl text-white shadow-xl shadow-sky-500/10">
           <div>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <MessageSquareWarning className="h-5 w-5 text-primary" />
+            <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
+              <MessageSquareWarning className="h-7 w-7 text-white" />
               Complaint Management
             </h1>
-            <p className="text-muted-foreground text-xs">Manage and track complaints</p>
+            <p className="text-white/80 font-medium">Manage and track issues and resolution progress</p>
           </div>
           <Button size="sm" onClick={() => {
             if (!canCreate) { toast.error("You don't have permission to create complaints"); return; }
             setIsCreateOpen(true);
-          }} className="gap-1 shrink-0">
-            <Plus className="h-4 w-4" /> Add
+          }} className="h-11 gap-2 px-6 bg-white text-sky-600 hover:bg-white/90 font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs">
+            <Plus className="h-4 w-4" /> Add Complaint
           </Button>
         </div>
 
@@ -316,7 +318,173 @@ const Complaints: React.FC = () => {
             ))}
           </div>
         )}
+        </div> {/* END DESKTOP VIEW */}
 
+        {/* ===== MOBILE VIEW ===== */}
+        <div className="block lg:hidden min-h-screen bg-slate-50 dark:bg-slate-950 pb-[80px] -mx-3 -mt-4">
+           {/* Mobile Header */}
+           <div className="bg-primary/95 pt-8 pb-10 px-6 rounded-b-[2rem] shadow-lg relative z-10 text-white">
+              <div className="flex justify-between items-start mb-2">
+                 <div>
+                    <h1 className="text-2xl font-black tracking-tight">Issues Center</h1>
+                    <p className="text-[10px] text-white/70 font-bold tracking-widest uppercase mt-1">Complaint Management</p>
+                 </div>
+                 {canCreate && (
+                    <Button onClick={() => setIsCreateOpen(true)} className="bg-white/10 hover:bg-white/20 text-white rounded-full h-[46px] w-[46px] shadow-sm backdrop-blur-md p-0 flex flex-col items-center justify-center shrink-0 active:scale-95 transition-transform">
+                       <Plus className="h-6 w-6" strokeWidth={2.5} />
+                    </Button>
+                 )}
+              </div>
+           </div>
+
+           {/* Stats Summary - 2x2 Grid */}
+           <div className="grid grid-cols-2 gap-3 px-5 -mt-8 relative z-20 pb-2">
+             {Object.entries(counts).map(([label, count]) => {
+                const config: Record<string, { color: string; bg: string; dot: string }> = {
+                  'Open':        { color: 'text-rose-500',    bg: 'bg-rose-50',    dot: 'bg-rose-400' },
+                  'Assigned':    { color: 'text-amber-500',   bg: 'bg-amber-50',   dot: 'bg-amber-400' },
+                  'In Progress': { color: 'text-blue-500',    bg: 'bg-blue-50',    dot: 'bg-blue-400' },
+                  'Resolved':    { color: 'text-emerald-500', bg: 'bg-emerald-50', dot: 'bg-emerald-400' },
+                };
+                const c = config[label] || { color: 'text-slate-500', bg: 'bg-slate-50', dot: 'bg-slate-400' };
+                return (
+                  <div
+                    key={label}
+                    onClick={() => setFilterStatus(filterStatus === label ? 'all' : label)}
+                    className={cn(
+                      "bg-white dark:bg-card rounded-3xl p-4 shadow-lg ring-1 cursor-pointer active:scale-[0.97] transition-all",
+                      filterStatus === label ? "ring-2 ring-primary" : "ring-black/5"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={cn("text-[9px] font-black uppercase tracking-widest", c.color)}>{label}</span>
+                      <span className={cn("h-2.5 w-2.5 rounded-full", c.dot)} />
+                    </div>
+                    <p className="text-4xl font-black tracking-tighter text-slate-800 dark:text-slate-100 leading-none">
+                      {isLoading ? '—' : count}
+                    </p>
+                  </div>
+                );
+             })}
+           </div>
+
+           {/* Mobile Search & List */}
+           <div className="px-5 space-y-6">
+              <div className="relative shadow-sm shadow-black/5 rounded-[1.5rem]">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Input placeholder="Search issues..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-12 h-14 rounded-[1.5rem] bg-white dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-800 text-sm font-bold shadow-none focus-visible:ring-primary" />
+              </div>
+
+              {/* Mobile Filter Tabs */}
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{scrollbarWidth: 'none'}}>
+                {['all', 'Open', 'In Progress', 'Resolved', ...(canManage ? ['Assigned'] : [])].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setFilterStatus(tab)}
+                    className={cn(
+                      "shrink-0 px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-wider transition-all active:scale-95",
+                      filterStatus === tab
+                        ? "bg-primary text-white shadow-md shadow-primary/20"
+                        : "bg-white dark:bg-slate-800 text-slate-500 ring-1 ring-slate-100 dark:ring-slate-700"
+                    )}
+                  >
+                    {tab === 'all' ? 'All' : tab}
+                    {tab !== 'all' && counts[tab as keyof typeof counts] > 0 && (
+                      <span className="ml-1 opacity-70">({counts[tab as keyof typeof counts]})</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {isLoading ? (
+                 <div className="py-16 flex flex-col items-center justify-center text-center">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary opacity-30 mb-4" />
+                 </div>
+              ) : filtered.length === 0 ? (
+                 <div className="py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-card rounded-[2rem] shadow-sm ring-1 ring-slate-100">
+                    <div className="h-20 w-20 mb-4 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                       <CheckCircle2 className="h-10 w-10 text-slate-300 dark:text-slate-600" />
+                    </div>
+                    <p className="text-base font-black text-slate-500 tracking-tight">No issues found</p>
+                 </div>
+              ) : (
+                 <div className="space-y-4 pb-12">
+                    {filtered.map(c => (
+                       <div key={c.id} className="bg-white dark:bg-card rounded-[1.5rem] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] ring-1 ring-black/5 flex flex-col gap-4">
+                          <div className="flex justify-between items-start gap-4">
+                             <div>
+                                <Badge className={cn("text-[9px] px-2 py-0.5 mb-2 font-black uppercase tracking-widest bg-opacity-20", statusColors[c.status])} variant="outline">{c.status}</Badge>
+                                <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 leading-snug tracking-tight">{c.title}</h3>
+                             </div>
+                             <Badge className={cn("text-[8px] px-2 py-1 shrink-0 uppercase font-black border-0 bg-slate-50 shadow-sm", priorityColors[c.priority])} variant="outline">{c.priority}</Badge>
+                          </div>
+                          
+                          {c.description && (
+                             <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed bg-slate-50/50 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                {c.description}
+                             </p>
+                          )}
+                          
+                          <div className="flex items-center justify-between pt-1">
+                             <div className="flex items-center gap-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                <span className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5 opacity-70" />{c.complaintNumber}</span>
+                                <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 opacity-70" />{format(new Date(c.createdAt), 'MMM dd')}</span>
+                             </div>
+                          </div>
+
+                          {/* Mobile Actions */}
+                          {((canManage && c.status !== 'Closed') || (user?.role === 'staff' && ['Open', 'Assigned', 'In Progress'].includes(c.status))) && (
+                            <div className="flex items-center gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                               {canManage && c.status === 'Open' && (
+                                  <Button className="flex-1 h-11 rounded-2xl text-xs font-black shadow-md bg-slate-800 hover:bg-slate-900 text-white" onClick={() => {
+                                     setSelected(c); setIsAssignOpen(true); setIsLoadingStaff(true);
+                                     api.users.getAll().then(res => { if (res.success && res.data) { const excluded = ['admin', 'super_admin']; setStaffList(res.data.filter((u: any) => !excluded.includes(u.role))); } }).catch(() => {}).finally(() => setIsLoadingStaff(false));
+                                  }}>
+                                     <User className="h-4 w-4 mr-1.5" /> Assign To
+                                  </Button>
+                               )}
+                               {canManage && c.status !== 'Open' && c.status !== 'Closed' && c.status !== 'Resolved' && (
+                                  <>
+                                     {c.status !== 'In Progress' && (
+                                       <Button variant="outline" className="flex-1 h-11 rounded-2xl text-xs font-black border-blue-200 text-blue-600 bg-blue-50 shadow-sm" onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
+                                          Active
+                                       </Button>
+                                     )}
+                                     <Button variant="outline" className="flex-1 h-11 rounded-2xl text-xs font-black border-emerald-200 text-emerald-600 bg-emerald-50 shadow-sm" onClick={() => handleStatusUpdate(c.id, 'Resolved')}>
+                                        Resolve
+                                     </Button>
+                                  </>
+                               )}
+                               {user?.role === 'staff' && ['Open', 'Assigned', 'In Progress'].includes(c.status) && (
+                                  <>
+                                     {c.status === 'Open' && (
+                                       <Button variant="outline" className="flex-1 h-11 rounded-2xl text-xs font-black border-blue-200 text-blue-600 bg-blue-50 shadow-sm" onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
+                                          Start Work
+                                       </Button>
+                                     )}
+                                     {(c.status === 'Assigned' || c.status === 'In Progress') && (
+                                        <>
+                                           {c.status === 'Assigned' && (
+                                             <Button variant="outline" className="flex-1 h-11 rounded-2xl text-xs font-black border-blue-200 text-blue-600 bg-blue-50 shadow-sm" onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
+                                                Active
+                                             </Button>
+                                           )}
+                                           <Button variant="outline" className="flex-1 h-11 rounded-2xl text-xs font-black border-emerald-200 text-emerald-600 bg-emerald-50 shadow-sm" onClick={() => handleStatusUpdate(c.id, 'Resolved')}>
+                                              Resolve
+                                           </Button>
+                                        </>
+                                     )}
+                                  </>
+                               )}
+                            </div>
+                          )}
+                       </div>
+                    ))}
+                 </div>
+              )}
+           </div>
+        </div>
+        
         {/* Create Dialog */}
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogContent>
