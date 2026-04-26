@@ -59,6 +59,10 @@ public class AuthController : ControllerBase
         var token = GenerateJwtToken(user);
 
         user.LastLoginAt = DateTime.UtcNow;
+        if (request.AcceptTerms)
+        {
+            user.TermsStatus = true;
+        }
         await _context.SaveChangesAsync();
 
         // Fetch association branding
@@ -89,12 +93,23 @@ public class AuthController : ControllerBase
                     user.Id, user.Username, user.FullName,
                     role = user.Role.ToString(),
                     user.AssociationId, user.UnitId,
+                    termsStatus = user.TermsStatus,
                     logoUrl,
                     themeColor,
                     associationName
                 }
             }
         });
+    }
+
+    [HttpGet("check-terms/{username}")]
+    public async Task<IActionResult> CheckTerms(string username)
+    {
+        var user = await _context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Username == username);
+        if (user == null)
+            return Ok(new { success = false, message = "User not found" });
+
+        return Ok(new { success = true, hasAcceptedTerms = user.TermsStatus });
     }
 
     [HttpPost("register")]
@@ -153,7 +168,7 @@ public class AuthController : ControllerBase
     }
 }
 
-public record LoginRequest(string Username, string Password);
+public record LoginRequest(string Username, string Password, bool AcceptTerms = false);
 public record UserRegistrationDto(
     string Username,
     string Password,

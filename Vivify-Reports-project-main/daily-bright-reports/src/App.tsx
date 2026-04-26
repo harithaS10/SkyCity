@@ -37,6 +37,7 @@ import ProductManagementDebug from './pages/admin/ProductManagementDebug';
 import DepartmentManagement from './pages/admin/DepartmentManagement';
 import RoleManagement from './pages/admin/RoleManagement';
 import Themes from './pages/admin/Themes';
+import TermsManagement from './pages/admin/TermsManagement';
 
 // Super Admin pages
 import AdminManagement from './pages/superadmin/AdminManagement';
@@ -315,6 +316,14 @@ const App = () => (
                   element={
                     <ProtectedRoute allowedRoles={['admin']}>
                       <Themes />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/terms"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                      <TermsManagement />
                     </ProtectedRoute>
                   }
                 />

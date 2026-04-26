@@ -311,10 +311,10 @@ const Analytics: React.FC = () => {
         {/* Use CSS-based responsiveness for smoothness, but keep separate states for filters */}
         <div className="hidden lg:block space-y-8 animate-in fade-in duration-500">
           {/* Desktop Content exactly as before */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 bg-gradient-to-r from-sky-500 to-sky-400 p-8 rounded-3xl text-white shadow-xl shadow-sky-500/10">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-4">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-white">Analytics Dashboard</h1>
-              <p className="text-white/80 font-medium">Monitor performance and report distribution</p>
+              <h1 className="text-3xl font-black tracking-tight text-primary">Analytics Dashboard</h1>
+              <p className="text-muted-foreground font-medium">Monitor performance and report distribution</p>
             </div>
             <div className="flex flex-wrap gap-4 items-center">
               <Select value={selectedUser} onValueChange={setSelectedUser}>
@@ -359,7 +359,7 @@ const Analytics: React.FC = () => {
               )}
 
               <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button className="bg-white text-sky-600 hover:bg-white/90 border-none rounded-xl font-bold" disabled={!canExport}><Download className="h-4 w-4" />Export Data</Button></DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild><Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold" disabled={!canExport}><Download className="h-4 w-4" />Export Data</Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => handleExport('excel')}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleExport('csv')}><FileText className="mr-2 h-4 w-4" />CSV</DropdownMenuItem>

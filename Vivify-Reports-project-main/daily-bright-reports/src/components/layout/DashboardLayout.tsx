@@ -129,6 +129,7 @@ const managementItems: DropdownItem[] = [
   { label: 'Work Management', href: '/admin/works', icon: <Briefcase className="h-3.5 w-3.5" /> },
   { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-3.5 w-3.5" /> },
   { label: 'Branding', href: '/admin/themes', icon: <Palette className="h-3.5 w-3.5" /> },
+  { label: 'Terms & Conditions', href: '/admin/terms', icon: <FileText className="h-3.5 w-3.5" /> },
 ];
 
 const taskManagementItems: DropdownItem[] = [
@@ -144,13 +145,13 @@ const productManagementItems: DropdownItem[] = [
 const ROLE_BADGE: Record<AllowedRole, { label: string; color: string }> = {
   super_admin: { label: 'Platform Owner', color: 'text-amber-400' },
   admin: { label: 'Admin', color: 'text-primary-foreground/70' },
-  sub_admin: { label: 'Association Admin', color: 'text-blue-300' },
-  property_manager: { label: 'Property Manager', color: 'text-sky-300' },
-  facility_manager: { label: 'Facility Manager', color: 'text-sky-200' },
+  sub_admin: { label: 'Association Admin', color: 'text-slate-300' },
+  property_manager: { label: 'Property Manager', color: 'text-slate-400' },
+  facility_manager: { label: 'Facility Manager', color: 'text-slate-300' },
   staff: { label: 'Staff', color: 'text-primary-foreground/70' },
-  resident: { label: 'Resident', color: 'text-emerald-300' },
-  helpdesk: { label: 'Helpdesk', color: 'text-purple-300' },
-  accountant: { label: 'Accountant', color: 'text-green-300' },
+  resident: { label: 'Resident', color: 'text-slate-300' },
+  helpdesk: { label: 'Helpdesk', color: 'text-slate-200' },
+  accountant: { label: 'Accountant', color: 'text-slate-300' },
   security_head: { label: 'Security Head', color: 'text-red-300' },
 };
 
@@ -278,7 +279,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   const visibleReminders = reminders.filter((r: any) => !dismissedIds.has(r.id));
   const unreadCount = visibleReminders.length;
-  const priorityColors: Record<string, string> = { low: 'text-blue-500', medium: 'text-amber-500', high: 'text-rose-500' };
+  const priorityColors: Record<string, string> = { low: 'text-slate-500', medium: 'text-amber-500', high: 'text-rose-500' };
 
   const displayLogo = logoUrl ?? logo;
   const roleBadge = user ? ROLE_BADGE[user.role as AllowedRole] : null;
@@ -302,8 +303,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           className={cn(
             'h-8 px-2 gap-1 text-[11px] font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
             activeHrefs.includes(location.pathname)
-              ? 'bg-primary text-primary-foreground shadow-md'
-              : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-100 dark:hover:text-slate-900'
+              ? 'bg-white/20 text-white shadow-md'
+              : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
           )}
         >
           <span className="relative z-10 flex items-center gap-1">
@@ -331,7 +332,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden w-full">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header
-        className="sticky top-0 z-50 w-full border-b border-slate-200 bg-slate-50/95 backdrop-blur-md dark:bg-card/80 dark:border-white/5 shadow-md safe-top"
+        className="sticky top-0 z-50 w-full border-b border-primary/20 bg-primary text-primary-foreground shadow-md safe-top"
       >
         <div className="flex h-16 sm:h-14 items-center justify-between px-3 sm:px-3 lg:px-4 xl:px-6 max-w-[1800px] mx-auto w-full gap-2">
 
@@ -340,7 +341,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             <Button
               variant="ghost"
               size="icon"
-              className="xl:hidden text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-100 h-10 w-10 sm:h-8 sm:w-8 flex-shrink-0"
+              className="xl:hidden text-primary-foreground/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8 flex-shrink-0"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="h-5 w-5 sm:h-4 sm:w-4" /> : <Menu className="h-5 w-5 sm:h-4 sm:w-4" />}
@@ -353,10 +354,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <img src={displayLogo} alt="Logo" className="h-full w-full object-contain" />
               </div>
               <div className="flex flex-col justify-center min-w-0">
-                <span className="text-2xl sm:text-2xl skycity-logo-text leading-none tracking-tighter !text-primary">
+                <span className="text-2xl sm:text-2xl skycity-logo-text leading-none tracking-tighter text-white">
                   {companyName.split(' ')[0].toLowerCase()}
                 </span>
-                <span className="text-[10px] sm:text-[9px] reports-subtext font-black leading-none mt-1 opacity-90 !text-destructive">
+                <span className="text-[10px] sm:text-[9px] reports-subtext font-black leading-none mt-1 opacity-90 text-white/80">
                   REPORTS
                 </span>
               </div>
@@ -377,8 +378,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     className={cn(
                       'h-8 px-2 gap-1 text-[11px] font-semibold transition-all relative overflow-hidden group rounded-md whitespace-nowrap flex-shrink-0',
                       isActive
-                        ? 'bg-primary text-primary-foreground shadow-md'
-                        : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-100 dark:hover:text-slate-900'
+                        ? 'bg-white/20 text-white shadow-md'
+                        : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
                     )}
                     onClick={() => {
                       navigate(item.href);
@@ -408,7 +409,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <button
                   onClick={() => navigate('/admin/employees')}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-white/80 hover:text-white hover:bg-white/10',
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-primary-foreground/80 hover:text-white hover:bg-white/10',
                     location.pathname.startsWith('/admin/employee') && 'bg-white/15 text-white'
                   )}
                 >
@@ -424,7 +425,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             {/* Association Info Badge (Non-SuperAdmins) */}
             
 
-            <ModeToggle className="text-slate-600 dark:text-slate-300 dark:hover:bg-slate-100 h-10 w-10 sm:h-8 sm:w-8" />
+            <ModeToggle className="text-primary-foreground/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8" />
 
             {/* Reminder Bell (Staff & Resident) */}
             {(user?.role === 'staff' || user?.role === 'resident') && (
@@ -432,7 +433,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-slate-600 hover:bg-slate-200/50 dark:text-slate-300 dark:hover:bg-slate-100"
+                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-primary-foreground/80 hover:bg-white/10 hover:text-white"
                   onClick={() => setShowReminderPanel(v => !v)}
                 >
                   <Bell className={cn('h-4 w-4', unreadCount > 0 && 'text-amber-300')} />
@@ -485,18 +486,18 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="h-10 sm:h-8 px-2 sm:px-1.5 gap-1.5 hover:bg-slate-200/50 dark:hover:bg-slate-100 border border-transparent transition-all text-slate-700 dark:text-slate-300"
+                  className="h-10 sm:h-8 px-2 sm:px-1.5 gap-1.5 hover:bg-white/10 hover:text-white border border-transparent transition-all text-primary-foreground"
                 >
-                  <div className="flex h-8 w-8 sm:h-6 sm:w-6 items-center justify-center rounded-md bg-primary/10 shadow-sm flex-shrink-0">
-                    <User className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-primary" />
+                  <div className="flex h-8 w-8 sm:h-6 sm:w-6 items-center justify-center rounded-md bg-white/20 shadow-sm flex-shrink-0">
+                    <User className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-white" />
                   </div>
                   <div className="hidden sm:block text-left min-w-0 max-w-[100px]">
-                    <p className="text-[11px] font-bold text-slate-900 dark:text-slate-100 leading-none mb-0.5 truncate">{user?.fullName}</p>
-                    <p className={cn('text-[9px] capitalize truncate', roleBadge?.color ?? 'text-slate-500')}>
+                    <p className="text-[11px] font-bold text-white leading-none mb-0.5 truncate">{user?.fullName}</p>
+                    <p className={cn('text-[9px] capitalize truncate', roleBadge?.color ?? 'text-primary-foreground/70')}>
                       {roleBadge?.label ?? user?.role}
                     </p>
                   </div>
-                  <ChevronDown className="h-4 w-4 sm:h-3 sm:w-3 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+                  <ChevronDown className="h-4 w-4 sm:h-3 sm:w-3 text-primary-foreground/70 flex-shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 p-1 bg-card border shadow-lg">

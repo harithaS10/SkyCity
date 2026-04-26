@@ -293,7 +293,7 @@ const UserDashboard: React.FC = () => {
       <div className="hidden lg:block space-y-5 animate-in fade-in duration-500">
 
       {/* Greeting Header */}
-      <div className="rounded-2xl bg-gradient-to-br from-sky-500 to-sky-400 px-6 py-6 text-white shadow-xl shadow-sky-500/15 relative overflow-hidden">
+      <div className="rounded-2xl bg-gradient-to-br from-teal-700 via-teal-600 to-cyan-600 px-6 py-6 text-white shadow-xl shadow-teal-900/25 relative overflow-hidden">
         {/* Subtle background glow */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         
@@ -319,7 +319,7 @@ const UserDashboard: React.FC = () => {
                 My Tasks
               </Button>
               <Button size="sm" onClick={() => navigate('/daily-report')}
-                className="gap-1.5 text-xs h-9 bg-white text-sky-600 hover:bg-white/90 font-bold px-4 shadow-sm border-none">
+                className="gap-1.5 text-xs h-9 bg-white text-teal-700 hover:bg-white/90 font-bold px-4 shadow-sm border-none">
                 <FileText className="h-4 w-4" />
                 {todayReport ? 'Update Report' : 'Create Report'}
               </Button>
@@ -331,10 +331,10 @@ const UserDashboard: React.FC = () => {
       {/* Quick Links */}
       <div className="grid grid-cols-4 gap-2">
         {[
-          { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-blue-600 bg-blue-50 border-blue-100' },
-          { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-          { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-600 bg-amber-50 border-amber-100' },
-          { label: 'Community', icon: Users, path: '/chat', color: 'text-violet-600 bg-violet-50 border-violet-100' },
+          { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-teal-700 bg-teal-50 border-teal-200' },
+          { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-cyan-700 bg-cyan-50 border-cyan-200' },
+          { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-700 bg-amber-50 border-amber-200' },
+          { label: 'Community', icon: Users, path: '/chat', color: 'text-teal-600 bg-teal-50 border-teal-100' },
         ].map(({ label, icon: Icon, path, color }) => (
           <button key={path} onClick={() => navigate(path)}
             className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all hover:shadow-md active:scale-95", color)}>
@@ -363,12 +363,12 @@ const UserDashboard: React.FC = () => {
         <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
           onClick={() => navigate('/my-tasks')}>
           <div className="flex items-center justify-between mb-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100">
-              <Clock className="h-4 w-4 text-blue-600" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-100">
+              <Clock className="h-4 w-4 text-cyan-700" />
             </div>
-            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">Active</span>
+            <span className="text-[10px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-200">Active</span>
           </div>
-          <p className="text-3xl font-bold text-blue-600">{inProgressTasks.length}</p>
+          <p className="text-3xl font-bold text-cyan-700">{inProgressTasks.length}</p>
           <p className="text-xs text-muted-foreground mt-0.5">In Progress</p>
         </div>
 
@@ -522,7 +522,7 @@ const UserDashboard: React.FC = () => {
                           {/* Status badge */}
                           <Badge className={cn("text-[10px] px-1.5 py-0 h-4 capitalize shrink-0 pointer-events-none",
                             task.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-                            task.status === 'in-progress' || task.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                            task.status === 'in-progress' || task.status === 'in_progress' ? 'bg-teal-100 text-teal-700 border-teal-200' :
                             isOverdueTask ? 'bg-rose-100 text-rose-700 border-rose-200' :
                             'bg-amber-100 text-amber-700 border-amber-200'
                           )}>
@@ -619,8 +619,8 @@ const UserDashboard: React.FC = () => {
                     <span className="font-semibold text-emerald-600">{completedTasks.length}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-blue-600">In Progress</span>
-                    <span className="font-semibold text-blue-600">{inProgressTasks.length}</span>
+                    <span className="text-teal-600">In Progress</span>
+                    <span className="font-semibold text-teal-600">{inProgressTasks.length}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-amber-600">Pending</span>
@@ -765,12 +765,12 @@ const UserDashboard: React.FC = () => {
             </div>
             
             <div className="flex flex-col items-center gap-2 flex-1 border-r border-slate-100 last:border-0 cursor-pointer group" onClick={() => navigate('/my-tasks')}>
-               <div className="h-11 w-11 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center group-active:scale-95 transition-transform">
+               <div className="h-11 w-11 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center group-active:scale-95 transition-transform">
                  <Clock className="h-5 w-5" />
                </div>
                <div className="text-center">
                  <span className="block text-sm font-black text-slate-800">{inProgressTasks.length}</span>
-                 <span className="block text-[9px] font-bold text-blue-600 uppercase tracking-wider">Active</span>
+                 <span className="block text-[9px] font-bold text-cyan-600 uppercase tracking-wider">Active</span>
                </div>
             </div>
 
@@ -795,10 +795,10 @@ const UserDashboard: React.FC = () => {
             </div>
             <div className="grid grid-cols-4 gap-3">
               {[
-                { label: 'Tasks', icon: ListTodo, path: '/my-tasks', color: 'bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/20' },
-                { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20' },
-                { label: 'Chat', icon: MessageSquare, path: '/chat', color: 'bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-indigo-500/20' },
-                { label: 'Issues', icon: AlertCircle, path: '/complaints', color: 'bg-gradient-to-br from-rose-400 to-rose-600 shadow-rose-500/20' }
+                { label: 'Tasks', icon: ListTodo, path: '/my-tasks', color: 'bg-gradient-to-br from-teal-500 to-teal-700 shadow-teal-600/25' },
+                { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-gradient-to-br from-cyan-500 to-teal-600 shadow-teal-500/25' },
+                { label: 'Chat', icon: MessageSquare, path: '/chat', color: 'bg-gradient-to-br from-teal-400 to-cyan-500 shadow-cyan-400/25' },
+                { label: 'Issues', icon: AlertCircle, path: '/complaints', color: 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/25' }
               ].map(({ label, icon: Icon, path, color }) => (
                 <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-2.5">
                    <div className={cn("h-14 w-14 rounded-[1.25rem] flex items-center justify-center text-white shadow-lg transition-transform active:scale-90", color)}>
@@ -1753,6 +1753,119 @@ const AdminDashboard: React.FC = () => {
             </div>
           )}
 
+          {/* Quick Stats Grid - Expanded */}
+          <div>
+            <div className="flex justify-between items-end mb-4 px-1">
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">System Health</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+               <div className="bg-white dark:bg-card p-5 rounded-[2rem] shadow-sm ring-1 ring-black/5 border border-slate-100 flex flex-col gap-3 active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
+                  <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                    <ListTodo className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tighter leading-none">{taskStats?.totalTasks || 0}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Total Tasks</p>
+                  </div>
+               </div>
+               <div className="bg-white dark:bg-card p-5 rounded-[2rem] shadow-sm ring-1 ring-black/5 border border-slate-100 flex flex-col gap-3 active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
+                  <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-emerald-600 tracking-tighter leading-none">{taskStats?.completedTasks || 0}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Completed</p>
+                  </div>
+               </div>
+               <div className="bg-white dark:bg-card p-5 rounded-[2rem] shadow-sm ring-1 ring-black/5 border border-slate-100 flex flex-col gap-3 active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/work-allocation')}>
+                  <div className="h-10 w-10 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center shadow-sm">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-cyan-600 tracking-tighter leading-none">{(taskStats?.pendingTasks || 0) + (taskStats?.inProgressTasks || 0)}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Ongoing</p>
+                  </div>
+               </div>
+               <div className="bg-white dark:bg-card p-5 rounded-[2rem] shadow-sm ring-1 ring-black/5 border border-slate-100 flex flex-col gap-3 active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
+                  <div className="h-10 w-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-sm">
+                    <AlertCircle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-rose-600 tracking-tighter leading-none">{pendingWork.length + (taskStats?.overdueTasks || 0)}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Overdue</p>
+                  </div>
+               </div>
+            </div>
+          </div>
+
+          {/* Strategic Feature Cards */}
+          <div>
+            <div className="flex justify-between items-end mb-4 px-1">
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Management Hub</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-white dark:bg-card p-5 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/employees')}>
+                <div className="h-14 w-14 rounded-3xl bg-blue-100 flex items-center justify-center shrink-0">
+                  <Users className="h-7 w-7 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-base font-black text-slate-800 tracking-tight">Employee Tasks</h4>
+                  <p className="text-xs font-medium text-slate-400 mt-0.5">Manage individual assignments</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-slate-200" />
+              </div>
+
+              <div className="bg-white dark:bg-card p-5 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
+                <div className="h-14 w-14 rounded-3xl bg-emerald-100 flex items-center justify-center shrink-0">
+                  <BarChart3 className="h-7 w-7 text-emerald-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-base font-black text-slate-800 tracking-tight">Task Analytics</h4>
+                  <p className="text-xs font-medium text-slate-400 mt-0.5">Performance insights & metrics</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-slate-200" />
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 p-5 rounded-[2.5rem] shadow-sm border border-indigo-100/50 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/work-allocation')}>
+                <div className="h-14 w-14 rounded-3xl bg-indigo-100 flex items-center justify-center shrink-0">
+                  <Plus className="h-7 w-7 text-indigo-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-base font-black text-indigo-900 dark:text-indigo-100 tracking-tight">Quick Task Creation</h4>
+                  <p className="text-xs font-bold text-indigo-400 mt-0.5">Multi-employee assignment</p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-indigo-300" />
+              </div>
+            </div>
+          </div>
+
+          {/* Activity Volume Chart */}
+          <div>
+            <div className="flex justify-between items-end mb-4 px-1">
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Submission Trends</h3>
+            </div>
+            <div className="bg-white dark:bg-card p-6 rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Aggregate Reports (7d)</p>
+              <div className="h-[200px] w-full -ml-4">
+                <ResponsiveContainer width="110%" height="100%">
+                  <AreaChart data={weeklyData}>
+                    <defs>
+                      <linearGradient id="colorAdminEntriesMobile" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10, fontWeight: 700 }} dy={10} />
+                    <YAxis hide />
+                    <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: 12, fontWeight: 700 }} />
+                    <Area type="monotone" dataKey="entries" stroke="hsl(var(--primary))" strokeWidth={4} fillOpacity={1} fill="url(#colorAdminEntriesMobile)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
           {/* Live Feed */}
           <div>
             <div className="flex justify-between items-end mb-4 px-1">
@@ -1788,34 +1901,74 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Stats Grid */}
+          {/* Recent Tasks List */}
           <div>
             <div className="flex justify-between items-end mb-4 px-1">
-              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Key Metrics</h3>
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Recent Activity</h3>
+              <button className="text-[10px] font-black text-primary uppercase tracking-widest" onClick={() => navigate('/admin/analytics')}>View All</button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-               <div className="bg-white dark:bg-card p-5 rounded-[2rem] shadow-sm ring-1 ring-black/5 border border-slate-100 flex flex-col gap-3 active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
-                  <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
-                    <ListTodo className="h-5 w-5" />
+            <div className="bg-white dark:bg-card rounded-[2.5rem] shadow-sm ring-1 ring-black/5 p-2 border border-slate-100 overflow-hidden">
+              <div className="max-h-[350px] overflow-y-auto space-y-1 p-1">
+                {recentTasks.length > 0 ? (
+                  recentTasks.map((task, idx) => (
+                    <div key={`${task._source}-${task.id}`} className="flex items-center gap-4 p-4 rounded-[1.8rem] hover:bg-slate-50 transition-colors active:scale-[0.99]" onClick={() => navigate('/admin/analytics')}>
+                      <div className={cn("h-10 w-10 rounded-2xl flex items-center justify-center shrink-0", 
+                        task.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                      )}>
+                        <ClipboardList className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black text-slate-800 dark:text-slate-200 truncate tracking-tight">{task.taskName || task.title}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                            {task._source === 'task' ? task.assigneeName : (task.assigneeName || 'User')}
+                          </span>
+                          <span className="text-[8px] h-3 w-3 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">•</span>
+                          <span className={cn("text-[9px] font-black uppercase tracking-widest", 
+                            task.status === 'completed' ? 'text-emerald-600' : 'text-blue-600'
+                          )}>
+                            {(task.status || 'pending').replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-black text-slate-300 shrink-0">
+                        {format(new Date(task.dueDate || task.DueDate), 'MMM dd')}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-10 text-center opacity-30 italic text-xs font-black uppercase tracking-widest text-slate-400">
+                    No recent tasks
                   </div>
-                  <div>
-                    <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tighter leading-none">{taskStats?.totalTasks || 0}</p>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Total Tasks</p>
-                  </div>
-               </div>
-               <div className="bg-white dark:bg-card p-5 rounded-[2rem] shadow-sm ring-1 ring-black/5 border border-slate-100 flex flex-col gap-3 active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
-                  <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
-                    <CheckCircle2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-black text-emerald-600 tracking-tighter leading-none">{taskStats?.completedTasks || 0}</p>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Completed</p>
-                  </div>
-               </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Administrative Tools */}
+          <div>
+            <div className="flex justify-between items-end mb-4 px-1">
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Admin Controls</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              {[
+                { label: 'Manage Personnel', icon: Users, path: '/admin/users', color: 'bg-primary/5 text-primary' },
+                { label: 'Client Directory', icon: Building2, path: '/admin/clients', color: 'bg-primary/5 text-primary' },
+                { label: 'Work Definitions', icon: Briefcase, path: '/admin/works', color: 'bg-primary/5 text-primary' }
+              ].map(({ label, icon: Icon, path, color }) => (
+                <button key={path} onClick={() => navigate(path)} className={cn("flex items-center gap-4 p-4 rounded-[1.8rem] transition-all active:scale-[0.98] border border-slate-100 bg-white dark:bg-card shadow-sm", color)}>
+                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                     <Icon size={20} strokeWidth={2.5} />
+                   </div>
+                   <span className="text-sm font-black text-slate-700 tracking-tight">{label}</span>
+                   <ArrowRight className="h-4 w-4 ml-auto text-slate-300" />
+                </button>
+              ))}
             </div>
           </div>
 
         </div>
+
       </div>
     </div>
   );

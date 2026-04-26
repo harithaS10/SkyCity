@@ -167,18 +167,18 @@ const Complaints: React.FC = () => {
         {/* ===== DESKTOP VIEW ===== */}
         <div className="hidden lg:block space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-sky-500 to-sky-400 p-8 rounded-3xl text-white shadow-xl shadow-sky-500/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
-              <MessageSquareWarning className="h-7 w-7 text-white" />
+            <h1 className="text-3xl font-black tracking-tight text-primary flex items-center gap-3">
+              <MessageSquareWarning className="h-7 w-7 text-primary" />
               Complaint Management
             </h1>
-            <p className="text-white/80 font-medium">Manage and track issues and resolution progress</p>
+            <p className="text-muted-foreground font-medium">Manage and track issues and resolution progress</p>
           </div>
           <Button size="sm" onClick={() => {
             if (!canCreate) { toast.error("You don't have permission to create complaints"); return; }
             setIsCreateOpen(true);
-          }} className="h-11 gap-2 px-6 bg-white text-sky-600 hover:bg-white/90 font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs">
+          }} className="h-11 gap-2 px-6 bg-primary text-primary-foreground hover:bg-primary/90 font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs">
             <Plus className="h-4 w-4" /> Add Complaint
           </Button>
         </div>

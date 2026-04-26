@@ -25,6 +25,7 @@ export interface User {
   phone?: string;
   profilePicture?: string;
   isActive?: boolean;
+  hasAcceptedTerms?: boolean;
   lastLoginAt?: string;
   createdAt: string;
   // Branding

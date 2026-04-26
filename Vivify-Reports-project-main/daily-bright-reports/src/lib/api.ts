@@ -76,8 +76,12 @@ apiClient.interceptors.response.use(
 export const api = {
   // Auth
   auth: {
-    login: async (username: string, password: string) => {
-      const response = await apiClient.post('/auth/login', { username, password });
+    login: async (username: string, password: string, acceptTerms: boolean = false) => {
+      const response = await apiClient.post('/auth/login', { username, password, acceptTerms });
+      return response.data;
+    },
+    checkTerms: async (username: string) => {
+      const response = await apiClient.get(`/auth/check-terms/${username}`);
       return response.data;
     },
     register: async (userData: any) => {
@@ -575,6 +579,23 @@ export const api = {
   branding: {    get: async () => (await apiClient.get('/branding')).data,
     update: async (data: { associationName?: string; themeColor?: string; logoUrl?: string }) =>
       (await apiClient.post('/branding/update', data)).data,
+  },
+
+  // Terms and Conditions
+  terms: {
+    get: async (): Promise<ApiResponse<any>> => {
+      try {
+        const response = await apiClient.get('/terms');
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch terms from backend:', error);
+        return { success: false, message: 'Failed to load terms and conditions' };
+      }
+    },
+    update: async (content: string): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post('/terms', { content });
+      return response.data;
+    }
   },
 
   // Daily Report Drafts

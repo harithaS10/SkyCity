@@ -7,17 +7,59 @@ import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Eye, EyeOff, AlertCircle, Building2, Shield, BarChart3, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import logo from '@/assets/skycity-logo.png';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, logout, isLoading } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [selectedRole] = useState<UserRole>('user');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsContent, setTermsContent] = useState('');
+  const [hideTerms, setHideTerms] = useState(false);
+
+  useEffect(() => {
+    const loadTerms = async () => {
+      try {
+        const res = await api.terms.get();
+        if (res.success && res.data) {
+          setTermsContent(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load terms');
+      }
+    };
+    loadTerms();
+  }, []);
+
+  // Check if terms should be hidden for this user
+  useEffect(() => {
+    const checkUserTerms = async () => {
+      if (!username || username.length < 3) {
+        setHideTerms(false);
+        return;
+      }
+      try {
+        const res = await api.auth.checkTerms(username);
+        if (res.success && res.hasAcceptedTerms) {
+          setHideTerms(true);
+        } else {
+          setHideTerms(false);
+        }
+      } catch (err) {
+        setHideTerms(false);
+      }
+    };
+
+    const timer = setTimeout(checkUserTerms, 500);
+    return () => clearTimeout(timer);
+  }, [username]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,11 +68,18 @@ const Login: React.FC = () => {
       setError('Please enter your username and password');
       return;
     }
-    const result = await login({ username, password, role: selectedRole });
-    if (result.success) {
+    const result = await login({ username, password, acceptTerms: acceptedTerms });
+    if (result.success && result.user) {
+      // Only staff are required to accept terms and conditions
+      if (result.user.role === 'staff' && !result.user.hasAcceptedTerms && !acceptedTerms) {
+        logout();
+        setError('Staff members must accept the terms and conditions to log in.');
+        return;
+      }
+
       toast.success('Login successful!');
       sessionStorage.setItem('show_task_popup', '1');
-      if (selectedRole === 'super_admin') {
+      if (result.user.role === 'super_admin') {
         navigate('/super-admin/overview');
       } else {
         navigate('/dashboard');
@@ -52,9 +101,10 @@ const Login: React.FC = () => {
       {/* Left Panel */}
       <div className="hidden lg:flex lg:w-3/5 bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex-col justify-between p-8 relative overflow-hidden h-full">
         {/* Background pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-500 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
+        <div className="absolute inset-0 opacity-15">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-300 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-300 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-violet-200 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
         </div>
 
         {/* Logo */}
@@ -75,7 +125,7 @@ const Login: React.FC = () => {
               Manage your site<br />
               <span className="text-white/80">smarter, faster.</span>
             </h2>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
+            <p className="text-white/75 text-sm leading-relaxed max-w-sm">
               A unified platform for property management, complaint resolution, and daily workforce reporting.
             </p>
           </div>
@@ -88,7 +138,7 @@ const Login: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-white text-sm font-semibold">{title}</p>
-                  <p className="text-slate-400 text-xs mt-0.5">{desc}</p>
+                  <p className="text-white/65 text-xs mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -97,108 +147,137 @@ const Login: React.FC = () => {
 
         {/* Footer */}
         <div className="relative z-10">
-          <p className="text-slate-500 text-xs">© 2026 SkyCity. All rights reserved.</p>
+          <p className="text-white/50 text-xs">© 2026 SkyCity. All rights reserved.</p>
         </div>
       </div>
 
-      {/* Right Panel */}
-      <div className="w-full lg:w-2/5 flex items-center justify-center bg-white dark:bg-slate-950 relative overflow-hidden py-8">
-        {/* Watermark logo - removed */}
-        <div className="w-full max-w-md space-y-8 px-4 relative z-10 bg-white rounded-2xl shadow-xl p-8">
+      {/* Right Panel (Main Login Area) */}
+      <div className="w-full lg:w-2/5 flex lg:items-center items-start justify-center bg-slate-50 dark:bg-slate-950 relative overflow-y-auto py-4 lg:py-0 px-3 min-h-screen">
+        {/* Decorative background elements for mobile */}
+        <div className="lg:hidden absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
+        </div>
 
-          {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-3 justify-center">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center p-1.5">
-              <img src={logo} alt="SkyCity" className="h-full w-full object-contain" />
-            </div>
-            <div>
-              <h1 className="font-black text-2xl tracking-tighter text-primary lowercase skycity-logo-text">SkyCity</h1>
-              <p className="text-primary/60 text-[9px] tracking-widest uppercase reports-subtext font-bold">Reports Platform</p>
-            </div>
-          </div>
-
-          {/* Heading */}
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Sign in to your account to continue</p>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <span>{error}</span>
+        <div className="w-full max-w-md relative z-10 my-auto lg:my-0">
+          <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] shadow-2xl shadow-black/5 border border-white dark:border-slate-800 overflow-hidden">
+            <div className="p-4 sm:p-10 space-y-3 lg:space-y-6">
+              
+              {/* Mobile Branding - Tightened for maximum compactness */}
+              <div className="lg:hidden flex flex-col items-center justify-center text-center space-y-2 pt-1 mb-2">
+                <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center p-2 ring-1 ring-slate-100 shadow-sm">
+                  <img src={logo} alt="SkyCity" className="h-full w-full object-contain" />
+                </div>
+                <div className="space-y-0">
+                  <h1 className="font-black text-xl tracking-tighter text-primary lowercase skycity-logo-text leading-none">SkyCity</h1>
+                  <p className="text-primary/50 text-[8px] tracking-[0.2em] uppercase reports-subtext font-bold">Reports Platform</p>
+                </div>
               </div>
-            )}
 
-            <div className="space-y-1.5">
-              <Label htmlFor="username" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Username or Email
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 transition-colors text-sm"
-                disabled={isLoading}
-              />
-            </div>
+              {/* Heading - HIDDEN ON MOBILE */}
+              <div className="hidden lg:block space-y-1 text-center sm:text-left">
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">Welcome back</h2>
+                <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">Sign in to your account</p>
+              </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 pr-12 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-800 transition-colors text-sm"
-                  disabled={isLoading}
-                />
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-5">
+                {error && (
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-bold animate-shake">
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                <div className="space-y-0.5 sm:space-y-1.5">
+                  <Label htmlFor="username" className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Username
+                  </Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="h-10 sm:h-12 rounded-xl border-slate-100 bg-slate-50 focus:bg-white transition-all text-xs sm:text-sm font-medium"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="space-y-0.5 sm:space-y-1.5">
+                  <Label htmlFor="password" className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-10 sm:h-12 pr-11 rounded-xl border-slate-100 bg-slate-50 focus:bg-white transition-all text-xs sm:text-sm font-medium"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary transition-colors p-2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {!hideTerms && (
+                  <div className="flex items-start gap-2.5 mt-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                    <Checkbox 
+                      id="terms" 
+                      checked={acceptedTerms}
+                      onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+                      className="mt-0.5 rounded-md h-3.5 w-3.5"
+                    />
+                    <div className="text-[10px] leading-tight flex-1">
+                      <label htmlFor="terms" className="font-bold text-slate-500 cursor-pointer">I agree to the </label>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <button type="button" className="text-primary hover:underline font-black focus:outline-none text-left">Terms and Conditions</button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border-none">
+                          <DialogHeader><DialogTitle className="text-xl font-black">Terms and Conditions</DialogTitle></DialogHeader>
+                          <div className="whitespace-pre-wrap text-sm text-slate-500 mt-4 leading-relaxed">{termsContent || 'Loading terms...'}</div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                )}
+
                 <button
-                  type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
-                  onClick={() => setShowPassword(!showPassword)}
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-11 sm:h-12 mt-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs sm:text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {isLoading ? <><LoadingSpinner size="sm" /><span>Wait...</span></> : 'Sign In'}
                 </button>
+              </form>
+
+              <div className="flex items-center gap-2 my-2 sm:my-4">
+                <div className="flex-1 h-[1px] bg-slate-50" />
+                <span className="text-[8px] font-black tracking-widest text-slate-200 uppercase">Secure</span>
+                <div className="flex-1 h-[1px] bg-slate-50" />
               </div>
+
+              <p className="text-center text-[8px] text-slate-300 font-bold uppercase tracking-tight">
+                © 2026 SkyCity.
+              </p>
             </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm transition-all duration-300 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-            >
-              {isLoading ? (
-                <>
-                  <LoadingSpinner size="sm" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
-            <span className="text-xs text-slate-400">SECURE LOGIN</span>
-            <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
           </div>
-
-          <p className="text-center text-xs text-slate-400">
-            Protected by enterprise-grade security. Your data is safe.
-          </p>
         </div>
       </div>
+
+
+
+
+
     </div>
   );
 };

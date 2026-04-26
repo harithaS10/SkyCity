@@ -233,6 +233,7 @@ public class User : ISoftDelete
     public string? Address { get; set; }
     public string? ProfilePicture { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool TermsStatus { get; set; } = false;
     public DateTime? LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -424,3 +425,5 @@ public class AssistanceRequest
     public bool IsRead { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+

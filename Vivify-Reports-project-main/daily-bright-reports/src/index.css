@@ -6,60 +6,58 @@
 
 @layer base {
   :root {
-    --background: 210 40% 99%;
-    --foreground: 222 47% 11%;
+    --background: 180 30% 98%;
+    --foreground: 195 30% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 195 30% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 195 30% 10%;
 
-    /* SkyCity Logo Blue (#0E91D4) */
-    --primary: 200 88% 45%;
+    /* Deep Teal #0D9488 */
+    --primary: 174 72% 35%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 200 88% 25%;
+    --secondary: 174 30% 95%;
+    --secondary-foreground: 174 50% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 174 15% 95%;
+    --muted-foreground: 195 12% 48%;
 
-    --accent: 200 88% 95%;
-    --accent-foreground: 200 88% 45%;
+    --accent: 174 60% 94%;
+    --accent-foreground: 174 72% 30%;
 
-    /* SkyCity Reports Red (#FF3B30) */
-    --destructive: 4 100% 59%;
+    --destructive: 4 84% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142.1 76.2% 36.3%;
+    --success: 142 72% 38%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --warning-foreground: 0 0% 10%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 200 88% 45%;
+    --border: 174 20% 90%;
+    --input: 174 20% 90%;
+    --ring: 174 72% 35%;
 
-    --radius: 0.85rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 200 88% 45%;
+    --sidebar-foreground: 195 30% 10%;
+    --sidebar-primary: 174 72% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 200 88% 98%;
-    --sidebar-accent-foreground: 200 88% 45%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 200 88% 45%;
+    --sidebar-accent: 174 60% 94%;
+    --sidebar-accent-foreground: 174 72% 30%;
+    --sidebar-border: 174 20% 90%;
+    --sidebar-ring: 174 72% 35%;
 
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-1: 174 72% 35%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 142 72% 38%;
+    --chart-4: 4 84% 55%;
+    --chart-5: 195 80% 45%;
 
-    /* Safe Area Insets for Mobile */
     --safe-area-top: env(safe-area-inset-top);
     --safe-area-bottom: env(safe-area-inset-bottom);
     --safe-area-left: env(safe-area-inset-left);
@@ -67,44 +65,42 @@
   }
 
   .dark {
-    /* Professional Dark Blue background (#0F172A) */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 195 30% 7%;
+    --foreground: 180 15% 93%;
 
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 98%;
+    --card: 195 28% 11%;
+    --card-foreground: 180 15% 93%;
 
-    --popover: 222 47% 13%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 195 28% 11%;
+    --popover-foreground: 180 15% 93%;
 
-    /* Lighter Brand Blue for Dark Mode (#38BDF8) */
-    --primary: 199 89% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 174 72% 48%;
+    --primary-foreground: 195 30% 7%;
 
-    --secondary: 222 30% 18%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 195 22% 16%;
+    --secondary-foreground: 180 15% 93%;
 
-    --muted: 222 30% 18%;
-    --muted-foreground: 218 20% 65%;
+    --muted: 195 22% 16%;
+    --muted-foreground: 195 12% 58%;
 
-    --accent: 222 30% 18%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 195 22% 16%;
+    --accent-foreground: 180 15% 93%;
 
-    --destructive: 4 100% 59%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 4 84% 55%;
+    --destructive-foreground: 180 15% 93%;
 
-    --border: 222 30% 20%;
-    --input: 222 30% 20%;
-    --ring: 199 89% 60%;
+    --border: 195 22% 18%;
+    --input: 195 22% 18%;
+    --ring: 174 72% 48%;
 
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 218 20% 65%;
-    --sidebar-primary: 199 89% 60%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 222 47% 13%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 30% 20%;
-    --sidebar-ring: 199 89% 60%;
+    --sidebar-background: 195 30% 8%;
+    --sidebar-foreground: 195 12% 58%;
+    --sidebar-primary: 174 72% 48%;
+    --sidebar-primary-foreground: 195 30% 7%;
+    --sidebar-accent: 195 28% 11%;
+    --sidebar-accent-foreground: 180 15% 93%;
+    --sidebar-border: 195 22% 18%;
+    --sidebar-ring: 174 72% 48%;
 
     --radius: 0.75rem;
   }
@@ -122,18 +118,16 @@
     outline: none !important;
   }
 
-  h1,
-  h2,
-  h3,
-  h4 {
+  h1, h2, h3, h4 {
     @apply text-primary font-bold tracking-tight;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
-    background-image: radial-gradient(at 0% 0%, hsla(200, 88%, 45%, 0.05) 0px, transparent 50%),
-                      radial-gradient(at 100% 100%, hsla(200, 88%, 45%, 0.03) 0px, transparent 50%);
+    background-image:
+      radial-gradient(at 0% 0%, hsla(174, 72%, 35%, 0.10) 0px, transparent 55%),
+      radial-gradient(at 100% 100%, hsla(195, 80%, 45%, 0.07) 0px, transparent 55%);
     background-attachment: fixed;
     padding-top: var(--safe-area-top);
     padding-bottom: var(--safe-area-bottom);
@@ -142,19 +136,19 @@
   }
 
   .dark body {
-    background-image: radial-gradient(at 0% 0%, hsla(200, 88%, 60%, 0.05) 0px, transparent 50%),
-                      radial-gradient(at 100% 100%, hsla(200, 88%, 60%, 0.03) 0px, transparent 50%);
+    background-image:
+      radial-gradient(at 0% 0%, hsla(174, 72%, 20%, 0.45) 0px, transparent 55%),
+      radial-gradient(at 100% 100%, hsla(195, 60%, 18%, 0.35) 0px, transparent 55%);
   }
 }
 
 @layer utilities {
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-  
   .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    display: none;
   }
 }
 
@@ -164,7 +158,6 @@
 
 .hud-font {
   font-family: 'Inter', sans-serif;
-  /* Using Inter but with extreme tracking for the 'HUD' look */
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
@@ -175,11 +168,11 @@
   font-weight: 900;
   text-transform: lowercase;
   color: #ffffff;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  filter: drop-shadow(0 2px 8px rgba(13,148,136,0.5));
 }
 
 .dark .skycity-logo-text {
-  color: #f8fafc;
+  color: #ccfbf1;
 }
 
 .reports-subtext {
@@ -194,29 +187,20 @@
   @apply transition-all duration-200 border-none bg-transparent focus-visible:ring-0 px-0 py-1 min-h-[40px] leading-relaxed w-full;
   scrollbar-width: none;
 }
+.description-textarea::-webkit-scrollbar { display: none; }
 
-.description-textarea::-webkit-scrollbar {
-  display: none;
-}
-
-.row-hover {
-  @apply transition-colors duration-200;
-}
-
-.dark .row-hover:hover {
-  background-color: #334155;
-}
+.row-hover { @apply transition-colors duration-200; }
+.dark .row-hover:hover { background-color: hsl(195 22% 16%); }
 
 .btn-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary)), #076E9F);
-  @apply text-white shadow-md transition-all duration-300 hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] border-none;
+  background: linear-gradient(135deg, hsl(174, 72%, 35%), hsl(195, 80%, 38%));
+  @apply text-white shadow-lg shadow-teal-500/25 transition-all duration-300 hover:shadow-teal-500/35 hover:scale-[1.02] active:scale-[0.98] border-none;
 }
 
 .status-badge-due {
   @apply px-2 py-0.5 rounded text-[10px] font-bold;
   background-color: rgba(220, 38, 38, 0.1);
   color: #fb7185;
-  /* Soft coral-red */
 }
 
 .animate-pulse-subtle {

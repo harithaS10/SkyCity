@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SkyCity.Models;
 using SkycityBackend.Interfaces;
 using SkycityBackend.Models;
 
@@ -40,6 +41,7 @@ public class AppDbContext : DbContext
     public DbSet<Announcement> Announcements { get; set; }
     public DbSet<DailyReportDraft> DailyReportDrafts { get; set; }
     public DbSet<AssistanceRequest> AssistanceRequests { get; set; }
+    public DbSet<TermAndCondition> TermsAndConditions { get; set; }
 
     public int? CurrentAssociationId => _httpContextAccessor.HttpContext?.Items["AssociationId"] as int?;
     public bool IsSuperAdmin => _httpContextAccessor.HttpContext?.User.IsInRole("super_admin") ?? false;

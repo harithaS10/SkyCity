@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api, RolePermissions } from '@/lib/api';
 import { User, UserRole } from '@/types';
+export type { User, UserRole };
 
 interface AuthContextType {
   user: User | null;
@@ -15,7 +16,7 @@ interface AuthContextType {
   isHelpdesk: boolean;
   canExport: boolean;
   hasPermission: (module: string, action?: 'view' | 'create' | 'edit' | 'delete') => boolean;
-  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
+  login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string; user?: User }>;
   logout: () => void;
   updateBranding: (branding: { associationName?: string; logoUrl?: string; themeColor?: string }) => void;
 }
@@ -23,6 +24,7 @@ interface AuthContextType {
 export interface LoginCredentials {
   username: string;
   password: string;
+  acceptTerms?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,10 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = async (
     credentials: LoginCredentials
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; error?: string; user?: User }> => {
     setIsLoading(true);
     try {
-      const response = await api.auth.login(credentials.username, credentials.password);
+      const response = await api.auth.login(credentials.username, credentials.password, credentials.acceptTerms);
 
       if (response.success && response.data) {
         const { token, user: apiUser } = response.data;
@@ -89,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           propertyId: apiUser.propertyId,
           buildingId: apiUser.buildingId,
           unitId: apiUser.unitId,
+          hasAcceptedTerms: apiUser.termsStatus,
           createdAt: apiUser.createdAt || new Date().toISOString(),
           // Branding (optional from backend if needed)
           associationName: apiUser.associationName,
@@ -101,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         localStorage.setItem('user', JSON.stringify(mappedUser));
         await loadRolePermissions(mappedUser.role, mappedUser.associationId);
         setIsLoading(false);
-        return { success: true };
+        return { success: true, user: mappedUser };
       } else {
         setIsLoading(false);
         return { success: false, error: response.message || 'Login failed' };
