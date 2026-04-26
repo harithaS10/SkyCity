@@ -50,6 +50,7 @@ const Complaints: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selected, setSelected] = useState<Complaint | null>(null);
@@ -86,9 +87,10 @@ const Complaints: React.FC = () => {
 
   const filtered = complaints.filter(c => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch = !q || c.title.toLowerCase().includes(q) || c.complaintNumber.toLowerCase().includes(q);
+    const matchesSearch = !q || c.title.toLowerCase().includes(q) || c.complaintNumber.toLowerCase().includes(q) || c.priority.toLowerCase().includes(q) || c.status.toLowerCase().includes(q);
     const matchesStatus = filterStatus === 'all' || c.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesPriority = filterPriority === 'all' || c.priority === filterPriority;
+    return matchesSearch && matchesStatus && matchesPriority;
   });
 
   const counts = {
@@ -392,6 +394,26 @@ const Complaints: React.FC = () => {
                     {tab !== 'all' && counts[tab as keyof typeof counts] > 0 && (
                       <span className="ml-1 opacity-70">({counts[tab as keyof typeof counts]})</span>
                     )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Mobile Priority Filter */}
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{scrollbarWidth: 'none'}}>
+                <span className="shrink-0 text-[10px] font-black text-slate-400 uppercase tracking-widest self-center">Priority:</span>
+                {(['all', 'Low', 'Medium', 'High', 'Urgent'] as const).map(p => (
+                  <button key={p} onClick={() => setFilterPriority(p)}
+                    className={cn(
+                      "shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95",
+                      filterPriority === p
+                        ? p === 'Urgent' ? 'bg-rose-500 text-white'
+                        : p === 'High' ? 'bg-orange-500 text-white'
+                        : p === 'Medium' ? 'bg-amber-500 text-white'
+                        : p === 'Low' ? 'bg-slate-500 text-white'
+                        : 'bg-primary text-white'
+                        : 'bg-white dark:bg-slate-800 text-slate-500 ring-1 ring-slate-100 dark:ring-slate-700'
+                    )}>
+                    {p === 'all' ? 'All' : p}
                   </button>
                 ))}
               </div>

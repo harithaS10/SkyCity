@@ -34,10 +34,12 @@ import {
 interface Employee {
   id: number;
   name: string;
+  fullName?: string;
   username: string;
   email: string;
   role: string;
   status: string;
+  isActive?: boolean;
   department?: string;
   createdAt: string;
 }

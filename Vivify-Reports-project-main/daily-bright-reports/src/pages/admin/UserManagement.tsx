@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
-import type { Department, CustomRole } from '@/lib/api';
+import type { CustomRole } from '@/lib/api';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+
+interface Department { id: number; departmentName: string; }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
