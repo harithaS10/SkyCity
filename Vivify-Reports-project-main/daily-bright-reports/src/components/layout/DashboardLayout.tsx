@@ -129,6 +129,7 @@ const managementItems: DropdownItem[] = [
   { label: 'Work Management', href: '/admin/works', icon: <Briefcase className="h-3.5 w-3.5" /> },
   { label: 'Role Management', href: '/admin/roles', icon: <Shield className="h-3.5 w-3.5" /> },
   { label: 'Branding', href: '/admin/themes', icon: <Palette className="h-3.5 w-3.5" /> },
+  { label: 'Terms & Conditions', href: '/admin/terms', icon: <FileText className="h-3.5 w-3.5" /> },
 ];
 
 const taskManagementItems: DropdownItem[] = [
