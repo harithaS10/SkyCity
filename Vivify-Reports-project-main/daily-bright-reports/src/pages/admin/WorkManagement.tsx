@@ -296,77 +296,97 @@ const WorkManagement: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <Table className="border-x">
+                <Table className="border-x table-fixed w-full">
+                  <colgroup>
+                    <col style={{ width: '56px' }} />
+                    <col style={{ width: '25%' }} />
+                    <col style={{ width: '45%' }} />
+                    <col style={{ width: '18%' }} />
+                    <col style={{ width: '100px' }} />
+                  </colgroup>
                   <TableHeader className="bg-primary hover:bg-primary">
                     <TableRow className="hover:bg-transparent border-none">
+                      <TableHead className="text-white font-semibold h-11 text-center">S/No</TableHead>
                       <TableHead className="text-white font-semibold last:border-r-0 h-11">Code</TableHead>
                       <TableHead className="text-white font-semibold last:border-r-0 h-11">Title</TableHead>
                       <TableHead className="text-white font-semibold last:border-r-0 h-11">Type</TableHead>
                       <TableHead className="text-right text-white font-semibold px-4 h-11">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {filteredWorks.map((work, index) => (
-                      <TableRow
-                        key={work.id}
-                        className="animate-fade-in hover:bg-slate-50/50 transition-colors border-b border-slate-100"
-                        style={{ animationDelay: `${index * 0.03}s` }}
-                      >
-                        <TableCell className="border-r border-slate-200 last:border-r-0">
-                          <Badge variant="outline" className="font-mono bg-primary/10 text-primary border-primary/20">
-                            {work.workCode}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-medium border-r border-slate-200 last:border-r-0">{work.workTitle}</TableCell>
-                        <TableCell className="border-r border-slate-200 last:border-r-0">
-                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                            {work.workType || 'Standard'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openEditDialog(work)}
-                              className="hover:text-primary hover:bg-primary/10"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="hover:text-destructive hover:bg-destructive/10"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-card">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Work Type?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete "{work.workTitle}" ({work.workCode}). This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeleteWork(work.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
                 </Table>
+                <div className="overflow-y-auto" style={{ maxHeight: '392px' }}>
+                  <Table className="border-x table-fixed w-full">
+                    <colgroup>
+                      <col style={{ width: '56px' }} />
+                      <col style={{ width: '25%' }} />
+                      <col style={{ width: '45%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '100px' }} />
+                    </colgroup>
+                    <TableBody>
+                      {filteredWorks.map((work, index) => (
+                        <TableRow
+                          key={work.id}
+                          className="animate-fade-in hover:bg-slate-50/50 transition-colors border-b border-slate-100"
+                          style={{ animationDelay: `${index * 0.03}s` }}
+                        >
+                          <TableCell className="border-r border-slate-200 text-center text-slate-500 text-sm font-medium">{index + 1}</TableCell>
+                          <TableCell className="border-r border-slate-200 last:border-r-0">
+                            <Badge variant="outline" className="font-mono bg-primary/10 text-primary border-primary/20">
+                              {work.workCode}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-medium border-r border-slate-200 last:border-r-0">{work.workTitle}</TableCell>
+                          <TableCell className="border-r border-slate-200 last:border-r-0">
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                              {work.workType || 'Standard'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditDialog(work)}
+                                className="hover:text-primary hover:bg-primary/10"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="bg-card">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Work Type?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete "{work.workTitle}" ({work.workCode}). This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteWork(work.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </CardContent>
           </Card>

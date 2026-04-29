@@ -56,6 +56,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 
 const ClientManagement: React.FC = () => {
@@ -301,104 +312,138 @@ const ClientManagement: React.FC = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <Table className="border-x">
+                  <Table className="border-x table-fixed w-full">
+                    <colgroup>
+                      <col style={{ width: '56px' }} />
+                      <col style={{ width: '30%' }} />
+                      <col style={{ width: '25%' }} />
+                      <col style={{ width: '15%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '80px' }} />
+                    </colgroup>
                     <TableHeader className="bg-primary hover:bg-primary">
                       <TableRow className="hover:bg-transparent border-none">
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11">Client</TableHead>
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11">Contact</TableHead>
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11">Status</TableHead>
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11">Created</TableHead>
+                        <TableHead className="text-white font-semibold h-11 text-center">S/No</TableHead>
+                        <TableHead className="text-white font-semibold h-11">Client</TableHead>
+                        <TableHead className="text-white font-semibold h-11">Contact</TableHead>
+                        <TableHead className="text-white font-semibold h-11">Status</TableHead>
+                        <TableHead className="text-white font-semibold h-11">Created</TableHead>
                         <TableHead className="text-right text-white font-semibold px-4 h-11">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
-                      {filteredClients.map((client, index) => (
-                        <TableRow
-                          key={client.id}
-                          className="animate-fade-in hover:bg-slate-50/50"
-                          style={{ animationDelay: `${index * 0.05}s` }}
-                        >
-                          <TableCell className="border-r border-slate-200 last:border-r-0">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden p-1.5 transition-transform group-hover:scale-105">
-                                {client.logoUrl ? (
-                                  <img src={client.logoUrl} alt={client.name} className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                                ) : (
-                                  <Building2 className="h-6 w-6 text-slate-400" />
+                  </Table>
+                  <div className="overflow-y-auto" style={{ maxHeight: '392px' }}>
+                    <Table className="border-x table-fixed w-full">
+                      <colgroup>
+                        <col style={{ width: '56px' }} />
+                        <col style={{ width: '30%' }} />
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '18%' }} />
+                        <col style={{ width: '80px' }} />
+                      </colgroup>
+                      <TableBody>
+                        {filteredClients.map((client, index) => (
+                          <TableRow
+                            key={client.id}
+                            className="animate-fade-in hover:bg-slate-50/50"
+                            style={{ animationDelay: `${index * 0.05}s` }}
+                          >
+                            <TableCell className="border-r border-slate-200 w-12 text-center text-slate-500 text-sm font-medium">{index + 1}</TableCell>
+                            <TableCell className="border-r border-slate-200">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200 overflow-hidden p-1.5 transition-transform group-hover:scale-105">
+                                  {client.logoUrl ? (
+                                    <img src={client.logoUrl} alt={client.name} className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                  ) : (
+                                    <Building2 className="h-6 w-6 text-slate-400" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-medium">{client.name}</p>
+                                  <p className="text-sm text-muted-foreground">{client.company}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="border-r border-slate-200">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Mail className="h-3 w-3 text-muted-foreground" />
+                                  {client.email}
+                                </div>
+                                {client.phone && (
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Phone className="h-3 w-3" />
+                                    {client.phone}
+                                  </div>
                                 )}
                               </div>
-                              <div>
-                                <p className="font-medium">{client.name}</p>
-                                <p className="text-sm text-muted-foreground">{client.company}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="border-r border-slate-200 last:border-r-0">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Mail className="h-3 w-3 text-muted-foreground" />
-                                {client.email}
-                              </div>
-                              {client.phone && (
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Phone className="h-3 w-3" />
-                                  {client.phone}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="border-r border-slate-200 last:border-r-0">
-                            {(() => {
-                              const active = client.isActive !== undefined ? client.isActive : (client.IsActive !== undefined ? client.IsActive : client.status === 'active');
-                              return (
-                                <Badge
-                                  className={
-                                    active
-                                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 capitalize font-medium px-2.5 py-0.5'
-                                      : 'bg-red-500/10 text-red-500 border-red-500/20 capitalize font-medium px-2.5 py-0.5'
-                                  }
+                            </TableCell>
+                            <TableCell className="border-r border-slate-200">
+                              {(() => {
+                                const active = client.isActive !== undefined ? client.isActive : (client.IsActive !== undefined ? client.IsActive : client.status === 'active');
+                                return (
+                                  <Badge
+                                    className={
+                                      active
+                                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 capitalize font-medium px-2.5 py-0.5'
+                                        : 'bg-red-500/10 text-red-500 border-red-500/20 capitalize font-medium px-2.5 py-0.5'
+                                    }
+                                  >
+                                    <span className={`h-1.5 w-1.5 rounded-full mr-2 ${active ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                    {active ? 'Active' : 'Inactive'}
+                                  </Badge>
+                                );
+                              })()}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground border-r border-slate-200">
+                              {client.createdAt ? format(new Date(client.createdAt), 'PPP') : 'N/A'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => { setEditingClient(client); setIsEditDialogOpen(true); }}
+                                  className="hover:text-primary hover:bg-primary/10"
                                 >
-                                  <span className={`h-1.5 w-1.5 rounded-full mr-2 ${active ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                  {active ? 'Active' : 'Inactive'}
-                                </Badge>
-                              );
-                            })()}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground border-r border-slate-200 last:border-r-0">
-                            {client.createdAt ? format(new Date(client.createdAt), 'PPP') : 'N/A'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-                                  <MoreVertical className="h-4 w-4" />
+                                  <Pencil className="h-4 w-4" />
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-card">
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setEditingClient(client);
-                                    setIsEditDialogOpen(true);
-                                  }}
-                                  className="cursor-pointer"
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit Client
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteClient(client.id)}
-                                  className="text-destructive cursor-pointer"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete Client
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="hover:text-destructive hover:bg-destructive/10"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="bg-card">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Client?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete "{client.name}". This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteClient(client.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>

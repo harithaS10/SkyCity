@@ -57,6 +57,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
@@ -433,78 +444,98 @@ const UserManagement: React.FC = () => {
             <CardContent className="p-0">
               <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
                 <div className="overflow-x-auto">
-                <Table className="border-x">
-                  <TableHeader className={`${headerBg} hover:${headerBg}`}>
-                    <TableRow className="hover:bg-transparent border-none">
-                      <TableHead className={headerText}>User</TableHead>
-                      <TableHead className={headerText}>Role</TableHead>
-                      <TableHead className={headerText}>Status</TableHead>
-                      <TableHead className={headerText}>Created</TableHead>
-                      <TableHead className="text-right text-white font-semibold px-4 h-11">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id} className="hover:bg-slate-50/50">
-                        <TableCell className={cellBorder}>
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
-                              <User className="h-4 w-4 text-slate-500" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{user.name}</p>
-                              <p className="text-xs text-muted-foreground">{user.email}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className={cellBorder}>
-                          <Select value={user.role} onValueChange={(value: string) => handleRoleChange(user.id, value)}>
-                            <SelectTrigger className="w-32 h-8 bg-background border-slate-200">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card">
-                              <SelectItem value="super_admin">Super Admin</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="sub_admin">Sub Admin</SelectItem>
-                              <SelectItem value="property_manager">Property Manager</SelectItem>
-                              <SelectItem value="facility_manager">Facility Manager</SelectItem>
-                              <SelectItem value="staff">Staff</SelectItem>
-                              <SelectItem value="vendor">Vendor</SelectItem>
-                              <SelectItem value="resident">Resident</SelectItem>
-                              <SelectItem value="accountant">Accountant</SelectItem>
-                              <SelectItem value="helpdesk">Helpdesk</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className={cellBorder}>
-                          <div className="flex items-center gap-2">
-                            <Switch checked={user.status === 'active'} onCheckedChange={() => handleToggleEnabled(user.id)} />
-                            <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className="px-2 py-0 text-[10px]">
-                              {user.status === 'active' ? 'Active' : 'Disabled'}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className={`${cellBorder} text-slate-500 text-sm`}>
-                          {format(parseISO(user.createdAt), 'MMM dd, yyyy')}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-card">
-                              <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive cursor-pointer">
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete User
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                  <Table className="border-x table-fixed w-full">
+                    <colgroup>
+                      <col style={{ width: '56px' }} />
+                      <col style={{ width: '30%' }} />
+                      <col style={{ width: '20%' }} />
+                      <col style={{ width: '20%' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '80px' }} />
+                    </colgroup>
+                    <TableHeader className={`${headerBg} hover:${headerBg}`}>
+                      <TableRow className="hover:bg-transparent border-none">
+                        <TableHead className={`${headerText} text-center`}>S/No</TableHead>
+                        <TableHead className={headerText}>User</TableHead>
+                        <TableHead className={headerText}>Role</TableHead>
+                        <TableHead className={headerText}>Status</TableHead>
+                        <TableHead className={headerText}>Created</TableHead>
+                        <TableHead className="text-right text-white font-semibold px-4 h-11">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                  </Table>
+                  <div className="overflow-y-auto" style={{ maxHeight: '392px' }}>
+                    <Table className="border-x table-fixed w-full">
+                      <colgroup>
+                        <col style={{ width: '56px' }} />
+                        <col style={{ width: '30%' }} />
+                        <col style={{ width: '20%' }} />
+                        <col style={{ width: '20%' }} />
+                        <col style={{ width: '18%' }} />
+                        <col style={{ width: '80px' }} />
+                      </colgroup>
+                      <TableBody>
+                        {filteredUsers.map((user, index) => (
+                          <TableRow key={user.id} className="hover:bg-slate-50/50">
+                            <TableCell className={`${cellBorder} w-12 text-center text-slate-500 text-sm font-medium`}>{index + 1}</TableCell>
+                            <TableCell className={cellBorder}>
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100">
+                                  <User className="h-4 w-4 text-slate-500" />
+                                </div>
+                                <div>
+                                  <p className="font-medium">{user.name}</p>
+                                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className={cellBorder}>
+                              <Select value={user.role} onValueChange={(value: string) => handleRoleChange(user.id, value)}>
+                                <SelectTrigger className="w-32 h-8 bg-background border-slate-200">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-card">
+                                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="sub_admin">Sub Admin</SelectItem>
+                                  <SelectItem value="property_manager">Property Manager</SelectItem>
+                                  <SelectItem value="facility_manager">Facility Manager</SelectItem>
+                                  <SelectItem value="staff">Staff</SelectItem>
+                                  <SelectItem value="vendor">Vendor</SelectItem>
+                                  <SelectItem value="resident">Resident</SelectItem>
+                                  <SelectItem value="accountant">Accountant</SelectItem>
+                                  <SelectItem value="helpdesk">Helpdesk</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className={cellBorder}>
+                              <div className="flex items-center gap-2">
+                                <Switch checked={user.status === 'active'} onCheckedChange={() => handleToggleEnabled(user.id)} />
+                                <Badge variant={user.status === 'active' ? 'default' : 'secondary'} className="px-2 py-0 text-[10px]">
+                                  {user.status === 'active' ? 'Active' : 'Disabled'}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className={`${cellBorder} text-slate-500 text-sm`}>
+                              {format(parseISO(user.createdAt), 'MMM dd, yyyy')}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  className="hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
             </CardContent>
