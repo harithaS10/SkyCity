@@ -89,8 +89,16 @@ const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = 
 };
 
 const Analytics: React.FC = () => {
-  const { canExport } = useAuth();
+  const { user, canExport, hasPermission } = useAuth();
+  const canView = user?.role === 'staff' ? hasPermission('analytics', 'view') : true;
   const navigate = useNavigate();
+
+  // Redirect if no permission
+  React.useEffect(() => {
+    if (!canView) {
+      navigate('/dashboard');
+    }
+  }, [canView, navigate]);
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [customStartDate, setCustomStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));

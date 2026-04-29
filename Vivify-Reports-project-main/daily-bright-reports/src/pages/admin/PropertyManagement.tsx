@@ -407,32 +407,32 @@ const PropertyManagement: React.FC = () => {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search properties..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
         {/* Desktop Table */}
-        <Card className="hidden md:block">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
-              Properties ({properties.length})
-            </CardTitle>
+        <Card className="hidden md:block overflow-hidden border-none shadow-md">
+          <CardHeader className="bg-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Building2 className="h-5 w-5" />
+                All Properties
+              </CardTitle>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search properties..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {isLoading ? (
               <div className="flex justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : properties.length === 0 ? (
-              <div className="text-center py-16 border-2 border-dashed rounded-lg bg-slate-50">
+              <div className="text-center py-16 border-2 border-dashed rounded-lg bg-slate-50 mx-6 mb-6">
                 <Building2 className="h-12 w-12 mx-auto mb-4 text-slate-300" />
                 <p className="text-slate-500 font-medium">No properties found</p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -440,94 +440,107 @@ const PropertyManagement: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>Property Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Details</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {properties.map((prop, i) => (
-                      <TableRow key={prop.id}>
-                        <TableCell className="text-slate-500">{i + 1}</TableCell>
-                        <TableCell className="font-medium">{prop.propertyName}</TableCell>
-                        <TableCell>
-                          {prop.propertyType === 'apartment' ? (
-                            <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-0">
-                              <Home className="h-3 w-3 mr-1" />
-                              Apartment
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-100 border-0">
-                              <Layers className="h-3 w-3 mr-1" />
-                              Common Area
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm space-y-0.5">
-                            {prop.towerName && (
-                              <div className="text-slate-600">
-                                <span className="text-slate-400">Tower:</span> {prop.towerName}
-                              </div>
-                            )}
-                            {prop.floorNo && (
-                              <div className="text-slate-600">
-                                <span className="text-slate-400">Floor:</span> {prop.floorNo}
-                              </div>
-                            )}
-                            {prop.doorNo && (
-                              <div className="text-slate-600">
-                                <span className="text-slate-400">Door:</span> {prop.doorNo}
-                              </div>
-                            )}
-                            {prop.commonAreas && (
-                              <div className="text-slate-600">
-                                <span className="text-slate-400">Areas:</span> {prop.commonAreas}
-                              </div>
-                            )}
-                            {prop.address && (
-                              <div className="text-slate-500 flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {prop.address}
-                              </div>
-                            )}
-                            {!prop.towerName && !prop.floorNo && !prop.doorNo && !prop.commonAreas && !prop.address && (
-                              <span className="text-slate-400">—</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {prop.contactName || prop.contactMobile ? (
-                            <div className="text-sm">
-                              {prop.contactName && <div className="font-medium text-slate-700">{prop.contactName}</div>}
-                              {prop.contactMobile && <div className="text-slate-500">{prop.contactMobile}</div>}
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1 text-rose-600 hover:bg-rose-50 hover:border-rose-200"
-                            onClick={() => setDeleteConfirmId(prop.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Delete
-                          </Button>
-                        </TableCell>
+              <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table className="border-x table-fixed w-full">
+                    <colgroup>
+                      <col style={{ width: '52px' }} />
+                      <col style={{ width: '25%' }} />
+                      <col style={{ width: '15%' }} />
+                      <col style={{ width: '30%' }} />
+                      <col style={{ width: '20%' }} />
+                      <col style={{ width: '90px' }} />
+                    </colgroup>
+                    <TableHeader className="bg-primary hover:bg-primary">
+                      <TableRow className="hover:bg-transparent border-none">
+                        <TableHead className="text-white font-semibold h-11 text-center">#</TableHead>
+                        <TableHead className="text-white font-semibold h-11">Property Name</TableHead>
+                        <TableHead className="text-white font-semibold h-11">Type</TableHead>
+                        <TableHead className="text-white font-semibold h-11">Details</TableHead>
+                        <TableHead className="text-white font-semibold h-11">Contact</TableHead>
+                        <TableHead className="text-white font-semibold h-11 text-right px-4">Action</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                  </Table>
+                  <div className="overflow-y-auto" style={{ maxHeight: '392px' }}>
+                    <Table className="border-x table-fixed w-full">
+                      <colgroup>
+                        <col style={{ width: '52px' }} />
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '30%' }} />
+                        <col style={{ width: '20%' }} />
+                        <col style={{ width: '90px' }} />
+                      </colgroup>
+                      <TableBody>
+                        {properties.map((prop, i) => (
+                          <TableRow key={prop.id} className="hover:bg-slate-50/50">
+                            <TableCell className="border-r border-slate-200 text-center text-slate-500 text-sm font-medium">{i + 1}</TableCell>
+                            <TableCell className="border-r border-slate-200 font-medium">{prop.propertyName}</TableCell>
+                            <TableCell className="border-r border-slate-200">
+                              {prop.propertyType === 'apartment' ? (
+                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-0">
+                                  <Home className="h-3 w-3 mr-1" />
+                                  Apartment
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-100 border-0">
+                                  <Layers className="h-3 w-3 mr-1" />
+                                  Common Area
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="border-r border-slate-200">
+                              <div className="text-sm space-y-0.5">
+                                {prop.towerName && (
+                                  <div className="text-slate-600"><span className="text-slate-400">Tower:</span> {prop.towerName}</div>
+                                )}
+                                {prop.floorNo && (
+                                  <div className="text-slate-600"><span className="text-slate-400">Floor:</span> {prop.floorNo}</div>
+                                )}
+                                {prop.doorNo && (
+                                  <div className="text-slate-600"><span className="text-slate-400">Door:</span> {prop.doorNo}</div>
+                                )}
+                                {prop.commonAreas && (
+                                  <div className="text-slate-600"><span className="text-slate-400">Areas:</span> {prop.commonAreas}</div>
+                                )}
+                                {prop.address && (
+                                  <div className="text-slate-500 flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    {prop.address}
+                                  </div>
+                                )}
+                                {!prop.towerName && !prop.floorNo && !prop.doorNo && !prop.commonAreas && !prop.address && (
+                                  <span className="text-slate-400">—</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="border-r border-slate-200">
+                              {prop.contactName || prop.contactMobile ? (
+                                <div className="text-sm">
+                                  {prop.contactName && <div className="font-medium text-slate-700">{prop.contactName}</div>}
+                                  {prop.contactMobile && <div className="text-slate-500">{prop.contactMobile}</div>}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteConfirmId(prop.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,8 +51,16 @@ import { toast } from 'sonner';
 type TimeRange = 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 const MyReports: React.FC = () => {
-  // ... (Existing state)
-  const { user, canExport } = useAuth();
+  const { user, canExport, hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const canView = user?.role === 'staff' ? hasPermission('daily_reports', 'view') : true;
+
+  // Redirect if no view permission
+  React.useEffect(() => {
+    if (!canView) {
+      navigate('/dashboard');
+    }
+  }, [canView, navigate]);
   const [timeRange, setTimeRange] = useState<TimeRange>('weekly');
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

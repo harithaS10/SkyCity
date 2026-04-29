@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,8 +42,17 @@ const statusColors: Record<string, string> = {
 
 const Complaints: React.FC = () => {
   const { user, hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const canView = user?.role === 'staff' ? hasPermission('complaints', 'view') : true;
   const canManage = ['admin', 'sub_admin', 'property_manager', 'helpdesk', 'super_admin'].includes(user?.role ?? '');
   const canCreate = user?.role === 'staff' ? hasPermission('complaints', 'create') : true;
+
+  // Redirect if no view permission
+  React.useEffect(() => {
+    if (!canView) {
+      navigate('/dashboard');
+    }
+  }, [canView, navigate]);
 
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [categories, setCategories] = useState<ComplaintCategory[]>([]);

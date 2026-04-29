@@ -71,8 +71,9 @@ import {
 } from 'lucide-react';
 
 const UserDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
+  const canViewDailyReports = user?.role === 'staff' ? hasPermission('daily_reports', 'view') : true;
   const [reports, setReports] = useState<any[]>([]);
   const [allocations, setAllocations] = useState<any[]>([]);
   const [adminTasks, setAdminTasks] = useState<any[]>([]);
@@ -319,11 +320,13 @@ const UserDashboard: React.FC = () => {
                 <ListTodo className="h-3.5 w-3.5" />
                 My Tasks
               </Button>
-              <Button size="sm" onClick={() => navigate('/daily-report')}
-                className="gap-1.5 text-xs h-9 bg-white text-teal-700 hover:bg-white/90 font-bold px-4 shadow-sm border-none">
-                <FileText className="h-4 w-4" />
-                {todayReport ? 'Update Report' : 'Create Report'}
-              </Button>
+              {canViewDailyReports && (
+                <Button size="sm" onClick={() => navigate('/daily-report')}
+                  className="gap-1.5 text-xs h-9 bg-white text-teal-700 hover:bg-white/90 font-bold px-4 shadow-sm border-none">
+                  <FileText className="h-4 w-4" />
+                  {todayReport ? 'Update Report' : 'Create Report'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -333,10 +336,10 @@ const UserDashboard: React.FC = () => {
       <div className="grid grid-cols-4 gap-2">
         {[
           { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-primary-foreground bg-primary border-primary/20' },
-          { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-primary bg-primary/10 border-primary/20' },
+          canViewDailyReports && { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-primary bg-primary/10 border-primary/20' },
           { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-700 bg-amber-50 border-amber-200' },
           { label: 'Community', icon: Users, path: '/chat', color: 'text-primary bg-primary/5 border-primary/10' },
-        ].map(({ label, icon: Icon, path, color }) => (
+        ].filter(Boolean).map(({ label, icon: Icon, path, color }) => (
           <button key={path} onClick={() => navigate(path)}
             className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all hover:shadow-md active:scale-95", color)}>
             <Icon className="h-5 w-5" />
@@ -385,24 +388,26 @@ const UserDashboard: React.FC = () => {
           <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
         </div>
 
-        <div className={cn("rounded-2xl border p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
-          !todayReport ? 'bg-amber-50 border-amber-200' : 'bg-card')}
-          onClick={() => navigate('/daily-report')}>
-          <div className="flex items-center justify-between mb-3">
-            <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl",
-              !todayReport ? 'bg-amber-200' : 'bg-emerald-100')}>
-              <FileText className={cn("h-4 w-4", !todayReport ? 'text-amber-700' : 'text-emerald-600')} />
+        {canViewDailyReports && (
+          <div className={cn("rounded-2xl border p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
+            !todayReport ? 'bg-amber-50 border-amber-200' : 'bg-card')}
+            onClick={() => navigate('/daily-report')}>
+            <div className="flex items-center justify-between mb-3">
+              <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl",
+                !todayReport ? 'bg-amber-200' : 'bg-emerald-100')}>
+                <FileText className={cn("h-4 w-4", !todayReport ? 'text-amber-700' : 'text-emerald-600')} />
+              </div>
+              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                !todayReport ? 'text-amber-700 bg-amber-100 border-amber-300' : 'text-emerald-600 bg-emerald-50 border-emerald-200')}>
+                {!todayReport ? 'Pending' : 'Filed'}
+              </span>
             </div>
-            <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border",
-              !todayReport ? 'text-amber-700 bg-amber-100 border-amber-300' : 'text-emerald-600 bg-emerald-50 border-emerald-200')}>
-              {!todayReport ? 'Pending' : 'Filed'}
-            </span>
+            <p className={cn("text-sm font-bold leading-tight", !todayReport ? 'text-amber-700' : 'text-emerald-600')}>
+              {!todayReport ? 'Pending Report' : 'Report Filed'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">Today's status</p>
           </div>
-          <p className={cn("text-sm font-bold leading-tight", !todayReport ? 'text-amber-700' : 'text-emerald-600')}>
-            {!todayReport ? 'Pending Report' : 'Report Filed'}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">Today's status</p>
-        </div>
+        )}
       </div>
 
       {/* Main Content — Today's Tasks + Activity */}
@@ -633,48 +638,50 @@ const UserDashboard: React.FC = () => {
           </Card>
 
           {/* Today's report status */}
-          <Card className="shadow-sm rounded-2xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                Today's Report
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {todayReport ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <span className="text-xs font-medium text-emerald-600">Filed at {format(parseISO(todayReport.date || todayReport.Date), 'HH:mm')}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Entries</span>
-                    <span className="font-semibold text-foreground">{todayReport.entries?.length || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Pending items</span>
-                    <span className="font-semibold text-amber-600">
-                      {(todayReport.entries || []).filter((e: any) => e.status === 'pending').length}
-                    </span>
-                  </div>
-                  <Button size="sm" variant="outline" className="w-full h-7 text-xs mt-1" onClick={() => navigate('/daily-report')}>
-                    Update Report
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                    <span className="text-xs font-medium text-amber-600">Not submitted yet</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">Submit your daily report to track your work progress.</p>
-                  <Button size="sm" className="w-full h-7 text-xs mt-1" onClick={() => navigate('/daily-report')}>
-                    Create Report
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          {canViewDailyReports && (
+            <Card className="shadow-sm rounded-2xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Today's Report
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {todayReport ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                      <span className="text-xs font-medium text-emerald-600">Filed at {format(parseISO(todayReport.date || todayReport.Date), 'HH:mm')}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Entries</span>
+                      <span className="font-semibold text-foreground">{todayReport.entries?.length || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Pending items</span>
+                      <span className="font-semibold text-amber-600">
+                        {(todayReport.entries || []).filter((e: any) => e.status === 'pending').length}
+                      </span>
+                    </div>
+                    <Button size="sm" variant="outline" className="w-full h-7 text-xs mt-1" onClick={() => navigate('/daily-report')}>
+                      Update Report
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                      <span className="text-xs font-medium text-amber-600">Not submitted yet</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Submit your daily report to track your work progress.</p>
+                    <Button size="sm" className="w-full h-7 text-xs mt-1" onClick={() => navigate('/daily-report')}>
+                      Create Report
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Overdue summary */}
           {overdueTasks.length > 0 && (
@@ -797,10 +804,10 @@ const UserDashboard: React.FC = () => {
             <div className="grid grid-cols-4 gap-3">
               {[
                 { label: 'Tasks', icon: ListTodo, path: '/my-tasks', color: 'bg-primary shadow-primary/25' },
-                { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-primary/90 shadow-primary/25' },
+                canViewDailyReports && { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-primary/90 shadow-primary/25' },
                 { label: 'Chat', icon: MessageSquare, path: '/chat', color: 'bg-primary/80 shadow-primary/20' },
                 { label: 'Issues', icon: AlertCircle, path: '/complaints', color: 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/25' }
-              ].map(({ label, icon: Icon, path, color }) => (
+              ].filter(Boolean).map(({ label, icon: Icon, path, color }) => (
                 <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-2.5">
                    <div className={cn("h-14 w-14 rounded-[1.25rem] flex items-center justify-center text-white shadow-lg transition-transform active:scale-90", color)}>
                      <Icon className="h-6 w-6" strokeWidth={2.5} />
