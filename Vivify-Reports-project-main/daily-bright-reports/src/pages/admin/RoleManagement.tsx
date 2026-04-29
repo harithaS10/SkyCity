@@ -277,12 +277,14 @@ const RoleManagement: React.FC = () => {
                 <p className="text-muted-foreground text-sm">Create custom roles with module-level permissions</p>
               </div>
             </div>
-            <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
-              <Plus className="h-4 w-4" />New Role
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
-              <Upload className="h-4 w-4" />Bulk Upload
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
+                <Upload className="h-4 w-4" />Bulk Upload
+              </Button>
+              <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+                <Plus className="h-4 w-4" />New Role
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -304,54 +306,92 @@ const RoleManagement: React.FC = () => {
             <CardContent className="p-0">
               <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
                 <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className={headerBg}>
-                    <TableRow className="hover:bg-transparent border-none">
-                      {['Role Name', 'Complaints', 'Work Orders', 'Daily Reports', 'Analytics', 'Chat', 'Export', 'Actions'].map(h => (
-                        <TableHead key={h} className={headerText}>{h}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">Loading...</TableCell></TableRow>
-                    ) : roles.length === 0 ? (
-                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">No custom roles yet. Create your first role.</TableCell></TableRow>
-                    ) : roles.map(r => {
-                      const p = r.permissions ?? {};
-                      const hasAny = (mod: any) => mod && Object.values(mod).some(Boolean);
-                      const tick = (v?: boolean) => v
-                        ? <Check className="h-6 w-6 text-emerald-500 mx-auto stroke-[3]" />
-                        : <X className="h-6 w-6 text-slate-300 mx-auto stroke-[3]" />;
-                      return (
-                        <TableRow key={r.id} className="hover:bg-slate-50/50">
-                          <TableCell className="font-medium">{r.roleName}</TableCell>
-                          <TableCell className="text-center">{tick(hasAny(p.complaints))}</TableCell>
-                          <TableCell className="text-center">{tick(hasAny(p.work_orders))}</TableCell>
-                          <TableCell className="text-center">{tick(hasAny(p.daily_reports))}</TableCell>
-                          <TableCell className="text-center">{tick(hasAny(p.analytics))}</TableCell>
-                          <TableCell className="text-center">{tick(hasAny(p.chat))}</TableCell>
-                          <TableCell className="text-center">{tick(p.export)}</TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-card">
-                                <DropdownMenuItem onClick={() => openEdit(r)} className="cursor-pointer">
-                                  <Pencil className="mr-2 h-4 w-4" />Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDelete(r.id, r.roleName)} className="text-destructive cursor-pointer">
-                                  <Trash2 className="mr-2 h-4 w-4" />Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                  <Table className="table-fixed w-full">
+                    <colgroup>
+                      <col style={{ width: '56px' }} />
+                      <col style={{ width: '18%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '13%' }} />
+                      <col style={{ width: '11%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '10%' }} />
+                      <col style={{ width: '100px' }} />
+                    </colgroup>
+                    <TableHeader className={headerBg}>
+                      <TableRow className="hover:bg-transparent border-none">
+                        <TableHead className={`${headerText} text-center`}>S/No</TableHead>
+                        <TableHead className={headerText}>Role Name</TableHead>
+                        <TableHead className={`${headerText} text-center`}>Complaints</TableHead>
+                        <TableHead className={`${headerText} text-center`}>Work Orders</TableHead>
+                        <TableHead className={`${headerText} text-center`}>Daily Reports</TableHead>
+                        <TableHead className={`${headerText} text-center`}>Analytics</TableHead>
+                        <TableHead className={`${headerText} text-center`}>Chat</TableHead>
+                        <TableHead className={`${headerText} text-center`}>Export</TableHead>
+                        <TableHead className={`${headerText} text-right px-4`}>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                  </Table>
+                  <div className="overflow-y-auto" style={{ maxHeight: '392px' }}>
+                    <Table className="table-fixed w-full">
+                      <colgroup>
+                        <col style={{ width: '56px' }} />
+                        <col style={{ width: '18%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '11%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '100px' }} />
+                      </colgroup>
+                      <TableBody>
+                        {isLoading ? (
+                          <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">Loading...</TableCell></TableRow>
+                        ) : roles.length === 0 ? (
+                          <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">No custom roles yet. Create your first role.</TableCell></TableRow>
+                        ) : roles.map((r, index) => {
+                          const p = r.permissions ?? {};
+                          const hasAny = (mod: any) => mod && Object.values(mod).some(Boolean);
+                          const tick = (v?: boolean) => v
+                            ? <Check className="h-5 w-5 text-emerald-500 mx-auto stroke-[3]" />
+                            : <X className="h-5 w-5 text-slate-300 mx-auto stroke-[3]" />;
+                          return (
+                            <TableRow key={r.id} className="hover:bg-slate-50/50">
+                              <TableCell className="border-r border-slate-200 text-center text-slate-500 text-sm font-medium">{index + 1}</TableCell>
+                              <TableCell className="font-medium border-r border-slate-200">{r.roleName}</TableCell>
+                              <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.complaints))}</TableCell>
+                              <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.work_orders))}</TableCell>
+                              <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.daily_reports))}</TableCell>
+                              <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.analytics))}</TableCell>
+                              <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.chat))}</TableCell>
+                              <TableCell className="text-center border-r border-slate-200">{tick(p.export)}</TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openEdit(r)}
+                                    className="hover:text-primary hover:bg-primary/10"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDelete(r.id, r.roleName)}
+                                    className="hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
             </CardContent>
