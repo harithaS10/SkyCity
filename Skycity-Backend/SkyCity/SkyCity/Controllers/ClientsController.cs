@@ -98,6 +98,30 @@ public class ClientsController : ControllerBase
 
         return Ok(new ApiResponse { Success = true, Message = "Client deleted" });
     }
+
+    // POST /clients/bulk — bulk create clients
+    [HttpPost("bulk")]
+    public async Task<ActionResult> BulkCreate([FromBody] BulkClientDto dto)
+    {
+        if (dto.Clients == null || !dto.Clients.Any())
+            return BadRequest(new ApiResponse { Success = false, Message = "No clients provided" });
+
+        var clients = dto.Clients.Select(c => new Client
+        {
+            AssociationId = IsSuperAdmin ? (c.AssociationId ?? CurrentAssocId) : CurrentAssocId,
+            Name = c.Name,
+            Company = c.Company,
+            Email = c.Email,
+            Phone = c.Phone,
+            LogoUrl = c.LogoUrl,
+            IsActive = c.IsActive ?? true,
+            CreatedAt = DateTime.UtcNow
+        }).ToList();
+
+        _context.Clients.AddRange(clients);
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<List<Client>> { Success = true, Data = clients });
+    }
 }
 
 public record ClientDto(
@@ -109,3 +133,8 @@ public record ClientDto(
     bool? IsActive,
     int? AssociationId
 );
+
+public class BulkClientDto
+{
+    public List<ClientDto> Clients { get; set; } = new();
+}

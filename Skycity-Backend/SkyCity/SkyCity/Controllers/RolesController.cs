@@ -71,6 +71,31 @@ public class RolesController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new ApiResponse { Success = true, Message = "Deleted" });
     }
+
+    // POST /roles/bulk — bulk create roles
+    [HttpPost("bulk")]
+    public async Task<ActionResult> BulkCreate([FromBody] BulkRoleDto dto)
+    {
+        if (dto.Roles == null || !dto.Roles.Any())
+            return BadRequest(new ApiResponse { Success = false, Message = "No roles provided" });
+
+        var roles = dto.Roles.Select(r => new RoleDefinition
+        {
+            RoleName = r.RoleName,
+            RoleType = r.RoleType ?? r.RoleName.ToLower().Replace(" ", "_"),
+            PermissionLevel = 0,
+            CanCreateUsers = r.Permissions?.ContainsKey("users") == true,
+            CanAssignComplaints = r.Permissions?.ContainsKey("complaints") == true,
+            CanApproveWorkOrders = r.Permissions?.ContainsKey("work_orders") == true,
+            CanViewFinancials = r.Permissions?.ContainsKey("analytics") == true,
+            PermissionsJson = System.Text.Json.JsonSerializer.Serialize(r.Permissions ?? new()),
+            IsDeleted = true
+        }).ToList();
+
+        _context.Roles.AddRange(roles);
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<List<object>> { Success = true, Data = roles.Select(r => ToDto(r)).ToList() });
+    }
 }
 
 public class RoleDto
@@ -78,4 +103,9 @@ public class RoleDto
     public string RoleName { get; set; } = string.Empty;
     public string? RoleType { get; set; }
     public Dictionary<string, object>? Permissions { get; set; }
+}
+
+public class BulkRoleDto
+{
+    public List<RoleDto> Roles { get; set; } = new();
 }

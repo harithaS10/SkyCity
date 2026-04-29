@@ -43,20 +43,12 @@ public class ComplaintsController : ControllerBase
         var isSuperAdmin = User.IsInRole("super_admin");
         var isAdmin = User.IsInRole("admin") || User.IsInRole("sub_admin") || User.IsInRole("property_manager") || User.IsInRole("helpdesk");
 
-        var query = _context.Complaints
-            .Include(c => c.Resident)
-            .Include(c => c.Category)
-            .Include(c => c.Unit)
-            .ThenInclude(u => u!.Building)
-            .ThenInclude(b => b!.Property)
-            .AsQueryable();
+        // Use lightweight projection — no deep Include chains to avoid timeout
+        var query = _context.Complaints.AsNoTracking().AsQueryable();
 
-        // Scope by association — join via resident's associationId or category
         if (!isSuperAdmin && assocId > 0)
-            query = query.Where(c =>
-                c.Resident!.AssociationId == assocId);
+            query = query.Where(c => c.Resident!.AssociationId == assocId);
 
-        // Staff/resident: only see their own complaints or ones assigned to them
         if (!isSuperAdmin && !isAdmin && userId > 0)
             query = query.Where(c => c.ResidentId == userId || c.AssignedTo == userId);
 
@@ -64,16 +56,46 @@ public class ComplaintsController : ControllerBase
             query = query.Where(c => c.Status == status);
 
         var total = await query.CountAsync();
+
         var items = await query
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(c => new
+            {
+                c.Id,
+                c.ComplaintNumber,
+                c.Title,
+                c.Description,
+                c.Priority,
+                c.Status,
+                c.ResidentId,
+                c.AssignedTo,
+                c.AssignedBy,
+                c.AssignedAt,
+                c.Resolution,
+                c.Rating,
+                c.Feedback,
+                c.CreatedAt,
+                c.ResolvedAt,
+                c.ClosedAt,
+                ResidentName = c.Resident != null ? c.Resident.FullName : null,
+                CategoryName = c.Category != null ? c.Category.CategoryName : null,
+                UnitNumber = c.Unit != null ? c.Unit.UnitNumber : null,
+            })
             .ToListAsync();
 
         return Ok(new ApiResponse<dynamic>
         {
             Success = true,
-            Data = new { Total = total, Page = page, PageSize = pageSize, TotalPages = (int)Math.Ceiling(total / (double)pageSize), Items = items }
+            Data = new
+            {
+                Total = total,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(total / (double)pageSize),
+                Items = items
+            }
         });
     }
 

@@ -168,6 +168,46 @@ public class TasksController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new ApiResponse { Success = true, Message = "Task deleted" });
     }
+
+    // POST /tasks/{id}/attachments — DISABLED: AttachmentUrls column not in production DB
+    // [HttpPost("{id}/attachments")]
+    // public async Task<ActionResult> UploadAttachments(int id, [FromBody] TaskAttachmentDto dto)
+    // {
+    //     var task = await _context.StaffTasks.FindAsync(id);
+    //     if (task == null)
+    //         return NotFound(new ApiResponse { Success = false, Message = "Task not found" });
+    //     task.AttachmentUrls = System.Text.Json.JsonSerializer.Serialize(dto.Files);
+    //     await _context.SaveChangesAsync();
+    //     return Ok(new ApiResponse<StaffTask> { Success = true, Data = task });
+    // }
+
+    // POST /tasks/bulk — bulk create tasks for multiple employees
+    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [HttpPost("bulk")]
+    public async Task<ActionResult> BulkCreate([FromBody] BulkTaskDto dto)
+    {
+        if (dto.Tasks == null || !dto.Tasks.Any())
+            return BadRequest(new ApiResponse { Success = false, Message = "No tasks provided" });
+
+        var tasks = dto.Tasks.Select(t => new StaffTask
+        {
+            AssociationId = CurrentAssocId,
+            AssignedTo = t.AssignedTo,
+            AssignedBy = CurrentUserId,
+            TaskName = t.TaskName,
+            Description = t.Description,
+            Priority = t.Priority ?? "medium",
+            Status = "pending",
+            IsRecurring = t.IsRecurring ?? false,
+            DueDate = t.DueDate,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = true
+        }).ToList();
+
+        _context.StaffTasks.AddRange(tasks);
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<List<StaffTask>> { Success = true, Data = tasks });
+    }
 }
 
 public record TaskDto(
@@ -180,3 +220,20 @@ public record TaskDto(
 );
 
 public record StatusUpdateDto(string Status);
+
+// DISABLED: AttachmentUrls feature until production DB is updated
+// public class TaskAttachmentDto
+// {
+//     public List<TaskFileDto> Files { get; set; } = new();
+// }
+// public class TaskFileDto
+// {
+//     public string Name { get; set; } = string.Empty;
+//     public string Type { get; set; } = string.Empty;
+//     public string Data { get; set; } = string.Empty;
+// }
+
+public class BulkTaskDto
+{
+    public List<TaskDto> Tasks { get; set; } = new();
+}

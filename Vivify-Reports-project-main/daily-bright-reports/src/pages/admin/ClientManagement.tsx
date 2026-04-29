@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,6 +44,11 @@ import {
   Mail,
   Users,
   Loader2,
+  Upload,
+  Download,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -59,6 +64,11 @@ const ClientManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+  const [bulkCsvText, setBulkCsvText] = useState('');
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ created: number; errors: string[] } | null>(null);
+  const bulkFileRef = useRef<HTMLInputElement>(null);
   const [editingClient, setEditingClient] = useState<any | null>(null);
   const [newClient, setNewClient] = useState({
     name: '',
@@ -152,6 +162,61 @@ const ClientManagement: React.FC = () => {
 
   const activeClients = clients.filter((c) => c.isActive || c.status === 'active' || c.IsActive).length;
 
+  const downloadTemplate = () => {
+    const csv = 'name,company,email,phone\nJohn Doe,Acme Corp,john@acme.com,9876543210\nJane Smith,Beta Ltd,jane@beta.com,9876543211';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'clients_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setBulkCsvText(ev.target?.result as string ?? '');
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const parseCsvClients = (csv: string) => {
+    const lines = csv.trim().split('\n').filter(Boolean);
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    return lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim());
+      const obj: any = {};
+      headers.forEach((h, i) => { obj[h] = vals[i] ?? ''; });
+      return obj.name && obj.email && obj.company
+        ? { name: obj.name, company: obj.company, email: obj.email, phone: obj.phone || '', isActive: true }
+        : null;
+    }).filter(Boolean);
+  };
+
+  const handleBulkUpload = async () => {
+    const items = parseCsvClients(bulkCsvText);
+    if (!items.length) { toast.error('No valid rows found. Check the CSV format.'); return; }
+    setIsBulkUploading(true);
+    setBulkResult(null);
+    const errors: string[] = [];
+    let created = 0;
+    try {
+      const res = await api.clients.bulkCreate(items);
+      if (res.success) {
+        created = res.data?.length ?? items.length;
+        setBulkResult({ created, errors });
+        toast.success(`${created} clients created successfully`);
+        fetchClients();
+      } else {
+        toast.error(res.message || 'Bulk upload failed');
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Bulk upload failed');
+    } finally {
+      setIsBulkUploading(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="animate-fade-in">
@@ -164,10 +229,16 @@ const ClientManagement: React.FC = () => {
               <h1 className="text-2xl font-bold">Client Management</h1>
               <p className="text-muted-foreground">Manage your clients and their information</p>
             </div>
-            <Button className="gap-2 hover-lift" onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Add Client
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
+                <Upload className="h-4 w-4" />
+                Bulk Upload
+              </Button>
+              <Button className="gap-2 hover-lift" onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add Client
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -344,6 +415,9 @@ const ClientManagement: React.FC = () => {
               </div>
               <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setIsCreateDialogOpen(true)}>
                 <Plus className="h-6 w-6" />
+              </Button>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
+                <Upload className="h-5 w-5" />
               </Button>
             </div>
             
@@ -614,6 +688,69 @@ const ClientManagement: React.FC = () => {
                 Cancel
               </Button>
               <Button onClick={handleEditClient} className="rounded-xl">Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ===== BULK UPLOAD DIALOG ===== */}
+        <Dialog open={isBulkDialogOpen} onOpenChange={(o) => { setIsBulkDialogOpen(o); if (!o) { setBulkResult(null); setBulkCsvText(''); } }}>
+          <DialogContent className="bg-card sm:max-w-lg rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5 text-primary" />
+                Bulk Upload Clients
+              </DialogTitle>
+              <DialogDescription>Upload a CSV file to create multiple clients at once.</DialogDescription>
+            </DialogHeader>
+            {!bulkResult ? (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Download Template</p>
+                    <p className="text-xs text-slate-500">Columns: name, company, email, phone</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={downloadTemplate}>
+                    <Download className="h-3.5 w-3.5" /> Template
+                  </Button>
+                </div>
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all" onClick={() => bulkFileRef.current?.click()}>
+                  <input ref={bulkFileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleBulkFileUpload} />
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                  <p className="text-sm font-semibold text-slate-600">Click to upload CSV file</p>
+                  <p className="text-xs text-slate-400 mt-1">or paste CSV data below</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-600">Or paste CSV data</Label>
+                  <textarea className="w-full h-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder={"name,company,email,phone\nJohn Doe,Acme Corp,john@acme.com,9876543210"}
+                    value={bulkCsvText} onChange={e => setBulkCsvText(e.target.value)} />
+                </div>
+                {bulkCsvText && <p className="text-xs text-slate-500"><span className="font-semibold text-primary">{parseCsvClients(bulkCsvText).length}</span> valid rows detected</p>}
+              </div>
+            ) : (
+              <div className="space-y-3 py-2">
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <p className="text-sm font-semibold text-emerald-700">{bulkResult.created} clients created successfully</p>
+                </div>
+                {bulkResult.errors.length > 0 && (
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                      <p className="text-xs font-semibold text-amber-700">{bulkResult.errors.length} skipped</p>
+                    </div>
+                    {bulkResult.errors.map((e, i) => <p key={i} className="text-xs text-amber-600 pl-6">{e}</p>)}
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>Close</Button>
+              {!bulkResult && (
+                <Button onClick={handleBulkUpload} disabled={isBulkUploading || !bulkCsvText.trim()} className="gap-2">
+                  {isBulkUploading ? <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Uploading...</> : <><Upload className="h-4 w-4" />Upload Clients</>}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

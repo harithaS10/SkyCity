@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api, CustomRole, RolePermissions, PermissionSet } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { Shield, Plus, MoreVertical, Pencil, Trash2, Check, X } from 'lucide-react';
+import { Shield, Plus, MoreVertical, Pencil, Trash2, Check, X, Upload, Download, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ─── Permissions Matrix ────────────────────────────────────────────────────
@@ -46,6 +46,11 @@ const RoleManagement: React.FC = () => {
   const [roles, setRoles] = useState<CustomRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
+  const [bulkCsvText, setBulkCsvText] = useState('');
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ created: any[] } | null>(null);
+  const bulkFileRef = useRef<HTMLInputElement>(null);
   const [editTarget, setEditTarget] = useState<CustomRole | null>(null);
   const [roleName, setRoleName] = useState('');
   const [perms, setPerms] = useState<RolePermissions>(defaultPermissions());
@@ -121,6 +126,53 @@ const RoleManagement: React.FC = () => {
     const hasPerms = r.permissions && Object.keys(r.permissions).some(k => k !== 'export');
     setPerms(hasPerms ? r.permissions : defaultPermissions());
     setCanExportPerm(r.permissions?.export ?? false);
+  };
+
+  const downloadTemplate = () => {
+    const csv = 'roleName\nSite Manager\nField Supervisor\nData Analyst';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'roles_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setBulkCsvText(ev.target?.result as string ?? '');
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const parseCsvRoles = (csv: string) => {
+    const lines = csv.trim().split('\n').filter(Boolean);
+    if (lines.length < 2) return [];
+    return lines.slice(1).map(line => {
+      const name = line.split(',')[0].trim();
+      return name ? { roleName: name } : null;
+    }).filter(Boolean) as { roleName: string }[];
+  };
+
+  const handleBulkUpload = async () => {
+    const items = parseCsvRoles(bulkCsvText);
+    if (!items.length) { toast.error('No valid rows found. Check the CSV format.'); return; }
+    setIsBulkUploading(true);
+    setBulkResult(null);
+    try {
+      const res = await api.roles.bulkCreate(items);
+      if (res.success) {
+        setBulkResult({ created: res.data || [] });
+        toast.success(`Bulk upload complete: ${res.data?.length ?? 0} roles created`);
+        load();
+      } else {
+        toast.error(res.message || 'Bulk upload failed');
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Bulk upload failed');
+    } finally {
+      setIsBulkUploading(false);
+    }
   };
 
   const renderPermissionsGrid = () => (
@@ -227,6 +279,9 @@ const RoleManagement: React.FC = () => {
             </div>
             <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
               <Plus className="h-4 w-4" />New Role
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
+              <Upload className="h-4 w-4" />Bulk Upload
             </Button>
           </div>
 
@@ -440,6 +495,58 @@ const RoleManagement: React.FC = () => {
             <DialogFooter className="mt-2">
               <Button variant="outline" className="rounded-xl" onClick={() => { setEditTarget(null); resetForm(); }}>Cancel</Button>
               <Button className="rounded-xl" onClick={handleUpdate}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ===== BULK UPLOAD DIALOG ===== */}
+        <Dialog open={isBulkDialogOpen} onOpenChange={(o) => { setIsBulkDialogOpen(o); if (!o) { setBulkResult(null); setBulkCsvText(''); } }}>
+          <DialogContent className="bg-card sm:max-w-lg rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5 text-primary" />
+                Bulk Upload Roles
+              </DialogTitle>
+            </DialogHeader>
+            {!bulkResult ? (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Download Template</p>
+                    <p className="text-xs text-slate-500">Column: roleName</p>
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={downloadTemplate}>
+                    <Download className="h-3.5 w-3.5" /> Template
+                  </Button>
+                </div>
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all" onClick={() => bulkFileRef.current?.click()}>
+                  <input ref={bulkFileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleBulkFileUpload} />
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                  <p className="text-sm font-semibold text-slate-600">Click to upload CSV file</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-600">Or paste CSV data</Label>
+                  <textarea className="w-full h-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder={"roleName\nSite Manager\nField Supervisor"}
+                    value={bulkCsvText} onChange={e => setBulkCsvText(e.target.value)} />
+                </div>
+                {bulkCsvText && <p className="text-xs text-slate-500"><span className="font-semibold text-primary">{parseCsvRoles(bulkCsvText).length}</span> valid rows detected</p>}
+              </div>
+            ) : (
+              <div className="space-y-3 py-2">
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <p className="text-sm font-semibold text-emerald-700">{bulkResult.created.length} roles created successfully</p>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>Close</Button>
+              {!bulkResult && (
+                <Button onClick={handleBulkUpload} disabled={isBulkUploading || !bulkCsvText.trim()} className="gap-2">
+                  {isBulkUploading ? <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Uploading...</> : <><Upload className="h-4 w-4" />Upload</>}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

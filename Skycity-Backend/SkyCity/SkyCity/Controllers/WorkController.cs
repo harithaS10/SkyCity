@@ -61,6 +61,27 @@ public class WorkController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new ApiResponse { Success = true, Message = "Deleted" });
     }
+
+    // POST /works/bulk — bulk create work types
+    [HttpPost("bulk")]
+    public async Task<ActionResult> BulkCreate([FromBody] BulkWorkDto dto)
+    {
+        if (dto.Works == null || !dto.Works.Any())
+            return BadRequest(new ApiResponse { Success = false, Message = "No works provided" });
+
+        var works = dto.Works.Select(w => new WorkCategory
+        {
+            WorkCode = w.WorkCode,
+            WorkTitle = w.WorkTitle,
+            WorkType = w.WorkType ?? "Standard",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        }).ToList();
+
+        _context.WorkCategories.AddRange(works);
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<List<WorkCategory>> { Success = true, Data = works });
+    }
 }
 
 public class WorkCategoryDto
@@ -68,4 +89,9 @@ public class WorkCategoryDto
     public string WorkCode { get; set; } = string.Empty;
     public string WorkTitle { get; set; } = string.Empty;
     public string? WorkType { get; set; }
+}
+
+public class BulkWorkDto
+{
+    public List<WorkCategoryDto> Works { get; set; } = new();
 }

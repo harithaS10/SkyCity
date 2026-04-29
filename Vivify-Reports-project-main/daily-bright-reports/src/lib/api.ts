@@ -168,6 +168,10 @@ export const api = {
       const response = await apiClient.delete(`/roles/${id}`);
       return response.data;
     },
+    bulkCreate: async (roles: Array<{ roleName: string; roleType?: string; permissions?: any }>) => {
+      const response = await apiClient.post('/roles/bulk', { roles });
+      return response.data;
+    },
   },
 
   // Associations
@@ -385,7 +389,21 @@ export const api = {
     delete: async (id: number): Promise<ApiResponse<any>> => {
       const response = await apiClient.delete(`/tasks/${id}`);
       return response.data;
-    }
+    },
+    uploadAttachments: async (id: number, files: File[]): Promise<ApiResponse<any>> => {
+      const toBase64 = (f: File): Promise<string> =>
+        new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result as string);
+          r.onerror = rej;
+          r.readAsDataURL(f);
+        });
+      const encoded = await Promise.all(files.map(async f => ({
+        name: f.name, type: f.type, data: await toBase64(f)
+      })));
+      const response = await apiClient.post(`/tasks/${id}/attachments`, { files: encoded });
+      return response.data;
+    },
   },
 
   // Reports
@@ -557,6 +575,10 @@ export const api = {
     },
     delete: async (id: number): Promise<ApiResponse<any>> => {
       const response = await apiClient.delete(`/users/${id}`);
+      return response.data;
+    },
+    bulkCreate: async (users: Array<{ username: string; password: string; fullName: string; role?: string }>): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post('/users/bulk', { users });
       return response.data;
     },
   },
@@ -814,6 +836,7 @@ export const api = {
     create: async (data: any) => (await apiClient.post('/clients', data)).data,
     update: async (id: number, data: any) => (await apiClient.post(`/clients/${id}/update`, data)).data,
     delete: async (id: number) => (await apiClient.post(`/clients/${id}/delete`)).data,
+    bulkCreate: async (clients: any[]) => (await apiClient.post('/clients/bulk', { clients })).data,
   },
   works: {
     getActive: async () => (await apiClient.get('/works')).data,
@@ -821,6 +844,8 @@ export const api = {
     create: async (data: any) => (await apiClient.post('/works', data)).data,
     update: async (id: number, data: any) => (await apiClient.put(`/works/${id}`, data)).data,
     delete: async (id: number) => (await apiClient.delete(`/works/${id}`)).data,
+    bulkCreate: async (works: Array<{ workCode: string; workTitle: string; workType?: string }>) =>
+      (await apiClient.post('/works/bulk', { works })).data,
   },
   
   // Chat & Groups

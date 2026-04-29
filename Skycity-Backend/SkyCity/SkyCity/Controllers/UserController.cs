@@ -95,6 +95,52 @@ public class UserController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new ApiResponse { Success = true, Message = $"User {(user.IsActive ? "activated" : "deactivated")}" });
     }
+
+    // POST /users/bulk — bulk create users
+    [HttpPost("bulk")]
+    public async Task<ActionResult> BulkCreate([FromBody] BulkUserDto dto)
+    {
+        if (dto.Users == null || !dto.Users.Any())
+            return BadRequest(new ApiResponse { Success = false, Message = "No users provided" });
+
+        var created = new List<object>();
+        var errors = new List<string>();
+
+        foreach (var u in dto.Users)
+        {
+            if (await _context.Users.AnyAsync(x => x.Username == u.Username))
+            {
+                errors.Add($"Username '{u.Username}' already taken");
+                continue;
+            }
+
+            var roleStr = u.Role == "user" ? "resident" : (u.Role ?? "staff");
+            if (!Enum.TryParse<UserRole>(roleStr, true, out var parsedRole))
+                parsedRole = UserRole.staff;
+
+            var user = new User
+            {
+                Username = u.Username,
+                PasswordHash = u.Password,
+                FullName = u.FullName,
+                Role = parsedRole,
+                AssociationId = CurrentAssocId > 0 ? CurrentAssocId : null,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = true,
+                IsActive = true
+            };
+            _context.Users.Add(user);
+            created.Add(new { user.Username, user.FullName, role = user.Role.ToString() });
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<object>
+        {
+            Success = true,
+            Message = $"Created {created.Count} users. {(errors.Any() ? $"{errors.Count} skipped." : "")}",
+            Data = new { created, errors }
+        });
+    }
 }
 
 public class UpdateUserDto
@@ -104,4 +150,17 @@ public class UpdateUserDto
     public string? Address { get; set; }
     public bool? IsActive { get; set; }
     public string? Role { get; set; }
+}
+
+public class BulkUserItemDto
+{
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? Role { get; set; }
+}
+
+public class BulkUserDto
+{
+    public List<BulkUserItemDto> Users { get; set; } = new();
 }
