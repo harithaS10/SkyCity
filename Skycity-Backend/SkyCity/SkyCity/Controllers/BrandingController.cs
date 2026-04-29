@@ -15,11 +15,13 @@ public class BrandingController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _env;
+    private readonly IConfiguration _config;
 
-    public BrandingController(AppDbContext context, IWebHostEnvironment env)
+    public BrandingController(AppDbContext context, IWebHostEnvironment env, IConfiguration config)
     {
         _context = context;
         _env = env;
+        _config = config;
     }
 
     private int CurrentAssocId => int.TryParse(User.FindFirst("AssociationId")?.Value, out var id) ? id : 0;
@@ -40,6 +42,36 @@ public class BrandingController : ControllerBase
                 assoc.LogoUrl,
                 assoc.ThemeColor,
             }
+        });
+    }
+
+    // Public endpoint — returns branding for login page (no auth required)
+    [AllowAnonymous]
+    [HttpGet("public")]
+    public async Task<ActionResult> GetPublic()
+    {
+        // Try DB first
+        var assoc = await _context.Associations.IgnoreQueryFilters()
+            .Where(a => a.IsActive)
+            .OrderBy(a => a.Id)
+            .FirstOrDefaultAsync();
+
+        if (assoc != null)
+            return Ok(new ApiResponse<dynamic>
+            {
+                Success = true,
+                Data = new { assoc.ThemeColor, assoc.LogoUrl, assoc.AssociationName }
+            });
+
+        // Fallback: read from configuration (appsettings.json)
+        var themeColor = _config["Branding:ThemeColor"] ?? "#0d9488";
+        var logoUrl = _config["Branding:LogoUrl"];
+        var associationName = _config["Branding:AssociationName"] ?? "SkyCity";
+
+        return Ok(new ApiResponse<dynamic>
+        {
+            Success = true,
+            Data = new { themeColor, logoUrl, associationName }
         });
     }
 

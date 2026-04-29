@@ -543,7 +543,7 @@ const WorkAllocationPage: React.FC = () => {
                 <User className="h-3 w-3" />
                 Individual Instructions (Optional)
               </Label>
-              <div className="space-y-3 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
+              <div className="space-y-3 max-h-48 overflow-y-auto pr-2 scrollbar-hide">
                 {newAllocation.assignedToIds.map(userId => (
                   <div key={userId} className="space-y-1">
                     <div className="flex items-center justify-between">

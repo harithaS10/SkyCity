@@ -293,7 +293,8 @@ const UserDashboard: React.FC = () => {
       <div className="hidden lg:block space-y-5 animate-in fade-in duration-500">
 
       {/* Greeting Header */}
-      <div className="rounded-2xl bg-gradient-to-br from-teal-700 via-teal-600 to-cyan-600 px-6 py-6 text-white shadow-xl shadow-teal-900/25 relative overflow-hidden">
+      <div className="rounded-2xl bg-primary px-6 py-6 text-white shadow-xl shadow-primary/25 relative overflow-hidden"
+        style={{ background: `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%)` }}>
         {/* Subtle background glow */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         
@@ -331,10 +332,10 @@ const UserDashboard: React.FC = () => {
       {/* Quick Links */}
       <div className="grid grid-cols-4 gap-2">
         {[
-          { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-teal-700 bg-teal-50 border-teal-200' },
-          { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-cyan-700 bg-cyan-50 border-cyan-200' },
+          { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-primary-foreground bg-primary border-primary/20' },
+          { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-primary bg-primary/10 border-primary/20' },
           { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-700 bg-amber-50 border-amber-200' },
-          { label: 'Community', icon: Users, path: '/chat', color: 'text-teal-600 bg-teal-50 border-teal-100' },
+          { label: 'Community', icon: Users, path: '/chat', color: 'text-primary bg-primary/5 border-primary/10' },
         ].map(({ label, icon: Icon, path, color }) => (
           <button key={path} onClick={() => navigate(path)}
             className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all hover:shadow-md active:scale-95", color)}>
@@ -795,9 +796,9 @@ const UserDashboard: React.FC = () => {
             </div>
             <div className="grid grid-cols-4 gap-3">
               {[
-                { label: 'Tasks', icon: ListTodo, path: '/my-tasks', color: 'bg-gradient-to-br from-teal-500 to-teal-700 shadow-teal-600/25' },
-                { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-gradient-to-br from-cyan-500 to-teal-600 shadow-teal-500/25' },
-                { label: 'Chat', icon: MessageSquare, path: '/chat', color: 'bg-gradient-to-br from-teal-400 to-cyan-500 shadow-cyan-400/25' },
+                { label: 'Tasks', icon: ListTodo, path: '/my-tasks', color: 'bg-primary shadow-primary/25' },
+                { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-primary/90 shadow-primary/25' },
+                { label: 'Chat', icon: MessageSquare, path: '/chat', color: 'bg-primary/80 shadow-primary/20' },
                 { label: 'Issues', icon: AlertCircle, path: '/complaints', color: 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/25' }
               ].map(({ label, icon: Icon, path, color }) => (
                 <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-2.5">

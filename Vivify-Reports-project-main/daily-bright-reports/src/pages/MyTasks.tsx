@@ -521,7 +521,7 @@ const MyTasks: React.FC = () => {
             </Badge>
             <Button
               size="sm"
-              className="gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md h-9 px-3 rounded-xl border-none text-xs"
+              className="gap-1.5 bg-primary hover:bg-primary/90 shadow-md h-9 px-3 rounded-xl border-none text-xs"
               onClick={() => {
                 if (!canCreate) { toast.error("You don't have permission to create work"); return; }
                 setIsSelfAssignDialogOpen(true);

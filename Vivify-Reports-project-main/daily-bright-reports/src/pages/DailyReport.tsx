@@ -81,6 +81,7 @@ const DailyReport: React.FC = () => {
   const [rows, setRows] = useState<WorkRow[]>(createEmptyRows(10));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [availableWorks, setAvailableWorks] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
@@ -106,6 +107,7 @@ const DailyReport: React.FC = () => {
       const clickedInsideMobile = mobileDropdownRef.current && mobileDropdownRef.current.contains(event.target as Node);
       if (!clickedInsideDesktop && !clickedInsideMobile) {
         setActiveDropdown(null);
+        setDropdownPos(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -237,11 +239,12 @@ const DailyReport: React.FC = () => {
     setRows((prev) =>
       prev.map((row) =>
         row.id === id
-          ? { ...row, workCode: work.workCode, workTitle: work.workTitle, workDescription: '' } // Maintain title, clear description
+          ? { ...row, workCode: work.workCode, workTitle: work.workTitle, workDescription: '' }
           : row
       )
     );
     setActiveDropdown(null);
+    setDropdownPos(null);
     setSearchTerm('');
   };
 
@@ -410,7 +413,8 @@ const DailyReport: React.FC = () => {
     <DashboardLayout>
       <div className="w-full">
         {/* ===== DESKTOP HEADER (Hidden on Mobile) ===== */}
-        <div className="hidden lg:flex items-center justify-between gap-3 mb-8 animate-in fade-in duration-500 bg-gradient-to-r from-sky-500 to-sky-400 p-8 rounded-3xl text-white shadow-xl shadow-sky-500/10">
+        <div className="hidden lg:flex items-center justify-between gap-3 mb-8 animate-in fade-in duration-500 bg-primary p-8 rounded-3xl text-white shadow-xl shadow-primary/20"
+          style={{ background: `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%)` }}>
           <div>
             <h1 className="text-3xl font-black tracking-tight text-white">Daily Report</h1>
             <p className="text-white/80 font-medium">Log your daily activities and time spent</p>
@@ -539,7 +543,7 @@ const DailyReport: React.FC = () => {
           </CardHeader>
           <CardContent className="p-0">
             {/* Desktop View (Table) */}
-            <div className="hidden lg:block overflow-x-auto relative" ref={tableContainerRef}>
+            <div className="hidden lg:block overflow-x-auto overflow-y-visible relative" ref={tableContainerRef}>
               <Table className="min-w-[1300px] table-fixed">
                 <TableHeader className="bg-muted/20">
                   <TableRow>
@@ -584,9 +588,16 @@ const DailyReport: React.FC = () => {
                                 row.workCode ? "border-primary/40 ring-1 ring-primary/20" : "border-slate-200",
                                 row.workCode === 'OTHERS' && "opacity-50 pointer-events-none"
                               )}
-                              onClick={() => {
-                                setActiveDropdown(activeDropdown === `work-${row.id}` ? null : `work-${row.id}`);
-                                setSearchTerm('');
+                              onClick={(e) => {
+                                if (activeDropdown === `work-${row.id}`) {
+                                  setActiveDropdown(null);
+                                  setDropdownPos(null);
+                                } else {
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 340) });
+                                  setActiveDropdown(`work-${row.id}`);
+                                  setSearchTerm('');
+                                }
                               }}
                             >
                               <span className="truncate font-medium">
@@ -596,8 +607,12 @@ const DailyReport: React.FC = () => {
                             </div>
                           </div>
 
-                          {activeDropdown === `work-${row.id}` && (
-                            <div className="absolute z-50 mt-2 w-full min-w-[340px] rounded-xl border bg-popover p-2 text-popover-foreground shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-200">
+                          {activeDropdown === `work-${row.id}` && dropdownPos && (
+                            <div
+                              ref={dropdownRef}
+                              className="fixed z-[9999] rounded-xl border bg-popover p-2 text-popover-foreground shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-200"
+                              style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, minWidth: 340 }}
+                            >
                               <div className="flex items-center border-b px-2 pb-2 mb-2">
                                 <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-primary" />
                                 <input
@@ -608,7 +623,7 @@ const DailyReport: React.FC = () => {
                                   autoFocus
                                 />
                               </div>
-                              <div className="max-h-[240px] overflow-y-auto scrollbar-thin px-1">
+                              <div className="max-h-[240px] overflow-y-auto scrollbar-hide px-1">
                                 {filteredWorks.map((work) => (
                                   <div
                                     key={work.id}
@@ -625,7 +640,7 @@ const DailyReport: React.FC = () => {
                                 <div className="border-t mt-2 pt-2">
                                   <div
                                     className="relative flex cursor-pointer select-none items-center rounded-lg px-2.5 py-3 text-sm font-bold text-primary hover:bg-primary/5 transition-colors"
-                                    onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); }}
+                                    onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); setDropdownPos(null); }}
                                   >
                                     <Plus className="h-4 w-4 mr-2" /> Others (Manual Entry)
                                   </div>
@@ -877,7 +892,7 @@ const DailyReport: React.FC = () => {
                                 />
                               </div>
                             </div>
-                            <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5 scrollbar-thin">
+                            <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5 scrollbar-hide">
                               {filteredWorks.map((work) => (
                                 <div key={work.id} className="p-3 bg-slate-50/50 hover:bg-primary/10 rounded-2xl text-[13px] active:scale-[0.98] transition-all flex items-center gap-3 border border-transparent hover:border-primary/10 group" onClick={() => handleSelectWork(row.id, work)}>
                                   <span className="font-black text-[9px] bg-white px-2 py-1 rounded-lg shadow-sm border border-slate-100 text-primary shrink-0">[{work.workCode}]</span> 

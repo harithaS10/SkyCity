@@ -598,7 +598,15 @@ export const api = {
   },
 
   // Branding
-  branding: {    get: async () => (await apiClient.get('/branding')).data,
+  branding: {
+    get: async () => (await apiClient.get('/branding')).data,
+    getPublic: async () => {
+      try {
+        return (await apiClient.get('/branding/public')).data;
+      } catch {
+        return { success: false, data: null };
+      }
+    },
     update: async (data: { associationName?: string; themeColor?: string; logoUrl?: string }) =>
       (await apiClient.post('/branding/update', data)).data,
   },

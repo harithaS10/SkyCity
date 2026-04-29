@@ -23,6 +23,44 @@ const Login: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsContent, setTermsContent] = useState('');
   const [hideTerms, setHideTerms] = useState(false);
+  const [loginBgColor, setLoginBgColor] = useState<string>('');
+
+  // Fetch public branding to apply theme color on login page (before auth)
+  useEffect(() => {
+    const loadPublicBranding = async () => {
+      try {
+        const res = await api.branding.getPublic();
+        if (res.success && res.data?.themeColor) {
+          const color = res.data.themeColor;
+          setLoginBgColor(color);
+          // Apply to CSS variables so bg-primary works
+          const hexToHsl = (hex: string) => {
+            const clean = hex.replace('#', '');
+            const full = clean.length === 3 ? clean.split('').map((c: string) => c + c).join('') : clean;
+            const r2 = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(full);
+            if (!r2) return null;
+            let r = parseInt(r2[1], 16) / 255, g = parseInt(r2[2], 16) / 255, b = parseInt(r2[3], 16) / 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h = 0, s = 0; const l = (max + min) / 2;
+            if (max !== min) {
+              const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+              switch (max) { case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break; case g: h = ((b - r) / d + 2) / 6; break; case b: h = ((r - g) / d + 4) / 6; break; }
+            }
+            return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+          };
+          const hsl = hexToHsl(color);
+          if (hsl) {
+            document.documentElement.style.setProperty('--primary', hsl);
+            document.documentElement.style.setProperty('--ring', hsl);
+          }
+          document.documentElement.style.setProperty('--brand-primary', color);
+          // Cache for next load
+          try { localStorage.setItem('skycity_theme_color', color); } catch { /* ignore */ }
+        }
+      } catch { /* use default teal */ }
+    };
+    loadPublicBranding();
+  }, []);
 
   useEffect(() => {
     const loadTerms = async () => {
@@ -99,7 +137,14 @@ const Login: React.FC = () => {
   return (
     <div className="h-screen flex overflow-hidden">
       {/* Left Panel */}
-      <div className="hidden lg:flex lg:w-3/5 bg-gradient-to-br from-primary via-primary/90 to-primary/80 flex-col justify-between p-8 relative overflow-hidden h-full">
+      <div
+        className="hidden lg:flex lg:w-3/5 flex-col justify-between p-8 relative overflow-hidden h-full"
+        style={{
+          background: loginBgColor
+            ? `linear-gradient(135deg, ${loginBgColor} 0%, ${loginBgColor}dd 60%, ${loginBgColor}bb 100%)`
+            : `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.9) 60%, hsl(var(--primary) / 0.8) 100%)`
+        }}
+      >
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-15">
           <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-300 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />

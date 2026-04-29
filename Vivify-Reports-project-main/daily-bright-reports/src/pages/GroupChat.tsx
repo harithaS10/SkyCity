@@ -233,7 +233,7 @@ const GroupChat: React.FC = () => {
               <Sparkles className="h-3.5 w-3.5 inline mr-1" />AI Bot
             </button>
             <button onClick={() => { setTab('dm'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'dm' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
-              <MessageSquare className="h-3.5 w-3.5 inline mr-1" />Self
+              <MessageSquare className="h-3.5 w-3.5 inline mr-1" />Direct Messages
             </button>
             <button onClick={() => { setTab('groups'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'groups' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
               <Users className="h-3.5 w-3.5 inline mr-1" />Group
@@ -339,7 +339,7 @@ const GroupChat: React.FC = () => {
                     <Sparkles className="h-3.5 w-3.5" /> AI Bot
                   </button>
                   <button onClick={() => { setTab('dm'); setMobileView('list'); }} className={cn('flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2', tab === 'dm' ? 'bg-white text-primary shadow-lg' : 'text-white/70')}>
-                    <MessageSquare className="h-3.5 w-3.5" /> Self
+                    <MessageSquare className="h-3.5 w-3.5" /> Messages
                   </button>
                   <button onClick={() => { setTab('groups'); setMobileView('list'); }} className={cn('flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2', tab === 'groups' ? 'bg-white text-primary shadow-lg' : 'text-white/70')}>
                     <Users className="h-3.5 w-3.5" /> Group
