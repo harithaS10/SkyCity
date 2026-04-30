@@ -89,10 +89,20 @@ const DailyReport: React.FC = () => {
   }, [canView, navigate]);
   const [date, setDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);
   const isCalendarOpenRef = React.useRef(false);
+  const justSelectedDateRef = React.useRef(false);
+
   const handleCalendarOpen = (open: boolean) => {
     setIsCalendarOpen(open);
     isCalendarOpenRef.current = open;
+    if (!open) justSelectedDateRef.current = false;
+  };
+
+  const handleMobileCalendarOpen = (open: boolean) => {
+    setIsMobileCalendarOpen(open);
+    isCalendarOpenRef.current = open;
+    if (!open) justSelectedDateRef.current = false;
   };
   const [rows, setRows] = useState<WorkRow[]>(createEmptyRows(10));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -152,7 +162,10 @@ const DailyReport: React.FC = () => {
       }
     };
     const handleWindowScroll = () => {
-      if (isCalendarOpenRef.current) return;
+      // Only close work dropdown on scroll — never close if calendar is open or just selected
+      if (isCalendarOpenRef.current || justSelectedDateRef.current) return;
+      // Don't close if a Radix popover is open (calendar, select dropdowns)
+      if (document.querySelector('[data-radix-popper-content-wrapper]')) return;
       setActiveDropdown(null);
       setDropdownPos(null);
     };
@@ -262,7 +275,7 @@ const DailyReport: React.FC = () => {
                   id: `autofill-${task.id}-${Date.now()}`,
                   workCode: matchedWork.workCode,
                   workTitle: matchedWork.workTitle,
-                  workDescription: task.description || '',
+                  workDescription: task.progressNote || task.description || '',
                   otherWorkTitle: '',
                   timeSpent: task.duration || '0h 0m',
                   clientId: task.clientId?.toString() || '',
@@ -281,7 +294,7 @@ const DailyReport: React.FC = () => {
                     id: `autofill-${task.id}-${Date.now()}`,
                     workCode: existingWork.workCode,
                     workTitle: existingWork.workTitle,
-                    workDescription: task.description || '',
+                    workDescription: task.progressNote || task.description || '',
                     otherWorkTitle: '',
                     timeSpent: task.duration || '0h 0m',
                     clientId: task.clientId?.toString() || '',
@@ -312,7 +325,7 @@ const DailyReport: React.FC = () => {
                     id: `autofill-${task.id}-${Date.now()}`,
                     workCode: code,
                     workTitle: taskTitle,
-                    workDescription: task.description || '',
+                    workDescription: task.progressNote || task.description || '',
                     otherWorkTitle: '',
                     timeSpent: task.duration || '0h 0m',
                     clientId: task.clientId?.toString() || '',
@@ -647,7 +660,7 @@ const DailyReport: React.FC = () => {
     };
   }, [activeDropdown]);
 
-  const filledRowsCount = rows.filter((row) => row.workDescription.trim()).length;
+  const filledRowsCount = rows.filter((row) => row.workDescription.trim() || (row.workCode && row.workCode !== '')).length;
   const hasOthersWork = rows.some(r => r.workCode === 'OTHERS');
   const hasOthersClient = rows.some(r => r.clientId === 'others');
 
@@ -673,16 +686,16 @@ const DailyReport: React.FC = () => {
                 <Calendar mode="single" selected={date}
                   onSelect={(newDate) => {
                     if (newDate) {
+                      justSelectedDateRef.current = true;
                       setDate(newDate);
-                      // Close after a tick so the selection registers visually
-                      setTimeout(() => handleCalendarOpen(false), 50);
+                      handleCalendarOpen(false);
                     }
                   }}
                   initialFocus className="pointer-events-auto" />
               </PopoverContent>
             </Popover>
             <Button onClick={handleSubmit} disabled={isSubmitting || filledRowsCount === 0}
-              size="sm" className="h-11 gap-2 px-8 bg-white text-sky-600 hover:bg-white/90 font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs">
+              size="sm" className="h-11 gap-2 px-8 bg-white text-primary hover:bg-white/90 font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs">
               {isSubmitting ? <span className="animate-spin text-lg">⏳</span> : <Save className="h-4 w-4" />}
               Submit Report
             </Button>
@@ -698,7 +711,7 @@ const DailyReport: React.FC = () => {
                 <h1 className="text-2xl font-black text-white tracking-tight">Daily log</h1>
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Staff Portal · {format(date, 'MMM dd')}</p>
               </div>
-              <Popover open={isCalendarOpen} onOpenChange={handleCalendarOpen}>
+              <Popover open={isMobileCalendarOpen} onOpenChange={handleMobileCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" className="bg-white/10 hover:bg-white/20 text-white rounded-2xl h-11 px-4 gap-2 border-none backdrop-blur-md active:scale-95 transition-transform">
                     <CalendarIcon className="h-5 w-5" />
@@ -709,8 +722,9 @@ const DailyReport: React.FC = () => {
                   <Calendar mode="single" selected={date}
                     onSelect={(newDate) => {
                       if (newDate) {
+                        justSelectedDateRef.current = true;
                         setDate(newDate);
-                        setTimeout(() => handleCalendarOpen(false), 50);
+                        handleMobileCalendarOpen(false);
                       }
                     }}
                     initialFocus />
