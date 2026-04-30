@@ -15,8 +15,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 195 30% 10%;
 
-    /* Deep Teal #0D9488 */
-    --primary: 174 72% 35%;
+    /* Deep Teal #0d9488 */
+    --primary: 174 83% 31%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 174 30% 95%;
@@ -39,20 +39,20 @@
 
     --border: 174 20% 90%;
     --input: 174 20% 90%;
-    --ring: 174 72% 35%;
+    --ring: 174 83% 31%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 195 30% 10%;
-    --sidebar-primary: 174 72% 35%;
+    --sidebar-primary: 174 83% 31%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 174 60% 94%;
     --sidebar-accent-foreground: 174 72% 30%;
     --sidebar-border: 174 20% 90%;
-    --sidebar-ring: 174 72% 35%;
+    --sidebar-ring: 174 83% 31%;
 
-    --chart-1: 174 72% 35%;
+    --chart-1: 174 83% 31%;
     --chart-2: 38 92% 50%;
     --chart-3: 142 72% 38%;
     --chart-4: 4 84% 55%;

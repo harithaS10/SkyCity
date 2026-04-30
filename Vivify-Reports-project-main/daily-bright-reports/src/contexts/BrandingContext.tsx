@@ -106,10 +106,10 @@ export const BrandingProvider: React.FC<{ children: ReactNode }> = ({
 
     // Reset to default teal if user logs out or branding is cleared
     if (!themeColor && previousColor.current) {
-      root.style.setProperty('--primary', '174 72% 35%');
-      root.style.setProperty('--ring', '174 72% 35%');
-      root.style.setProperty('--sidebar-primary', '174 72% 35%');
-      root.style.setProperty('--chart-1', '174 72% 35%');
+      root.style.setProperty('--primary', '174 83% 31%');
+      root.style.setProperty('--ring', '174 83% 31%');
+      root.style.setProperty('--sidebar-primary', '174 83% 31%');
+      root.style.setProperty('--chart-1', '174 83% 31%');
       root.style.removeProperty('--brand-primary');
       root.style.removeProperty('--brand-primary-rgb');
       try { localStorage.removeItem('skycity_theme_color'); } catch { /* ignore */ }

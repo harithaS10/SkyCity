@@ -18,10 +18,19 @@
   <script>
     (function() {
       try {
-        var color = localStorage.getItem('skycity_theme_color');
-        if (color) {
-          // Convert hex to HSL
-          var c = color.replace('#','');
+        // Default teal color — matches the app's design system
+        var DEFAULT_COLOR = '#0d9488';
+        var CACHE_VERSION = '2'; // bump this to force-clear stale cached colors
+        var storedVersion = localStorage.getItem('skycity_theme_version');
+        // If version mismatch, clear stale cache and reset to default
+        if (storedVersion !== CACHE_VERSION) {
+          localStorage.removeItem('skycity_theme_color');
+          localStorage.setItem('skycity_theme_version', CACHE_VERSION);
+        }
+        var color = localStorage.getItem('skycity_theme_color') || DEFAULT_COLOR;
+        // Always apply the color (cached or default)
+        var applyColor = function(hex) {
+          var c = hex.replace('#','');
           if (c.length === 3) c = c.split('').map(function(x){return x+x;}).join('');
           var r = parseInt(c.substr(0,2),16)/255, g = parseInt(c.substr(2,2),16)/255, b = parseInt(c.substr(4,2),16)/255;
           var max = Math.max(r,g,b), min = Math.min(r,g,b), h=0, s=0, l=(max+min)/2;
@@ -35,8 +44,10 @@
           var hsl = Math.round(h*360)+' '+Math.round(s*100)+'% '+Math.round(l*100)+'%';
           document.documentElement.style.setProperty('--primary', hsl);
           document.documentElement.style.setProperty('--ring', hsl);
-          document.documentElement.style.setProperty('--brand-primary', color);
-        }
+          document.documentElement.style.setProperty('--sidebar-primary', hsl);
+          document.documentElement.style.setProperty('--brand-primary', hex);
+        };
+        applyColor(color);
       } catch(e) {}
     })();
   </script>

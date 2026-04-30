@@ -25,8 +25,46 @@ const Login: React.FC = () => {
   const [hideTerms, setHideTerms] = useState(false);
   // Initialize from localStorage cache immediately — no flash
   const [loginBgColor, setLoginBgColor] = useState<string>(() => {
-    try { return localStorage.getItem('skycity_theme_color') || ''; } catch { return ''; }
+    try {
+      // Force-clear stale indigo color — default is teal #0d9488
+      const cached = localStorage.getItem('skycity_theme_color');
+      const version = localStorage.getItem('skycity_theme_version');
+      if (version !== '2') {
+        // Stale cache — clear it and use default teal
+        localStorage.removeItem('skycity_theme_color');
+        localStorage.setItem('skycity_theme_version', '2');
+        return '#0d9488';
+      }
+      return cached || '#0d9488';
+    } catch { return '#0d9488'; }
   });
+
+  // Apply the initial color to CSS variables immediately on mount
+  useEffect(() => {
+    if (loginBgColor) {
+      const hexToHsl = (hex: string) => {
+        const clean = hex.replace('#', '');
+        const full = clean.length === 3 ? clean.split('').map((c: string) => c + c).join('') : clean;
+        const r2 = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(full);
+        if (!r2) return null;
+        let r = parseInt(r2[1], 16) / 255, g = parseInt(r2[2], 16) / 255, b = parseInt(r2[3], 16) / 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h = 0, s = 0; const l = (max + min) / 2;
+        if (max !== min) {
+          const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) { case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break; case g: h = ((b - r) / d + 2) / 6; break; case b: h = ((r - g) / d + 4) / 6; break; }
+        }
+        return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+      };
+      const hsl = hexToHsl(loginBgColor);
+      if (hsl) {
+        document.documentElement.style.setProperty('--primary', hsl);
+        document.documentElement.style.setProperty('--ring', hsl);
+        document.documentElement.style.setProperty('--sidebar-primary', hsl);
+      }
+      document.documentElement.style.setProperty('--brand-primary', loginBgColor);
+    }
+  }, [loginBgColor]);
 
   // Fetch latest branding from API and update if changed
   useEffect(() => {
@@ -35,30 +73,33 @@ const Login: React.FC = () => {
         const res = await api.branding.getPublic();
         if (res.success && res.data?.themeColor) {
           const color = res.data.themeColor;
-          // Always apply the fresh API color (overrides stale cache)
-          setLoginBgColor(color);
-          const hexToHsl = (hex: string) => {
-            const clean = hex.replace('#', '');
-            const full = clean.length === 3 ? clean.split('').map((c: string) => c + c).join('') : clean;
-            const r2 = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(full);
-            if (!r2) return null;
-            let r = parseInt(r2[1], 16) / 255, g = parseInt(r2[2], 16) / 255, b = parseInt(r2[3], 16) / 255;
-            const max = Math.max(r, g, b), min = Math.min(r, g, b);
-            let h = 0, s = 0; const l = (max + min) / 2;
-            if (max !== min) {
-              const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-              switch (max) { case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break; case g: h = ((b - r) / d + 2) / 6; break; case b: h = ((r - g) / d + 4) / 6; break; }
+          // Only apply if no cached color exists (first-time visitor)
+          const cached = localStorage.getItem('skycity_theme_color');
+          if (!cached) {
+            setLoginBgColor(color);
+            const hexToHsl = (hex: string) => {
+              const clean = hex.replace('#', '');
+              const full = clean.length === 3 ? clean.split('').map((c: string) => c + c).join('') : clean;
+              const r2 = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(full);
+              if (!r2) return null;
+              let r = parseInt(r2[1], 16) / 255, g = parseInt(r2[2], 16) / 255, b = parseInt(r2[3], 16) / 255;
+              const max = Math.max(r, g, b), min = Math.min(r, g, b);
+              let h = 0, s = 0; const l = (max + min) / 2;
+              if (max !== min) {
+                const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) { case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break; case g: h = ((b - r) / d + 2) / 6; break; case b: h = ((r - g) / d + 4) / 6; break; }
+              }
+              return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+            };
+            const hsl = hexToHsl(color);
+            if (hsl) {
+              document.documentElement.style.setProperty('--primary', hsl);
+              document.documentElement.style.setProperty('--ring', hsl);
             }
-            return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
-          };
-          const hsl = hexToHsl(color);
-          if (hsl) {
-            document.documentElement.style.setProperty('--primary', hsl);
-            document.documentElement.style.setProperty('--ring', hsl);
+            document.documentElement.style.setProperty('--brand-primary', color);
+            try { localStorage.setItem('skycity_theme_color', color); } catch { /* ignore */ }
           }
-          document.documentElement.style.setProperty('--brand-primary', color);
-          // Update cache with latest color
-          try { localStorage.setItem('skycity_theme_color', color); } catch { /* ignore */ }
+          // If cached color exists, it was set by the admin via Branding page — trust it over API
         }
       } catch { /* keep cached color */ }
     };
@@ -143,9 +184,9 @@ const Login: React.FC = () => {
       <div
         className="hidden lg:flex lg:w-3/5 flex-col justify-between p-8 relative overflow-hidden h-full"
         style={{
-          background: loginBgColor
+          background: loginBgColor && loginBgColor !== '#6366f1'
             ? `linear-gradient(135deg, ${loginBgColor} 0%, ${loginBgColor}dd 60%, ${loginBgColor}bb 100%)`
-            : `linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.9) 60%, hsl(var(--primary) / 0.8) 100%)`
+            : `linear-gradient(135deg, #0d9488 0%, #0d9488dd 60%, #0d9488bb 100%)`
         }}
       >
         {/* Background pattern */}
@@ -288,7 +329,7 @@ const Login: React.FC = () => {
                       <label htmlFor="terms" className="font-bold text-slate-500 cursor-pointer">I agree to the </label>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <button type="button" className="text-primary hover:underline font-black focus:outline-none text-left">Terms and Conditions</button>
+                          <button type="button" className="hover:underline font-black focus:outline-none text-left" style={{ color: loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488' }}>Terms and Conditions</button>
                         </DialogTrigger>
                         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border-none">
                           <DialogHeader><DialogTitle className="text-xl font-black">Terms and Conditions</DialogTitle></DialogHeader>
@@ -302,7 +343,8 @@ const Login: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 sm:h-12 mt-1 rounded-xl bg-primary hover:bg-primary/90 text-white font-black text-xs sm:text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                  className="w-full h-11 sm:h-12 mt-1 rounded-xl text-white font-black text-xs sm:text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg"
+                  style={{ backgroundColor: loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488' }}
                 >
                   {isLoading ? <><LoadingSpinner size="sm" /><span>Wait...</span></> : 'Sign In'}
                 </button>

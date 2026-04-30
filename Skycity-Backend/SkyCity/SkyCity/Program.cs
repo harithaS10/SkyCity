@@ -26,7 +26,7 @@ builder.Services.AddHttpContextAccessor();
 
 // Database
 string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Database=SkyCity;User Id=sa;Password=ENyxnMfNb2EjIv8pf9LN;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=30;Max Pool Size=50;";
+    ?? "Server=103.230.85.44;Database=Employeesreport;User Id=sa;Password=V9%2f+?b$H%9d;MultipleActiveResultSets=true;TrustServerCertificate=True;";
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
