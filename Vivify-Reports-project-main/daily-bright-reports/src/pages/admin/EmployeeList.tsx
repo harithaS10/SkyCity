@@ -313,8 +313,8 @@ const EmployeeList: React.FC = () => {
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start gap-4 mb-6">
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-black tracking-tight truncate">Employees</h1>
-                <p className="text-[10px] text-white/70 font-bold uppercase mt-1 italic tracking-widest leading-relaxed">Task & Performance Management</p>
+                <h1 className="text-2xl font-black text-white tracking-tight truncate">Employees</h1>
+                <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Task & Performance Management</p>
               </div>
             </div>
 

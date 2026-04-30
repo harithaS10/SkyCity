@@ -330,8 +330,8 @@ const GroupChat: React.FC = () => {
 
                 <div className="relative z-10 flex justify-between items-start">
                   <div>
-                    <h1 className="text-3xl font-black tracking-tight">Chat</h1>
-                    <p className="text-[10px] text-white/70 font-black tracking-[0.2em] uppercase mt-1">Connect · Collaborate</p>
+                    <h1 className="text-2xl font-black text-white tracking-tight">Chat</h1>
+                    <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Connect · Collaborate</p>
                   </div>
                   {isAdmin && tab === 'groups' && (
                     <Button

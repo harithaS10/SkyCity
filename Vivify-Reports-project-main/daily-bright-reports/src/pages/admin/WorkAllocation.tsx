@@ -851,8 +851,8 @@ const WorkAllocationPage: React.FC = () => {
           <div className="bg-primary/95 pt-8 pb-10 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-2">
               <div>
-                <h1 className="text-2xl font-black tracking-tight">Work Allocation</h1>
-                <p className="text-[10px] text-white/70 font-bold tracking-widest uppercase mt-1 italic">Assign & Monitor Tasks</p>
+                <h1 className="text-2xl font-black text-white tracking-tight">Work Allocation</h1>
+                <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Assign & Monitor Tasks</p>
               </div>
               <div onClick={(e) => {
                 if (!canCreate) { e.preventDefault(); toast.error("You don't have permission to allocate work"); }

@@ -792,7 +792,7 @@ const UserDashboard: React.FC = () => {
           </div>
           
           <div className="flex flex-col items-center justify-center mt-2">
-            <p className="text-[10px] text-white/60 font-black uppercase tracking-widest mb-1.5 flex items-center gap-1">
+            <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 flex items-center gap-1">
               <Award className="h-3.5 w-3.5" /> Performance Score
             </p>
             <div className="text-6xl font-black tracking-tighter text-white">

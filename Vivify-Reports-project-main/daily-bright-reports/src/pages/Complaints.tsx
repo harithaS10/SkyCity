@@ -338,8 +338,8 @@ const Complaints: React.FC = () => {
            <div className="bg-primary/95 pt-8 pb-10 px-6 rounded-b-[2rem] shadow-lg relative z-10 text-white">
               <div className="flex justify-between items-start mb-2">
                  <div>
-                    <h1 className="text-2xl font-black tracking-tight">Issues Center</h1>
-                    <p className="text-[10px] text-white/70 font-bold tracking-widest uppercase mt-1">Complaint Management</p>
+                    <h1 className="text-2xl font-black text-white tracking-tight">Issues Center</h1>
+                    <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Complaint Management</p>
                  </div>
                  {canCreate && (
                     <Button onClick={() => setIsCreateOpen(true)} className="bg-white/10 hover:bg-white/20 text-white rounded-full h-[46px] w-[46px] shadow-sm backdrop-blur-md p-0 flex flex-col items-center justify-center shrink-0 active:scale-95 transition-transform">
@@ -404,26 +404,6 @@ const Complaints: React.FC = () => {
                     {tab !== 'all' && counts[tab as keyof typeof counts] > 0 && (
                       <span className="ml-1 opacity-70">({counts[tab as keyof typeof counts]})</span>
                     )}
-                  </button>
-                ))}
-              </div>
-
-              {/* Mobile Priority Filter */}
-              <div className="flex gap-2 overflow-x-auto pb-1" style={{scrollbarWidth: 'none'}}>
-                <span className="shrink-0 text-[10px] font-black text-slate-400 uppercase tracking-widest self-center">Priority:</span>
-                {(['all', 'Low', 'Medium', 'High', 'Urgent'] as const).map(p => (
-                  <button key={p} onClick={() => setFilterPriority(p)}
-                    className={cn(
-                      "shrink-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95",
-                      filterPriority === p
-                        ? p === 'Urgent' ? 'bg-rose-500 text-white'
-                        : p === 'High' ? 'bg-orange-500 text-white'
-                        : p === 'Medium' ? 'bg-amber-500 text-white'
-                        : p === 'Low' ? 'bg-slate-500 text-white'
-                        : 'bg-primary text-white'
-                        : 'bg-white dark:bg-slate-800 text-slate-500 ring-1 ring-slate-100 dark:ring-slate-700'
-                    )}>
-                    {p === 'all' ? 'All' : p}
                   </button>
                 ))}
               </div>

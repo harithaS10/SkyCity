@@ -403,8 +403,8 @@ const RoleManagement: React.FC = () => {
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-6 gap-4">
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-black tracking-tight truncate">Roles</h1>
-                <p className="text-[10px] text-white/70 font-bold uppercase mt-1 italic tracking-widest leading-relaxed">Role Management</p>
+                <h1 className="text-2xl font-black text-white tracking-tight truncate">Roles</h1>
+                <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Role Management</p>
               </div>
               <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setIsCreateOpen(true)}>
                 <Plus className="h-6 w-6" />

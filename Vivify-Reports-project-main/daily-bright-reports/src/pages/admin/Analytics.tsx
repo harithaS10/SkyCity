@@ -416,7 +416,7 @@ const Analytics: React.FC = () => {
         <div className="block lg:hidden min-h-screen bg-slate-50 dark:bg-slate-950 pb-[100px] -mx-4 -mt-4 animate-in fade-in duration-300">
           <div className="bg-primary pt-10 pb-16 px-6 rounded-b-[3rem] shadow-xl relative z-10 text-white">
             <div className="flex justify-between items-center mb-6">
-              <div><h1 className="text-2xl font-black tracking-tight">Analytics</h1><p className="text-[10px] text-white/60 font-black uppercase tracking-widest">Performance Insights</p></div>
+              <div><h1 className="text-2xl font-black text-white tracking-tight">Analytics</h1><p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em]">Performance Insights</p></div>
               <Button onClick={handleWhatsAppExport} className="bg-white/20 text-white rounded-xl h-11 px-4 border-none backdrop-blur-md" size="sm" disabled={!canExport}><Download className="h-4 w-4 mr-2" /><span className="text-[11px] font-black uppercase">Export</span></Button>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-2">
