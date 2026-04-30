@@ -243,7 +243,7 @@ const AiChat: React.FC = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-4 space-y-4 bg-slate-50/50">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-4 space-y-4 bg-slate-50/50 dark:bg-slate-950/50">
         {messages.map(msg => (
           <div key={msg.id} className={cn('flex gap-2.5 w-full', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
             <div className={cn(
@@ -255,13 +255,13 @@ const AiChat: React.FC = () => {
             <div className={cn(
               'max-w-[80%] rounded-2xl px-4 py-3 text-sm shadow-sm',
               msg.role === 'bot'
-                ? 'bg-white border border-slate-100 text-slate-800 rounded-tl-sm'
+                ? 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-800 dark:text-white rounded-tl-sm'
                 : 'bg-primary text-primary-foreground rounded-tr-sm'
             )}>
               <div className="space-y-0.5">{renderText(msg.text)}</div>
               {/* Action buttons */}
               {msg.actions && msg.actions.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-slate-100">
+                <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-slate-100 dark:border-slate-700">
                   {msg.actions.map((action, i) => {
                     let label = action;
                     let isDateBtn = false;
@@ -303,10 +303,10 @@ const AiChat: React.FC = () => {
                         onClick={() => sendMessage(action)}
                         className={cn(
                           "text-[11px] px-2.5 py-1 rounded-full border transition-colors font-medium",
-                          isConfirm ? "bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100" :
-                          isCancel ? "bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100" :
-                          isDateBtn ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                          "bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100"
+                          isConfirm ? "bg-emerald-50 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900" :
+                          isCancel ? "bg-rose-50 dark:bg-rose-950 border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900" :
+                          isDateBtn ? "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900" :
+                          "bg-violet-50 dark:bg-violet-950 border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900"
                         )}
                       >
                         {label}
@@ -316,11 +316,11 @@ const AiChat: React.FC = () => {
 
                   {/* Custom date picker — shown when there are set-due actions */}
                   {msg.actions.some(a => /^set-due:/i.test(a)) && (
-                    <div className="w-full mt-2 flex items-center gap-2 pt-2 border-t border-slate-100">
-                      <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <div className="w-full mt-2 flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                       <input
                         type="date"
-                        className="flex-1 text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-violet-400"
+                        className="flex-1 text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-violet-400 dark:focus:ring-violet-500"
                         min={format(new Date(), 'yyyy-MM-dd')}
                         onChange={e => {
                           if (!e.target.value) return;
@@ -333,7 +333,7 @@ const AiChat: React.FC = () => {
                           e.target.value = '';
                         }}
                       />
-                      <span className="text-[10px] text-slate-400 shrink-0">custom date</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">custom date</span>
                     </div>
                   )}
                 </div>
@@ -350,11 +350,11 @@ const AiChat: React.FC = () => {
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0">
               <Bot className="h-4 w-4 text-white" />
             </div>
-            <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
               <div className="flex gap-1 items-center h-5">
-                <div className="h-2 w-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="h-2 w-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="h-2 w-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
@@ -363,12 +363,12 @@ const AiChat: React.FC = () => {
       </div>
 
       {/* Quick commands — filtered by user role */}
-      <div className="px-3 py-2 border-t bg-white flex gap-1.5 overflow-x-auto scrollbar-none">
+      <div className="px-3 py-2 border-t dark:border-slate-700 bg-white dark:bg-slate-900 flex gap-1.5 overflow-x-auto scrollbar-none">
         {quickCommands.map(cmd => (
           <button
             key={cmd}
             onClick={() => sendMessage(cmd)}
-            className="shrink-0 text-[11px] px-2.5 py-1 rounded-full border border-violet-200 text-violet-700 bg-violet-50 hover:bg-violet-100 transition-colors whitespace-nowrap"
+            className="shrink-0 text-[11px] px-2.5 py-1 rounded-full border border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950 hover:bg-violet-100 dark:hover:bg-violet-900 transition-colors whitespace-nowrap"
           >
             {cmd}
           </button>
@@ -376,14 +376,14 @@ const AiChat: React.FC = () => {
       </div>
 
       {/* Input */}
-      <div className="px-3 py-3 border-t bg-white flex gap-2">
+      <div className="px-3 py-3 border-t dark:border-slate-700 bg-white dark:bg-slate-900 flex gap-2">
         {/* Voice button */}
         <Button
           size="icon"
           variant={isListening ? "default" : "outline"}
           className={cn(
             "rounded-full shrink-0 transition-all",
-            isListening ? "bg-rose-500 hover:bg-rose-600 border-rose-500 animate-pulse" : "border-slate-200"
+            isListening ? "bg-rose-500 hover:bg-rose-600 border-rose-500 animate-pulse" : "border-slate-200 dark:border-slate-700"
           )}
           onClick={toggleVoice}
           title={isListening ? "Stop listening" : "Start voice input"}
@@ -396,7 +396,7 @@ const AiChat: React.FC = () => {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
           placeholder={isListening ? "Listening... 🎤" : "Ask me anything..."}
-          className="flex-1 rounded-full border-slate-200 bg-slate-50 focus:bg-white"
+          className="flex-1 rounded-full border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
           disabled={isLoading || isListening}
         />
         <Button

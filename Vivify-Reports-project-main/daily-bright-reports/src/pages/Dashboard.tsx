@@ -343,10 +343,10 @@ const UserDashboard: React.FC = () => {
       {/* Quick Links */}
       {(() => {
         const quickLinks = [
-          canViewWorkOrders && { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-primary-foreground bg-primary border-primary/20' },
-          canViewDailyReports && { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-primary bg-primary/10 border-primary/20' },
-          canViewComplaints && { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-700 bg-amber-50 border-amber-200' },
-          canViewChat && { label: 'Community', icon: Users, path: '/chat', color: 'text-primary bg-primary/5 border-primary/10' },
+          canViewWorkOrders && { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-primary-foreground dark:text-white bg-primary dark:bg-card border-primary/20 dark:border-border' },
+          canViewDailyReports && { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-primary dark:text-white bg-primary/10 dark:bg-card border-primary/20 dark:border-border' },
+          canViewComplaints && { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-700 dark:text-white bg-amber-50 dark:bg-card border-amber-200 dark:border-border' },
+          canViewChat && { label: 'Community', icon: Users, path: '/chat', color: 'text-primary dark:text-white bg-primary/5 dark:bg-card border-primary/10 dark:border-border' },
         ].filter(Boolean);
         
         if (quickLinks.length === 0) return null;
@@ -417,20 +417,19 @@ const UserDashboard: React.FC = () => {
         // Add daily report card if visible
         if (canViewDailyReports) {
           statCards.push(
-            <div key="report" className={cn("rounded-2xl border p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
-              !todayReport ? 'bg-amber-50 border-amber-200' : 'bg-card')}
+            <div key="report" className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => navigate('/daily-report')}>
               <div className="flex items-center justify-between mb-3">
                 <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl",
-                  !todayReport ? 'bg-amber-200' : 'bg-emerald-100')}>
-                  <FileText className={cn("h-4 w-4", !todayReport ? 'text-amber-700' : 'text-emerald-600')} />
+                  !todayReport ? 'bg-amber-200 dark:bg-slate-700' : 'bg-emerald-100 dark:bg-emerald-950')}>
+                  <FileText className={cn("h-4 w-4", !todayReport ? 'text-amber-700 dark:text-slate-300' : 'text-emerald-600 dark:text-emerald-400')} />
                 </div>
                 <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border",
-                  !todayReport ? 'text-amber-700 bg-amber-100 border-amber-300' : 'text-emerald-600 bg-emerald-50 border-emerald-200')}>
+                  !todayReport ? 'text-amber-700 dark:text-slate-300 bg-amber-100 dark:bg-slate-700 border-amber-300 dark:border-slate-600' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800')}>
                   {!todayReport ? 'Pending' : 'Filed'}
                 </span>
               </div>
-              <p className={cn("text-sm font-bold leading-tight", !todayReport ? 'text-amber-700' : 'text-emerald-600')}>
+              <p className={cn("text-sm font-bold leading-tight", !todayReport ? 'text-amber-700 dark:text-white' : 'text-emerald-600 dark:text-emerald-400')}>
                 {!todayReport ? 'Pending Report' : 'Report Filed'}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">Today's status</p>
