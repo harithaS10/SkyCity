@@ -633,7 +633,7 @@ const EmployeeTaskAssignment: React.FC = () => {
         {/* ===== MOBILE VIEW ===== */}
         <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen pb-20">
           <div className="bg-primary pt-6 pb-12 px-5 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
-            <button onClick={() => navigate('/admin/employees')} className="flex items-center gap-2 text-white/80 hover:text-white mb-6 text-[10px] font-bold tracking-widest uppercase bg-white/10 px-3 py-1.5 rounded-full w-fit backdrop-blur-md">
+            <button onClick={() => navigate('/admin/employees')} className="flex items-center gap-2 text-white hover:text-white mb-6 text-[10px] font-bold tracking-widest uppercase bg-white/10 px-3 py-1.5 rounded-full w-fit backdrop-blur-md">
               <ArrowLeft className="h-3 w-3" /> Back
             </button>
             <div className="flex items-center gap-4 mb-6">
@@ -641,8 +641,8 @@ const EmployeeTaskAssignment: React.FC = () => {
                 {employeeName.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-black tracking-tight truncate">{employeeName}</h1>
-                <p className="text-[10px] text-white/90 font-bold uppercase mt-1 tracking-widest bg-black/20 w-fit px-2.5 py-1 rounded-md border border-white/10 shadow-sm">
+                <h1 className="text-2xl font-black text-white tracking-tight truncate">{employeeName}</h1>
+                <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1 bg-black/20 w-fit px-2.5 py-1 rounded-md border border-white/10 shadow-sm">
                   EMP-{employeeId?.padStart(3, '0') || '000'}
                 </p>
               </div>
