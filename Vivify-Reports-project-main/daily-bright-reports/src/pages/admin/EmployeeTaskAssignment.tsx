@@ -631,9 +631,9 @@ const EmployeeTaskAssignment: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen pb-20">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-950 -mx-4 -mt-4 min-h-screen pb-20">
           <div className="bg-primary pt-6 pb-12 px-5 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
-            <button onClick={() => navigate('/admin/employees')} className="flex items-center gap-2 text-white hover:text-white mb-6 text-[10px] font-bold tracking-widest uppercase bg-white/10 px-3 py-1.5 rounded-full w-fit backdrop-blur-md">
+            <button onClick={() => navigate('/admin/employees')} className="flex items-center gap-2 text-white hover:text-white mb-6 text-[10px] font-bold tracking-widest uppercase bg-white/10 px-3 py-1.5 rounded-full w-fit backdrop-blur-md hover:bg-white/20">
               <ArrowLeft className="h-3 w-3" /> Back
             </button>
             <div className="flex items-center gap-4 mb-6">
@@ -671,71 +671,71 @@ const EmployeeTaskAssignment: React.FC = () => {
           <div className="px-4 -mt-6 relative z-20 space-y-4">
             {/* Create Task Tab/Forms */}
             <Tabs defaultValue="assign" className="w-full">
-              <TabsList className="w-full bg-white shadow-sm ring-1 ring-black/5 rounded-2xl h-12 p-1 border-0">
-                <TabsTrigger value="assign" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 data-[state=active]:text-white">Assign Task</TabsTrigger>
-                <TabsTrigger value="daily" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 data-[state=active]:text-white">Daily ({dailyTasks.length})</TabsTrigger>
-                <TabsTrigger value="monthly" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 data-[state=active]:text-white">Monthly ({monthlyTasks.length})</TabsTrigger>
+              <TabsList className="w-full bg-white dark:bg-slate-800 shadow-sm ring-1 ring-black/5 dark:ring-white/5 rounded-2xl h-12 p-1 border-0">
+                <TabsTrigger value="assign" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white dark:text-slate-300">Assign Task</TabsTrigger>
+                <TabsTrigger value="daily" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white dark:text-slate-300">Daily ({dailyTasks.length})</TabsTrigger>
+                <TabsTrigger value="monthly" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white dark:text-slate-300">Monthly ({monthlyTasks.length})</TabsTrigger>
               </TabsList>
 
               <TabsContent value="assign" className="mt-4 space-y-4">
-                <div className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-black/5">
-                  <div className="flex items-center gap-3 border-b border-slate-50 pb-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shadow-sm shrink-0">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-700 pb-3 mb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 shadow-sm shrink-0">
                       <Plus className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-slate-800">New Task</h4>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Assign immediately</p>
+                      <h4 className="text-sm font-black text-slate-800 dark:text-white">New Task</h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Assign immediately</p>
                     </div>
                   </div>
 
                   <Tabs defaultValue="daily-form" className="w-full">
-                    <TabsList className="w-full grid grid-cols-2 bg-slate-50 rounded-xl h-10 p-1 mb-4">
-                      <TabsTrigger value="daily-form" className="rounded-lg text-[10px] uppercase tracking-wider font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Daily</TabsTrigger>
-                      <TabsTrigger value="monthly-form" className="rounded-lg text-[10px] uppercase tracking-wider font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Monthly</TabsTrigger>
+                    <TabsList className="w-full grid grid-cols-2 bg-slate-50 dark:bg-slate-900 rounded-xl h-10 p-1 mb-4">
+                      <TabsTrigger value="daily-form" className="rounded-lg text-[10px] uppercase tracking-wider font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm dark:text-slate-400">Daily</TabsTrigger>
+                      <TabsTrigger value="monthly-form" className="rounded-lg text-[10px] uppercase tracking-wider font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm dark:text-slate-400">Monthly</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="daily-form" className="space-y-4 outline-none">
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Task Title</Label>
+                        <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Task Title</Label>
                         <Input
                           placeholder="e.g. Check generators"
                           value={dailyTaskForm.taskName}
                           onChange={(e) => setDailyTaskForm({ ...dailyTaskForm, taskName: e.target.value })}
-                          className="rounded-xl h-11 bg-slate-50/50 border-slate-200"
+                          className="rounded-xl h-11 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 dark:text-white"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</Label>
+                        <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Description</Label>
                         <Textarea
                           placeholder="Details..."
                           rows={2}
                           value={dailyTaskForm.description}
                           onChange={(e) => setDailyTaskForm({ ...dailyTaskForm, description: e.target.value })}
-                          className="rounded-xl bg-slate-50/50 border-slate-200 resize-none"
+                          className="rounded-xl bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 resize-none dark:text-white"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Priority</Label>
+                          <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Priority</Label>
                           <Select value={dailyTaskForm.priority} onValueChange={(v: any) => setDailyTaskForm({ ...dailyTaskForm, priority: v })}>
-                            <SelectTrigger className="rounded-xl h-11 bg-slate-50/50 border-slate-200 text-xs font-bold">
+                            <SelectTrigger className="rounded-xl h-11 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="low" className="text-xs font-bold text-emerald-700">Low</SelectItem>
-                              <SelectItem value="medium" className="text-xs font-bold text-amber-700">Medium</SelectItem>
-                              <SelectItem value="high" className="text-xs font-bold text-rose-700">High</SelectItem>
+                            <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
+                              <SelectItem value="low" className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Low</SelectItem>
+                              <SelectItem value="medium" className="text-xs font-bold text-amber-700 dark:text-amber-400">Medium</SelectItem>
+                              <SelectItem value="high" className="text-xs font-bold text-rose-700 dark:text-rose-400">High</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Due Time</Label>
+                          <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Due Time</Label>
                           <Input
                             type="time"
                             value={dailyTaskForm.dueTime}
                             onChange={(e) => setDailyTaskForm({ ...dailyTaskForm, dueTime: e.target.value })}
-                            className="rounded-xl h-11 bg-slate-50/50 border-slate-200 text-xs font-bold"
+                            className="rounded-xl h-11 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white"
                           />
                         </div>
                       </div>
@@ -750,41 +750,41 @@ const EmployeeTaskAssignment: React.FC = () => {
 
                     <TabsContent value="monthly-form" className="space-y-4 outline-none">
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Task Title</Label>
+                        <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Task Title</Label>
                         <Input
                           placeholder="e.g. Monthly safety check"
                           value={monthlyTaskForm.taskName}
                           onChange={(e) => setMonthlyTaskForm({ ...monthlyTaskForm, taskName: e.target.value })}
-                          className="rounded-xl h-11 bg-slate-50/50 border-slate-200"
+                          className="rounded-xl h-11 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 dark:text-white"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</Label>
+                        <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Description</Label>
                         <Textarea
                           placeholder="Details..."
                           rows={2}
                           value={monthlyTaskForm.description}
                           onChange={(e) => setMonthlyTaskForm({ ...monthlyTaskForm, description: e.target.value })}
-                          className="rounded-xl bg-slate-50/50 border-slate-200 resize-none"
+                          className="rounded-xl bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 resize-none dark:text-white"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Month</Label>
+                          <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Month</Label>
                           <Input
                             type="month"
                             value={monthlyTaskForm.month}
                             onChange={(e) => setMonthlyTaskForm({ ...monthlyTaskForm, month: e.target.value })}
-                            className="rounded-xl h-11 bg-slate-50/50 border-slate-200 text-xs font-bold"
+                            className="rounded-xl h-11 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white"
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Due Date</Label>
+                          <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Due Date</Label>
                           <Input
                             type="date"
                             value={monthlyTaskForm.dueDate}
                             onChange={(e) => setMonthlyTaskForm({ ...monthlyTaskForm, dueDate: e.target.value })}
-                            className="rounded-xl h-11 bg-slate-50/50 border-slate-200 text-xs font-bold"
+                            className="rounded-xl h-11 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-xs font-bold dark:text-white"
                           />
                         </div>
                       </div>

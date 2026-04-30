@@ -75,35 +75,35 @@ export default function TermsManagement() {
         <div className="hidden sm:block space-y-6 pb-24">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-black tracking-tight text-primary flex items-center gap-3">
-                <FileText className="h-7 w-7 text-primary" />
+              <h1 className="text-3xl font-black tracking-tight text-primary dark:text-white flex items-center gap-3">
+                <FileText className="h-7 w-7 text-primary dark:text-white" />
                 Terms & Conditions
               </h1>
-              <p className="text-muted-foreground font-medium">Manage the terms and conditions that users must accept upon login.</p>
+              <p className="text-muted-foreground dark:text-slate-400 font-medium">Manage the terms and conditions that users must accept upon login.</p>
             </div>
           </div>
 
-          <Card className="overflow-hidden border-none shadow-md">
-            <CardHeader className="bg-white pb-4">
+          <Card className="overflow-hidden border-none shadow-md dark:bg-card">
+            <CardHeader className="bg-white dark:bg-slate-900 pb-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <FileText className="h-5 w-5 text-primary" />
+                  <CardTitle className="flex items-center gap-2 text-lg dark:text-white">
+                    <FileText className="h-5 w-5 text-primary dark:text-white" />
                     Edit Terms Content
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="dark:text-slate-400">
                     Users will be required to check a box agreeing to these terms before they can log in.
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-6 pt-2">
+            <CardContent className="p-6 pt-2 dark:bg-card">
               <div className="space-y-4">
                 <Textarea
                   value={terms}
                   onChange={(e) => setTerms(e.target.value)}
                   placeholder="Enter terms and conditions here..."
-                  className="min-h-[450px] font-mono text-sm bg-slate-50 border-slate-200 focus:bg-white transition-colors p-4 rounded-xl"
+                  className="min-h-[450px] font-mono text-sm bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 transition-colors p-4 rounded-xl"
                   disabled={isLoading}
                 />
                 <div className="flex justify-end gap-3 pt-2">
@@ -111,7 +111,7 @@ export default function TermsManagement() {
                     variant="outline" 
                     onClick={handleDelete} 
                     disabled={isLoading || isSaving || !terms}
-                    className="text-destructive hover:bg-destructive/10 border-destructive/20"
+                    className="text-destructive hover:bg-destructive/10 border-destructive/20 dark:border-destructive/30 dark:hover:bg-destructive/20"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Clear All
@@ -131,7 +131,7 @@ export default function TermsManagement() {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-950 -mx-4 -mt-4 min-h-screen">
           {/* Curved Header */}
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-6 gap-4">
@@ -159,9 +159,9 @@ export default function TermsManagement() {
 
           {/* Content Area */}
           <div className="px-5 -mt-6 relative z-20 space-y-4 pb-12">
-            <Card className="bg-white rounded-[2rem] shadow-xl border-none overflow-hidden ring-1 ring-black/5">
+            <Card className="bg-white dark:bg-card rounded-[2rem] shadow-xl border-none overflow-hidden ring-1 ring-black/5 dark:ring-white/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base font-black text-slate-800">Edit Content</CardTitle>
+                <CardTitle className="text-base font-black text-slate-800 dark:text-white">Edit Content</CardTitle>
                 <CardDescription className="text-[11px] font-medium leading-normal">
                   Write the terms and conditions in the editor below. Changes apply instantly after saving.
                 </CardDescription>
@@ -171,7 +171,7 @@ export default function TermsManagement() {
                   value={terms}
                   onChange={(e) => setTerms(e.target.value)}
                   placeholder="Enter terms and conditions here..."
-                  className="min-h-[350px] font-mono text-xs bg-slate-50 border-none rounded-2xl focus:bg-slate-50/50 p-4 ring-1 ring-slate-100"
+                  className="min-h-[350px] font-mono text-xs bg-slate-50 dark:bg-slate-900 border-none rounded-2xl focus:bg-slate-50/50 dark:focus:bg-slate-800 p-4 ring-1 ring-slate-100 dark:ring-slate-700"
                   disabled={isLoading}
                 />
                 
@@ -180,7 +180,7 @@ export default function TermsManagement() {
                     variant="ghost" 
                     onClick={handleDelete} 
                     disabled={isLoading || isSaving || !terms}
-                    className="h-12 rounded-2xl bg-rose-50 text-rose-600 font-black text-[11px] uppercase tracking-widest hover:bg-rose-100"
+                    className="h-12 rounded-2xl bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 font-black text-[11px] uppercase tracking-widest hover:bg-rose-100 dark:hover:bg-rose-900"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Clear
@@ -201,11 +201,11 @@ export default function TermsManagement() {
               </CardContent>
             </Card>
 
-            <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-4 border border-white flex items-center gap-3">
-              <div className="h-8 w-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                <RefreshCw className="h-4 w-4 text-amber-600" />
+            <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-2xl p-4 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                <RefreshCw className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </div>
-              <p className="text-[10px] text-slate-500 font-bold leading-relaxed">
+              <p className="text-[10px] text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
                 Staff members will see these terms the next time they log into the portal.
               </p>
             </div>

@@ -399,14 +399,14 @@ const RoleManagement: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-950 -mx-4 -mt-4 min-h-screen">
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-6 gap-4">
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-black text-white tracking-tight truncate">Roles</h1>
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Role Management</p>
               </div>
-              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setIsCreateOpen(true)}>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0 hover:bg-white/20" onClick={() => setIsCreateOpen(true)}>
                 <Plus className="h-6 w-6" />
               </Button>
             </div>
@@ -427,13 +427,13 @@ const RoleManagement: React.FC = () => {
           <div className="px-5 -mt-6 relative z-20 space-y-4 pb-8">
             <div className="space-y-3">
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
-                  <p className="text-sm font-bold text-slate-500">Loading roles...</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white dark:bg-slate-800 rounded-3xl shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Loading roles...</p>
                 </div>
               ) : roles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
-                  <Shield className="h-8 w-8 mb-2 text-slate-400" />
-                  <p className="text-sm font-bold text-slate-500">No roles defined</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white dark:bg-slate-800 rounded-3xl shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <Shield className="h-8 w-8 mb-2 text-slate-400 dark:text-slate-500" />
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">No roles defined</p>
                 </div>
               ) : (
                 roles.map((r) => {
@@ -442,44 +442,44 @@ const RoleManagement: React.FC = () => {
                   
                   // Helper for rendering tick boxes
                   const TickPerm = ({ label, active }: { label: string, active: boolean }) => (
-                    <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-50 dark:bg-slate-700 border border-slate-100 dark:border-slate-600">
                       {active ? (
-                        <Check className="h-5 w-5 text-emerald-500 stroke-[3] mb-1" />
+                        <Check className="h-5 w-5 text-emerald-500 dark:text-emerald-400 stroke-[3] mb-1" />
                       ) : (
-                        <X className="h-5 w-5 text-slate-300 stroke-[3] mb-1" />
+                        <X className="h-5 w-5 text-slate-300 dark:text-slate-600 stroke-[3] mb-1" />
                       )}
-                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">{label}</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</span>
                     </div>
                   );
 
                   return (
-                    <div key={r.id} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-black/5 flex flex-col gap-3">
+                    <div key={r.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 flex flex-col gap-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 text-primary shadow-sm shrink-0">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary shadow-sm shrink-0">
                             <Shield className="h-5 w-5" />
                           </div>
-                          <h4 className="text-sm font-black text-slate-800 truncate">{r.roleName}</h4>
+                          <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{r.roleName}</h4>
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-xl bg-slate-50 text-slate-500">
+                            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-white rounded-2xl shadow-xl p-2 border-slate-100">
-                            <DropdownMenuItem onClick={() => openEdit(r)} className="cursor-pointer text-xs font-bold rounded-xl py-2 px-3">
+                          <DropdownMenuContent align="end" className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-2 border-slate-100 dark:border-slate-700">
+                            <DropdownMenuItem onClick={() => openEdit(r)} className="cursor-pointer text-xs font-bold rounded-xl py-2 px-3 dark:text-white dark:hover:bg-slate-700">
                               <Pencil className="mr-2 h-3.5 w-3.5" /> Edit Role
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(r.id, r.roleName)} className="text-rose-600 cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-rose-50 hover:text-rose-700">
+                            <DropdownMenuItem onClick={() => handleDelete(r.id, r.roleName)} className="text-rose-600 dark:text-rose-400 cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950 hover:text-rose-700 dark:hover:text-rose-300">
                               <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                       
-                      <div className="pt-3 border-t border-slate-50">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Module Access</p>
+                      <div className="pt-3 border-t border-slate-50 dark:border-slate-700">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mb-2">Module Access</p>
                         <div className="grid grid-cols-3 gap-2">
                           <TickPerm label="Complaints" active={hasAny(p.complaints)} />
                           <TickPerm label="Works" active={hasAny(p.work_orders)} />

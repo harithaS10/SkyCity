@@ -232,7 +232,7 @@ const Themes: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-[calc(100vh-64px)] pb-24">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-950 -mx-4 -mt-4 min-h-[calc(100vh-64px)] pb-24">
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1 min-w-0">
@@ -244,34 +244,34 @@ const Themes: React.FC = () => {
 
           <div className="px-5 -mt-6 relative z-20 space-y-4">
             {/* Identity Card */}
-            <div className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-black/5 flex flex-col gap-5">
-              <div className="flex items-center gap-3 border-b border-slate-50 pb-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-500 shadow-sm shrink-0">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5 flex flex-col gap-5">
+              <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-700 pb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-500 dark:text-blue-400 shadow-sm shrink-0">
                   <Building2 className="h-5 w-5" />
                 </div>
-                <h4 className="text-sm font-black text-slate-800">Company Identity</h4>
+                <h4 className="text-sm font-black text-slate-800 dark:text-white">Company Identity</h4>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Company Logo</Label>
+                  <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Company Logo</Label>
                   <div className="flex items-center gap-4">
                     <div
-                      className="h-20 w-20 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50/50 cursor-pointer overflow-hidden shrink-0"
+                      className="h-20 w-20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-50/50 dark:bg-slate-900/50 cursor-pointer overflow-hidden shrink-0"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       {logoPreview ? (
                         <img src={logoPreview} alt="Logo" className="h-full w-full object-contain p-2" />
                       ) : (
-                        <Upload className="h-6 w-6 text-slate-300" />
+                        <Upload className="h-6 w-6 text-slate-300 dark:text-slate-600" />
                       )}
                     </div>
                     <div className="flex flex-col gap-2">
-                      <Button variant="outline" className="rounded-xl h-9 text-xs font-bold" onClick={() => fileInputRef.current?.click()}>
+                      <Button variant="outline" className="rounded-xl h-9 text-xs font-bold dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:hover:bg-slate-600" onClick={() => fileInputRef.current?.click()}>
                         <Upload className="h-3 w-3 mr-2" /> Upload Logo
                       </Button>
                       {logoPreview && logoPreview !== defaultLogo && (
-                        <Button variant="ghost" className="h-8 text-xs text-rose-500 hover:bg-rose-50 rounded-xl font-bold" onClick={() => { setLogoPreview(defaultLogo); setLogoBase64(null); }}>
+                        <Button variant="ghost" className="h-8 text-xs text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl font-bold" onClick={() => { setLogoPreview(defaultLogo); setLogoBase64(null); }}>
                           <X className="h-3 w-3 mr-1" /> Remove
                         </Button>
                       )}
@@ -279,9 +279,9 @@ const Themes: React.FC = () => {
                   </div>
                 </div>
                 <div className="space-y-2 pt-2">
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Company Name</Label>
+                  <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Company Name</Label>
                   <Input
-                    className="rounded-xl h-12 bg-slate-50/50 border-slate-200 font-medium text-base px-4"
+                    className="rounded-xl h-12 bg-slate-50/50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 font-medium text-base px-4 dark:text-white"
                     value={companyName}
                     onChange={e => setCompanyName(e.target.value)}
                     placeholder="Your company name"
@@ -291,17 +291,17 @@ const Themes: React.FC = () => {
             </div>
 
             {/* Colors Card */}
-            <div className="bg-white rounded-3xl p-5 shadow-sm ring-1 ring-black/5 flex flex-col gap-5">
-              <div className="flex items-center gap-3 border-b border-slate-50 pb-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-500 shadow-sm shrink-0">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm ring-1 ring-black/5 dark:ring-white/5 flex flex-col gap-5">
+              <div className="flex items-center gap-3 border-b border-slate-50 dark:border-slate-700 pb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-950 text-purple-500 dark:text-purple-400 shadow-sm shrink-0">
                   <Palette className="h-5 w-5" />
                 </div>
-                <h4 className="text-sm font-black text-slate-800">Theme Colors</h4>
+                <h4 className="text-sm font-black text-slate-800 dark:text-white">Theme Colors</h4>
               </div>
 
               <div className="space-y-5">
                 <div className="space-y-3">
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Presets</Label>
+                  <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Presets</Label>
                   <div className="grid grid-cols-4 gap-3">
                     {PRESET_COLORS.map(c => (
                       <button
@@ -320,28 +320,28 @@ const Themes: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Custom Color</Label>
-                  <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+                  <Label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Custom Color</Label>
+                  <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl p-2.5">
                     <input
                       type="color"
                       value={themeColor}
                       onChange={e => setThemeColor(e.target.value)}
                       className="h-10 w-14 rounded-lg cursor-pointer border-0 bg-transparent p-0 shrink-0 shadow-sm"
                     />
-                    <span className="text-sm font-black text-slate-700 tracking-widest font-mono uppercase">{themeColor}</span>
+                    <span className="text-sm font-black text-slate-700 dark:text-slate-300 tracking-widest font-mono uppercase">{themeColor}</span>
                   </div>
                 </div>
 
                 {/* Live preview */}
-                <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm mt-2">
+                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm mt-2">
                   <div className="h-14 flex items-center px-4 gap-3 transition-colors" style={{ backgroundColor: themeColor }}>
                     <div className="h-8 w-8 rounded-xl bg-white/20" />
                     <div className="h-3.5 w-24 rounded-full bg-white/40" />
                     <div className="ml-auto h-8 w-8 rounded-full bg-white/30" />
                   </div>
-                  <div className="h-20 bg-slate-50 flex flex-col items-center justify-center gap-2">
-                    <div className="h-2 w-16 bg-slate-200 rounded-full" />
-                    <div className="h-2 w-24 bg-slate-200 rounded-full" />
+                  <div className="h-20 bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center gap-2">
+                    <div className="h-2 w-16 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                    <div className="h-2 w-24 bg-slate-200 dark:bg-slate-700 rounded-full" />
                   </div>
                 </div>
               </div>

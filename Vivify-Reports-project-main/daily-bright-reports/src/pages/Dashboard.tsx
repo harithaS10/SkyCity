@@ -1464,24 +1464,24 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200" onClick={() => navigate('/admin/work-allocation')}>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow dark:bg-slate-800 dark:border-slate-700" onClick={() => navigate('/admin/work-allocation')}>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-                <Plus className="h-6 w-6 text-purple-600" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/50">
+                <Plus className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="min-w-0 flex-1">
-                <CardTitle className="text-lg">Quick Task Creation</CardTitle>
-                <p className="text-sm text-muted-foreground">Create and assign new tasks</p>
+                <CardTitle className="text-lg dark:text-white">Quick Task Creation</CardTitle>
+                <p className="text-sm text-muted-foreground dark:text-slate-400">Create and assign new tasks</p>
               </div>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground dark:text-slate-400">
                 Assign tasks to multiple employees
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground dark:text-slate-500" />
             </div>
           </CardContent>
         </Card>

@@ -393,17 +393,17 @@ const WorkManagement: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-950 -mx-4 -mt-4 min-h-screen">
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-6 gap-4">
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-black text-white tracking-tight truncate">Works</h1>
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Work Management</p>
               </div>
-              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setIsCreateDialogOpen(true)}>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0 hover:bg-white/20" onClick={() => setIsCreateDialogOpen(true)}>
                 <Plus className="h-6 w-6" />
               </Button>
-              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0 hover:bg-white/20" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
                 <Upload className="h-5 w-5" />
               </Button>
             </div>
@@ -426,56 +426,56 @@ const WorkManagement: React.FC = () => {
 
           <div className="px-5 -mt-6 relative z-20 space-y-4 pb-8">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
               <Input
                 placeholder="Search works..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 pl-12 pr-4 rounded-2xl bg-white border-none shadow-xl ring-1 ring-black/5 font-bold text-sm"
+                className="h-12 pl-12 pr-4 rounded-2xl bg-white dark:bg-slate-800 border-none shadow-xl ring-1 ring-black/5 dark:ring-white/5 font-bold text-sm dark:text-white"
               />
             </div>
 
             <div className="space-y-3">
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
-                  <p className="text-sm font-bold text-slate-500">Loading works...</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white dark:bg-slate-800 rounded-3xl shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Loading works...</p>
                 </div>
               ) : filteredWorks.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
-                  <Briefcase className="h-8 w-8 mb-2 text-slate-400" />
-                  <p className="text-sm font-bold text-slate-500">No works found</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white dark:bg-slate-800 rounded-3xl shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <Briefcase className="h-8 w-8 mb-2 text-slate-400 dark:text-slate-500" />
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">No works found</p>
                 </div>
               ) : (
                 filteredWorks.map((work) => {
                   return (
-                    <div key={work.id} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-black/5 flex flex-col gap-3">
+                    <div key={work.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 flex flex-col gap-3">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-primary shadow-sm shrink-0">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary shadow-sm shrink-0">
                           <Briefcase className="h-5 w-5" />
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
-                          <h4 className="text-sm font-black text-slate-800 truncate mb-1">{work.workTitle}</h4>
-                          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200">
+                          <h4 className="text-sm font-black text-slate-800 dark:text-white truncate mb-1">{work.workTitle}</h4>
+                          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-600">
                             Code: {work.workCode}
                           </span>
                         </div>
                         <div className="flex gap-1 shrink-0 -mr-2 -mt-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl" onClick={() => openEditDialog(work)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 rounded-xl" onClick={() => openEditDialog(work)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 dark:text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 rounded-xl">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent className="rounded-3xl max-w-[90vw] p-6">
+                            <AlertDialogContent className="rounded-3xl max-w-[90vw] p-6 dark:bg-slate-900">
                               <AlertDialogHeader>
-                                <AlertDialogTitle className="text-xl font-black">Delete Work Type?</AlertDialogTitle>
-                                <AlertDialogDescription className="text-sm font-medium">This will permanently remove "{work.workTitle}".</AlertDialogDescription>
+                                <AlertDialogTitle className="text-xl font-black dark:text-white">Delete Work Type?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-sm font-medium dark:text-slate-400">This will permanently remove "{work.workTitle}".</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter className="gap-2 mt-4">
-                                <AlertDialogCancel className="rounded-xl border-none bg-slate-100 font-bold hover:bg-slate-200">Cancel</AlertDialogCancel>
+                                <AlertDialogCancel className="rounded-xl border-none bg-slate-100 dark:bg-slate-800 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-white">Cancel</AlertDialogCancel>
                                 <AlertDialogAction onClick={() => handleDeleteWork(work.id)} className="rounded-xl bg-rose-500 font-bold text-white hover:bg-rose-600">Delete</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -483,8 +483,8 @@ const WorkManagement: React.FC = () => {
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2 pt-3 border-t border-slate-50">
-                        <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl", work.workType === 'Special' ? "bg-warning/10 text-warning" : "bg-success/10 text-success")}>
+                      <div className="flex items-center gap-2 pt-3 border-t border-slate-50 dark:border-slate-700">
+                        <span className={cn("text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl", work.workType === 'Special' ? "bg-warning/10 text-warning dark:bg-warning/20 dark:text-warning" : "bg-success/10 text-success dark:bg-success/20 dark:text-success")}>
                           {work.workType || 'Standard'}
                         </span>
                       </div>

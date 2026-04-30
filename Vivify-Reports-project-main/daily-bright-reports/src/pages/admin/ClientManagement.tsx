@@ -451,17 +451,17 @@ const ClientManagement: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-950 -mx-4 -mt-4 min-h-screen">
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-6 gap-4">
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-black text-white tracking-tight truncate">Clients</h1>
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Client Management</p>
               </div>
-              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setIsCreateDialogOpen(true)}>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0 hover:bg-white/20" onClick={() => setIsCreateDialogOpen(true)}>
                 <Plus className="h-6 w-6" />
               </Button>
-              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0 hover:bg-white/20" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
                 <Upload className="h-5 w-5" />
               </Button>
             </div>
@@ -482,74 +482,74 @@ const ClientManagement: React.FC = () => {
 
           <div className="px-5 -mt-6 relative z-20 space-y-4 pb-8">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
               <Input
                 placeholder="Search clients..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 pl-12 pr-4 rounded-2xl bg-white border-none shadow-xl ring-1 ring-black/5 font-bold text-sm"
+                className="h-12 pl-12 pr-4 rounded-2xl bg-white dark:bg-slate-800 border-none shadow-xl ring-1 ring-black/5 dark:ring-white/5 font-bold text-sm dark:text-white"
               />
             </div>
 
             <div className="space-y-3">
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
-                  <p className="text-sm font-bold text-slate-500">Loading clients...</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white dark:bg-slate-800 rounded-3xl shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Loading clients...</p>
                 </div>
               ) : filteredClients.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
-                  <Building2 className="h-8 w-8 mb-2 text-slate-400" />
-                  <p className="text-sm font-bold text-slate-500">No clients found</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white dark:bg-slate-800 rounded-3xl shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <Building2 className="h-8 w-8 mb-2 text-slate-400 dark:text-slate-500" />
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">No clients found</p>
                 </div>
               ) : (
                 filteredClients.map((client) => {
                   const active = client.isActive !== undefined ? client.isActive : (client.IsActive !== undefined ? client.IsActive : client.status === 'active');
                   return (
-                    <div key={client.id} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-black/5 flex flex-col gap-3">
+                    <div key={client.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 flex flex-col gap-3">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 shadow-sm ring-1 ring-slate-100 overflow-hidden shrink-0 p-1.5">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-700 shadow-sm ring-1 ring-slate-100 dark:ring-slate-600 overflow-hidden shrink-0 p-1.5">
                           {client.logoUrl ? (
                             <img src={client.logoUrl} alt={client.name} className="h-full w-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                           ) : (
-                            <Building2 className="h-5 w-5 text-slate-400" />
+                            <Building2 className="h-5 w-5 text-slate-400 dark:text-slate-500" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-black text-slate-800 truncate">{client.name}</h4>
-                          <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{client.company}</p>
+                          <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{client.name}</h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">{client.company}</p>
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl bg-slate-50 text-slate-500">
+                            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-white rounded-2xl shadow-xl p-2 border-slate-100">
-                            <DropdownMenuItem onClick={() => { setEditingClient(client); setIsEditDialogOpen(true); }} className="cursor-pointer text-xs font-bold rounded-xl py-2 px-3">
+                          <DropdownMenuContent align="end" className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-2 border-slate-100 dark:border-slate-700">
+                            <DropdownMenuItem onClick={() => { setEditingClient(client); setIsEditDialogOpen(true); }} className="cursor-pointer text-xs font-bold rounded-xl py-2 px-3 dark:text-white dark:hover:bg-slate-700">
                               <Pencil className="mr-2 h-3.5 w-3.5" /> Edit Client
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteClient(client.id)} className="text-rose-600 cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-rose-50 hover:text-rose-700">
+                            <DropdownMenuItem onClick={() => handleDeleteClient(client.id)} className="text-rose-600 dark:text-rose-400 cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950 hover:text-rose-700 dark:hover:text-rose-300">
                               <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                       
-                      <div className="flex flex-col gap-2 pt-3 border-t border-slate-50">
+                      <div className="flex flex-col gap-2 pt-3 border-t border-slate-50 dark:border-slate-700">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium truncate">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                             <Mail className="h-3 w-3 shrink-0" />
                             <span className="truncate">{client.email}</span>
                           </div>
                           {client.phone && (
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium shrink-0 ml-2">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium shrink-0 ml-2">
                               <Phone className="h-3 w-3 shrink-0" />
                               <span>{client.phone}</span>
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl self-start mt-1 border border-slate-100 shadow-sm">
-                          <span className={cn("text-[9px] font-black uppercase tracking-widest", active ? "text-emerald-600" : "text-slate-400")}>
+                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-700 px-3 py-1.5 rounded-xl self-start mt-1 border border-slate-100 dark:border-slate-600 shadow-sm">
+                          <span className={cn("text-[9px] font-black uppercase tracking-widest", active ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500")}>
                             {active ? 'Active' : 'Inactive'}
                           </span>
                         </div>

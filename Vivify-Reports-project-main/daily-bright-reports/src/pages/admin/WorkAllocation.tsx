@@ -64,6 +64,10 @@ import {
   Building2,
   Check as CheckIcon,
   X,
+  MoreVertical,
+  Eye,
+  Edit,
+  UserX,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -76,6 +80,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 
@@ -135,6 +147,10 @@ const WorkAllocationPage: React.FC = () => {
 
   // Image preview state
   const [previewImage, setPreviewImage] = useState<{ src: string; name: string } | null>(null);
+
+  // View Details Dialog State
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedAllocation, setSelectedAllocation] = useState<any>(null);
 
   // Reassignment State
   const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
@@ -709,136 +725,185 @@ const WorkAllocationPage: React.FC = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table className="border-x">
-                    <TableHeader className="bg-primary hover:bg-primary">
-                      <TableRow className="hover:bg-transparent border-none">
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11 w-[250px]">Work Identity</TableHead>
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11">Instructions</TableHead>
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11">Assigned To</TableHead>
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11">Status & Due</TableHead>
-                        <TableHead className="text-white font-semibold last:border-r-0 h-11 text-center">Priority</TableHead>
-                        <TableHead className="text-right text-white font-semibold px-4 h-11">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAllocations.map((allocation) => (
-                        <TableRow key={allocation.id} className={cn("transition-colors group hover:bg-slate-50/50", allocation.requestStatus === 'pending' && "bg-amber-50/50")}>
-                          <TableCell className="align-top border-r border-slate-200 last:border-r-0">
-                            <div className="flex flex-col gap-1">
-                              <span className="font-bold text-sm leading-tight text-primary">{allocation.title}</span>
-                              <div className="flex flex-wrap gap-1 text-[10px] text-muted-foreground">
-                                <span className="font-semibold px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 border">{allocation.workTitle}</span>
-                              </div>
-                              {allocation.attachmentUrls && (() => {
-                                let files: { Name: string; Type: string; Data: string }[] = [];
-                                try {
-                                  const parsed = JSON.parse(allocation.attachmentUrls);
-                                  if (Array.isArray(parsed)) files = parsed;
-                                } catch { /* not JSON */ }
-                                if (files.length === 0) return null;
-                                return (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {files.map((f, i) => {
-                                      const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
-                                      return isImage ? (
-                                        <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })} title={f.Name}>
-                                          <img src={f.Data} alt={f.Name} className="h-8 w-8 rounded object-cover border hover:opacity-80 cursor-zoom-in" />
-                                        </button>
-                                      ) : (
-                                        <a key={i} href={f.Data} download={f.Name}
-                                          className="text-[10px] bg-slate-100 hover:bg-slate-200 rounded px-1.5 py-0.5 text-slate-600 flex items-center gap-0.5">
-                                          📎 <span className="truncate max-w-[80px]">{f.Name}</span>
-                                        </a>
-                                      );
-                                    })}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top border-r border-slate-200 last:border-r-0">
-                            {allocation.description ? (
-                              <div className="text-xs text-muted-foreground italic line-clamp-3">
-                                {allocation.description}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground/50 italic">No instruction given</span>
-                            )}
-                            {allocation.progressNote && (
-                              <div className="mt-1.5 flex items-start gap-1.5 bg-blue-50 border border-blue-200 rounded px-2 py-1">
-                                <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wide shrink-0 mt-0.5">Live</span>
-                                <span className="text-[11px] text-blue-800 italic leading-tight">{allocation.progressNote}</span>
-                              </div>
-                            )}
-                            {allocation.requestStatus === 'pending' && (
-                              <div className="mt-2 p-2 bg-amber-50/50 rounded border border-amber-200/50 text-[10px]">
-                                <p className="font-bold text-amber-800 mb-1">Update Request:</p>
-                                <div className="flex gap-2 mt-2">
-                                  <Button size="sm" className="h-5 text-[9px] px-2 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleApproveRequest(allocation.id)}>Approve</Button>
-                                  <Button size="sm" variant="destructive" className="h-5 text-[9px] px-2" onClick={() => handleDenyRequest(allocation.id)}>Deny</Button>
-                                </div>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="align-top border-r border-slate-200 last:border-r-0">
-                            <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
-                                {getUserName(allocation.assignedTo).charAt(0)}
-                              </div>
-                              <span className="font-medium text-sm">{getUserName(allocation.assignedTo)}</span>
-                            </div>
-                            <Button
-                              variant="link"
-                              className="h-auto p-0 text-[10px] text-muted-foreground hover:text-primary mt-1"
-                              onClick={() => openReassignDialog(allocation)}
-                            >
-                              Reassign
-                            </Button>
-                          </TableCell>
-                          <TableCell className="align-top border-r border-slate-200 last:border-r-0">
-                            <div className="flex flex-col gap-1.5">
-                              <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold w-fit border", statusColors[allocation.status])}>
-                                {statusIcons[allocation.status]}
-                                <span className="capitalize">{allocation.status.replace('-', ' ')}</span>
-                              </div>
-                              <span className={cn("text-xs font-semibold", isOverdue(allocation.dueDate, allocation.status) ? 'text-destructive' : 'text-slate-600')}>
-                                Due: {format(new Date(allocation.dueDate), 'MMM dd')}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center align-top border-r border-slate-200 last:border-r-0">
-                            <Badge variant="outline" className={cn("px-2 py-0 h-5 font-bold uppercase text-[10px]", priorityColors[allocation.priority])}>
-                              {allocation.priority}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right align-top px-4">
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Allocation?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently remove this assigned work for {getUserName(allocation.assignedTo)}. This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteAllocation(allocation.id)} className="bg-destructive hover:bg-destructive/90">
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
+                <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table className="border-x table-fixed w-full">
+                      <colgroup>
+                        <col style={{ width: '56px' }} />
+                        <col style={{ width: '18%' }} />
+                        <col style={{ width: '20%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '80px' }} />
+                      </colgroup>
+                      <TableHeader className="bg-primary hover:bg-primary">
+                        <TableRow className="hover:bg-transparent border-none">
+                          <TableHead className="text-white font-semibold h-11 text-center">S/No</TableHead>
+                          <TableHead className="text-white font-semibold h-11">Work Identity</TableHead>
+                          <TableHead className="text-white font-semibold h-11">Instructions</TableHead>
+                          <TableHead className="text-white font-semibold h-11">Assigned To</TableHead>
+                          <TableHead className="text-white font-semibold h-11">Status & Due</TableHead>
+                          <TableHead className="text-white font-semibold h-11 text-center">Priority</TableHead>
+                          <TableHead className="text-right text-white font-semibold px-4 h-11">Action</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                    </Table>
+                    <div className="overflow-y-auto" style={{ maxHeight: '392px' }}>
+                      <Table className="border-x table-fixed w-full">
+                        <colgroup>
+                          <col style={{ width: '56px' }} />
+                          <col style={{ width: '18%' }} />
+                          <col style={{ width: '20%' }} />
+                          <col style={{ width: '15%' }} />
+                          <col style={{ width: '15%' }} />
+                          <col style={{ width: '12%' }} />
+                          <col style={{ width: '80px' }} />
+                        </colgroup>
+                        <TableBody>
+                          {filteredAllocations.map((allocation, index) => (
+                            <TableRow key={allocation.id} className={cn("transition-colors group hover:bg-slate-50/50", allocation.requestStatus === 'pending' && "bg-amber-50/50")}>
+                              <TableCell className="align-top border-r border-slate-200 text-center text-slate-500 text-sm font-medium">{index + 1}</TableCell>
+                              <TableCell className="align-top border-r border-slate-200">
+                                <div className="flex flex-col gap-1">
+                                  <span className="font-bold text-sm leading-tight text-primary">{allocation.title}</span>
+                                  <div className="flex flex-wrap gap-1 text-[10px] text-muted-foreground">
+                                    <span className="font-semibold px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 border">{allocation.workTitle}</span>
+                                  </div>
+                                  {allocation.attachmentUrls && (() => {
+                                    let files: { Name: string; Type: string; Data: string }[] = [];
+                                    try {
+                                      const parsed = JSON.parse(allocation.attachmentUrls);
+                                      if (Array.isArray(parsed)) files = parsed;
+                                    } catch { /* not JSON */ }
+                                    if (files.length === 0) return null;
+                                    return (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {files.map((f, i) => {
+                                          const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
+                                          const fileExt = f.Name.split('.').pop()?.toUpperCase() || 'FILE';
+                                          return isImage ? (
+                                            <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })} title={f.Name}>
+                                              <img src={f.Data} alt={f.Name} className="h-8 w-8 rounded object-cover border hover:opacity-80 cursor-zoom-in" />
+                                            </button>
+                                          ) : (
+                                            <a key={i} href={f.Data} download={f.Name} title={f.Name}
+                                              className="text-[10px] bg-slate-100 hover:bg-slate-200 rounded px-2 py-1 text-slate-600 flex items-center gap-1 border">
+                                              <span className="font-bold text-primary">{fileExt}</span>
+                                              <span className="truncate max-w-[80px]">{f.Name}</span>
+                                            </a>
+                                          );
+                                        })}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </TableCell>
+                              <TableCell className="align-top border-r border-slate-200">
+                                {allocation.description ? (
+                                  <div className="text-xs text-muted-foreground italic line-clamp-3">
+                                    {allocation.description}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground/50 italic">No instruction given</span>
+                                )}
+                                {allocation.progressNote && allocation.status === 'in-progress' && (
+                                  <div className="mt-1.5 flex items-start gap-1.5 bg-blue-50 border border-blue-200 rounded px-2 py-1">
+                                    <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wide shrink-0 mt-0.5">Live</span>
+                                    <span className="text-[11px] text-blue-800 italic leading-tight">{allocation.progressNote}</span>
+                                  </div>
+                                )}
+                                {allocation.requestStatus === 'pending' && (
+                                  <div className="mt-2 p-2 bg-amber-50/50 rounded border border-amber-200/50 text-[10px]">
+                                    <p className="font-bold text-amber-800 mb-1">Update Request:</p>
+                                    <div className="flex gap-2 mt-2">
+                                      <Button size="sm" className="h-5 text-[9px] px-2 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleApproveRequest(allocation.id)}>Approve</Button>
+                                      <Button size="sm" variant="destructive" className="h-5 text-[9px] px-2" onClick={() => handleDenyRequest(allocation.id)}>Deny</Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="align-top border-r border-slate-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
+                                    {getUserName(allocation.assignedTo).charAt(0)}
+                                  </div>
+                                  <span className="font-medium text-sm">{getUserName(allocation.assignedTo)}</span>
+                                </div>
+                                <Button
+                                  variant="link"
+                                  className="h-auto p-0 text-[10px] text-muted-foreground hover:text-primary mt-1"
+                                  onClick={() => openReassignDialog(allocation)}
+                                >
+                                  Reassign
+                                </Button>
+                              </TableCell>
+                              <TableCell className="align-top border-r border-slate-200">
+                                <div className="flex flex-col gap-1.5">
+                                  <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold w-fit border", statusColors[allocation.status])}>
+                                    {statusIcons[allocation.status]}
+                                    <span className="capitalize">{allocation.status.replace('-', ' ')}</span>
+                                  </div>
+                                  <span className={cn("text-xs font-semibold", isOverdue(allocation.dueDate, allocation.status) ? 'text-destructive' : 'text-slate-600')}>
+                                    Due: {format(new Date(allocation.dueDate), 'MMM dd')}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center align-top border-r border-slate-200">
+                                <Badge variant="outline" className={cn("px-2 py-0 h-5 font-bold uppercase text-[10px]", priorityColors[allocation.priority])}>
+                                  {allocation.priority}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right align-top px-4">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => { setSelectedAllocation(allocation); setIsViewDialogOpen(true); }}>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openReassignDialog(allocation)}>
+                                      <UserX className="h-4 w-4 mr-2" />
+                                      Reassign Task
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Allocation?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            This will permanently remove this assigned work for {getUserName(allocation.assignedTo)}. This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleDeleteAllocation(allocation.id)} className="bg-destructive hover:bg-destructive/90">
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -1001,7 +1066,7 @@ const WorkAllocationPage: React.FC = () => {
                     </div>
 
                     {/* Progress Note & Attachments logic same as before... */}
-                    {allocation.progressNote && (
+                    {allocation.progressNote && allocation.status === 'in-progress' && (
                       <div className="flex items-center gap-2 pt-1">
                         <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
                         <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 line-clamp-1">{allocation.progressNote}</p>
@@ -1019,13 +1084,17 @@ const WorkAllocationPage: React.FC = () => {
                         <div className="flex flex-wrap gap-2 pt-1">
                           {files.map((f, i) => {
                             const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
+                            const fileExt = f.Name.split('.').pop()?.toUpperCase() || 'FILE';
                             return isImage ? (
                               <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })} className="relative h-12 w-12 rounded-xl overflow-hidden border ring-1 ring-black/5 active:scale-95 transition-transform">
                                 <img src={f.Data} alt={f.Name} className="h-full w-full object-cover" />
                               </button>
                             ) : (
-                              <a key={i} href={f.Data} download={f.Name} className="h-12 flex items-center gap-2 px-3 rounded-xl bg-slate-50 border border-slate-100 active:scale-95 transition-transform">
-                                <ClipboardList className="h-4 w-4 text-slate-400" />
+                              <a key={i} href={f.Data} download={f.Name} title={f.Name} className="h-12 flex items-center gap-2 px-3 rounded-xl bg-slate-50 border border-slate-100 active:scale-95 transition-transform">
+                                <div className="flex flex-col items-center">
+                                  <ClipboardList className="h-4 w-4 text-slate-400" />
+                                  <span className="text-[8px] font-black text-primary">{fileExt}</span>
+                                </div>
                                 <span className="text-[9px] font-bold text-slate-600 max-w-[60px] truncate">{f.Name}</span>
                               </a>
                             );
@@ -1161,29 +1230,140 @@ const WorkAllocationPage: React.FC = () => {
 
       {/* Shared Preview Image Modal */}
       {previewImage && (
-        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-          <DialogContent className="max-w-[95vw] sm:max-w-2xl p-0 overflow-hidden bg-transparent border-none shadow-none flex items-center justify-center">
-            <div className="relative w-full h-full flex flex-col items-center">
-              <img src={previewImage.src} alt={previewImage.name} className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" />
-              <p className="mt-4 text-white font-black text-sm uppercase tracking-widest drop-shadow-md">{previewImage.name}</p>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => setPreviewImage(null)}
-                className="absolute -top-4 -right-4 h-10 w-10 rounded-full bg-white text-slate-900 border-none shadow-xl active:scale-95 transition-transform"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div
+          className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-xl hover:bg-slate-100 active:scale-95 transition-all"
+            onClick={() => setPreviewImage(null)}
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex flex-col items-center gap-4">
+            <img
+              src={previewImage.src}
+              alt={previewImage.name}
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <p className="text-white font-bold text-sm uppercase tracking-wider drop-shadow-md">
+              {previewImage.name}
+            </p>
+          </div>
+        </div>
       )}
 
-      {/* Include the shared CreateAllocationDialog at the root level if not triggered by the header buttons */}
-      {/* But since we use it in both headers, it will be rendered twice as a component. 
-          Actually, the Dialog itself is the wrapper. I'll just make sure the state is consistent.
-      */}
-      {CreateAllocationDialog}
+      {/* View Details Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Work Allocation Details</DialogTitle>
+            <DialogDescription>Complete information about this work assignment</DialogDescription>
+          </DialogHeader>
+          {selectedAllocation && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Work Title</Label>
+                  <p className="font-semibold">{selectedAllocation.title}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Work Category</Label>
+                  <Badge variant="outline" className="font-semibold">{selectedAllocation.workTitle}</Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Description</Label>
+                <p className="text-sm text-muted-foreground">{selectedAllocation.description || 'No description provided'}</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Assigned To</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                      {getUserName(selectedAllocation.assignedTo).charAt(0)}
+                    </div>
+                    <span className="font-medium text-sm">{getUserName(selectedAllocation.assignedTo)}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Status</Label>
+                  <Badge className={cn("capitalize", statusColors[selectedAllocation.status])}>
+                    {selectedAllocation.status.replace('-', ' ')}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Priority</Label>
+                  <Badge variant="outline" className={cn("capitalize", priorityColors[selectedAllocation.priority])}>
+                    {selectedAllocation.priority}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Due Date</Label>
+                  <p className="text-sm font-semibold">{format(new Date(selectedAllocation.dueDate), 'MMM dd, yyyy')}</p>
+                </div>
+                {selectedAllocation.duration && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground">Time Spent</Label>
+                    <p className="text-sm font-semibold">{selectedAllocation.duration}</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedAllocation.progressNote && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">Latest Progress Update</Label>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-900 italic">"{selectedAllocation.progressNote}"</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedAllocation.attachmentUrls && (() => {
+                let files: { Name: string; Type: string; Data: string }[] = [];
+                try {
+                  const parsed = JSON.parse(selectedAllocation.attachmentUrls);
+                  if (Array.isArray(parsed)) files = parsed;
+                } catch { }
+                if (files.length === 0) return null;
+                return (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground">Attachments ({files.length})</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {files.map((f, i) => {
+                        const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
+                        const fileExt = f.Name.split('.').pop()?.toUpperCase() || 'FILE';
+                        return isImage ? (
+                          <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })}>
+                            <img src={f.Data} alt={f.Name} className="h-20 w-20 rounded-lg object-cover border hover:opacity-80 cursor-zoom-in" />
+                          </button>
+                        ) : (
+                          <a key={i} href={f.Data} download={f.Name} className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg border">
+                            <div className="flex flex-col items-center">
+                              <ClipboardList className="h-5 w-5 text-slate-400" />
+                              <span className="text-[8px] font-bold text-primary">{fileExt}</span>
+                            </div>
+                            <span className="text-xs font-medium text-slate-700 max-w-[150px] truncate">{f.Name}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </DashboardLayout>
   );

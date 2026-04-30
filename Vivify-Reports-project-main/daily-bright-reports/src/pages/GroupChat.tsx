@@ -429,9 +429,9 @@ const GroupChat: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="flex flex-col h-screen overflow-hidden animate-in slide-in-from-right-10 duration-300">
-              {/* Mobile Chat Header */}
-              <div className="bg-white dark:bg-slate-900 px-4 py-4 border-b dark:border-slate-700 flex items-center gap-3 shadow-sm relative z-30 pt-10">
+            <div className="fixed inset-0 flex flex-col bg-white dark:bg-slate-900 animate-in slide-in-from-right-10 duration-300 z-50">
+              {/* Mobile Chat Header - Fixed */}
+              <div className="bg-white dark:bg-slate-900 px-4 py-4 border-b dark:border-slate-700 flex items-center gap-3 shadow-sm shrink-0 pt-10">
                 <button
                   onClick={() => setMobileView('list')}
                   className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-700 transition-colors"
@@ -474,8 +474,8 @@ const GroupChat: React.FC = () => {
                 )}
               </div>
 
-              {/* Message Area */}
-              <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col">
+              {/* Message Area - Scrollable */}
+              <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 bg-slate-50/50 dark:bg-slate-950/50">
                 {loading ? (
                   <div className="flex-1 flex flex-col items-center justify-center gap-3 opacity-30">
                     <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -529,8 +529,8 @@ const GroupChat: React.FC = () => {
                 <div ref={bottomRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 relative z-30 pb-10">
+              {/* Input Area - Fixed above bottom navigation */}
+              <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 shrink-0 pb-24">
                 {attachPreview && (
                   <div className="mb-3 flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 animate-in slide-in-from-bottom-2">
                     <img src={attachPreview.dataUrl} className="h-12 w-12 object-cover rounded-xl shadow-sm" />

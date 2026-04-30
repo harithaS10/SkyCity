@@ -309,7 +309,7 @@ const EmployeeList: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-950 -mx-4 -mt-4 min-h-screen">
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start gap-4 mb-6">
               <div className="flex-1 min-w-0">
@@ -354,32 +354,32 @@ const EmployeeList: React.FC = () => {
 
           <div className="px-5 -mt-6 relative z-20 space-y-4 pb-8">
             {/* Search */}
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-2 flex items-center">
-              <Search className="h-5 w-5 text-slate-400 ml-3 shrink-0" />
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm ring-1 ring-black/5 dark:ring-white/5 p-2 flex items-center">
+              <Search className="h-5 w-5 text-slate-400 dark:text-slate-500 ml-3 shrink-0" />
               <input
                 type="text"
                 placeholder="Search employees..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-0 focus:ring-0 text-sm h-10 px-3 font-medium placeholder:text-slate-400"
+                className="w-full bg-transparent border-0 focus:ring-0 text-sm h-10 px-3 font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-white"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="p-2 shrink-0">
-                  <X className="h-4 w-4 text-slate-400" />
+                  <X className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                 </button>
               )}
             </div>
 
             <div className="space-y-3">
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white dark:bg-slate-800 rounded-3xl shadow-sm ring-1 ring-black/5 dark:ring-white/5">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                  <p className="text-sm font-bold text-slate-500">Loading directory...</p>
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Loading directory...</p>
                 </div>
               ) : filteredEmployees.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white rounded-3xl shadow-sm ring-1 ring-black/5">
-                  <User className="h-8 w-8 mb-2 text-slate-400" />
-                  <p className="text-sm font-bold text-slate-500">No employees found</p>
+                <div className="flex flex-col items-center justify-center py-10 opacity-50 bg-white dark:bg-slate-800 rounded-3xl shadow-sm ring-1 ring-black/5 dark:ring-white/5">
+                  <User className="h-8 w-8 mb-2 text-slate-400 dark:text-slate-500" />
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400">No employees found</p>
                 </div>
               ) : (
                 filteredEmployees.map((employee) => {
@@ -392,36 +392,36 @@ const EmployeeList: React.FC = () => {
                   
                   // Clean up classes
                   return (
-                    <div key={employee.id} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-black/5 flex flex-col gap-3">
+                    <div key={employee.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 flex flex-col gap-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold shadow-inner">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary font-bold shadow-inner">
                             {(employee.fullName || employee.username || 'E').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <h4 className="text-sm font-black text-slate-800 line-clamp-1">{employee.fullName || employee.username}</h4>
+                            <h4 className="text-sm font-black text-slate-800 dark:text-white line-clamp-1">{employee.fullName || employee.username}</h4>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
                                 EMP-{employee.id.toString().padStart(3, '0')}
                               </span>
-                              <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{employee.email}</span>
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[120px]">{employee.email}</span>
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 bg-slate-50 rounded-2xl p-3 border border-slate-100 mt-1">
+                      <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-900 rounded-2xl p-3 border border-slate-100 dark:border-slate-700 mt-1">
                         <div className="text-center">
-                          <p className="text-[9px] uppercase font-bold text-slate-400 tracking-widest mb-1">Total</p>
-                          <p className="text-sm font-black text-slate-700">{stats.totalTasks}</p>
+                          <p className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-widest mb-1">Total</p>
+                          <p className="text-sm font-black text-slate-700 dark:text-slate-300">{stats.totalTasks}</p>
                         </div>
-                        <div className="text-center border-l border-r border-slate-200/60">
-                          <p className="text-[9px] uppercase font-bold text-slate-400 tracking-widest mb-1">Done</p>
-                          <p className="text-sm font-black text-emerald-600">{stats.completedTasks}</p>
+                        <div className="text-center border-l border-r border-slate-200/60 dark:border-slate-700">
+                          <p className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-widest mb-1">Done</p>
+                          <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">{stats.completedTasks}</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-[9px] uppercase font-bold text-slate-400 tracking-widest mb-1">Rate</p>
-                          <p className={cn("text-sm font-black", stats.completionRate >= 80 ? "text-emerald-600" : stats.completionRate >= 50 ? "text-amber-600" : "text-rose-600")}>
+                          <p className="text-[9px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-widest mb-1">Rate</p>
+                          <p className={cn("text-sm font-black", stats.completionRate >= 80 ? "text-emerald-600 dark:text-emerald-400" : stats.completionRate >= 50 ? "text-amber-600 dark:text-amber-400" : "text-rose-600 dark:text-rose-400")}>
                             {stats.completionRate}%
                           </p>
                         </div>
@@ -429,7 +429,7 @@ const EmployeeList: React.FC = () => {
 
                       <Button
                         onClick={() => handleViewTasks(employee.id, employee.fullName || employee.username)}
-                        className="w-full rounded-xl h-11 font-bold shadow-sm mt-1 bg-slate-900 text-white hover:bg-slate-800"
+                        className="w-full rounded-xl h-11 font-bold shadow-sm mt-1 bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600"
                       >
                         View Assigned Tasks <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
