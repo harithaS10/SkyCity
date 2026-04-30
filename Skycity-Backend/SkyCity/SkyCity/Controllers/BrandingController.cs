@@ -46,32 +46,46 @@ public class BrandingController : ControllerBase
     }
 
     // Public endpoint — returns branding for login page (no auth required)
+    // Uses appsettings.json Branding section — admin updates this via Save Branding
     [AllowAnonymous]
     [HttpGet("public")]
     public async Task<ActionResult> GetPublic()
     {
-        // Try DB first
-        var assoc = await _context.Associations.IgnoreQueryFilters()
-            .Where(a => a.IsActive)
-            .OrderBy(a => a.Id)
-            .FirstOrDefaultAsync();
+        // First try appsettings.json (most reliable — not tied to any specific DB)
+        var configColor = _config["Branding:ThemeColor"];
+        var configLogo = _config["Branding:LogoUrl"];
+        var configName = _config["Branding:AssociationName"] ?? "SkyCity";
 
-        if (assoc != null)
+        if (!string.IsNullOrEmpty(configColor))
+        {
             return Ok(new ApiResponse<dynamic>
             {
                 Success = true,
-                Data = new { assoc.ThemeColor, assoc.LogoUrl, assoc.AssociationName }
+                Data = new { themeColor = configColor, logoUrl = configLogo, associationName = configName }
             });
+        }
 
-        // Fallback: read from configuration (appsettings.json)
-        var themeColor = _config["Branding:ThemeColor"] ?? "#0d9488";
-        var logoUrl = _config["Branding:LogoUrl"];
-        var associationName = _config["Branding:AssociationName"] ?? "SkyCity";
+        // Fallback: try DB
+        try
+        {
+            var assoc = await _context.Associations.IgnoreQueryFilters()
+                .Where(a => a.IsActive)
+                .OrderBy(a => a.Id)
+                .FirstOrDefaultAsync();
+
+            if (assoc != null)
+                return Ok(new ApiResponse<dynamic>
+                {
+                    Success = true,
+                    Data = new { themeColor = assoc.ThemeColor, logoUrl = assoc.LogoUrl, associationName = assoc.AssociationName }
+                });
+        }
+        catch { /* DB may not have Associations table */ }
 
         return Ok(new ApiResponse<dynamic>
         {
             Success = true,
-            Data = new { themeColor, logoUrl, associationName }
+            Data = new { themeColor = "#0d9488", logoUrl = (string?)null, associationName = "SkyCity" }
         });
     }
 

@@ -23,17 +23,20 @@ const Login: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsContent, setTermsContent] = useState('');
   const [hideTerms, setHideTerms] = useState(false);
-  const [loginBgColor, setLoginBgColor] = useState<string>('');
+  // Initialize from localStorage cache immediately — no flash
+  const [loginBgColor, setLoginBgColor] = useState<string>(() => {
+    try { return localStorage.getItem('skycity_theme_color') || ''; } catch { return ''; }
+  });
 
-  // Fetch public branding to apply theme color on login page (before auth)
+  // Fetch latest branding from API and update if changed
   useEffect(() => {
     const loadPublicBranding = async () => {
       try {
         const res = await api.branding.getPublic();
         if (res.success && res.data?.themeColor) {
           const color = res.data.themeColor;
+          // Always apply the fresh API color (overrides stale cache)
           setLoginBgColor(color);
-          // Apply to CSS variables so bg-primary works
           const hexToHsl = (hex: string) => {
             const clean = hex.replace('#', '');
             const full = clean.length === 3 ? clean.split('').map((c: string) => c + c).join('') : clean;
@@ -54,10 +57,10 @@ const Login: React.FC = () => {
             document.documentElement.style.setProperty('--ring', hsl);
           }
           document.documentElement.style.setProperty('--brand-primary', color);
-          // Cache for next load
+          // Update cache with latest color
           try { localStorage.setItem('skycity_theme_color', color); } catch { /* ignore */ }
         }
-      } catch { /* use default teal */ }
+      } catch { /* keep cached color */ }
     };
     loadPublicBranding();
   }, []);
