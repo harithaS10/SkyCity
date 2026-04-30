@@ -35,17 +35,95 @@ public class TasksController : ControllerBase
             query = query.Where(t => t.AssignedTo == assignedTo.Value);
 
         var tasks = await query.OrderByDescending(t => t.CreatedAt).ToListAsync();
+
+        // Auto-reset recurring tasks
+        var now = DateTime.UtcNow;
+        var todayStart = now.Date;
+        var thisMonthStart = new DateTime(now.Year, now.Month, 1);
+        bool anyReset = false;
+
+        foreach (var task in tasks)
+        {
+            if (task.RecurrenceType == "daily" && task.Status == "completed" && task.CompletedAt.HasValue
+                && task.CompletedAt.Value.Date < todayStart)
+            {
+                task.Status = "pending";
+                task.CompletedAt = null;
+                task.DueDate = new DateTime(todayStart.Year, todayStart.Month, todayStart.Day,
+                    task.DueDate.Hour, task.DueDate.Minute, 0, DateTimeKind.Utc);
+                anyReset = true;
+            }
+            if (task.RecurrenceType == "monthly" && task.Status == "completed" && task.CompletedAt.HasValue)
+            {
+                var completedMonth = new DateTime(task.CompletedAt.Value.Year, task.CompletedAt.Value.Month, 1);
+                if (completedMonth < thisMonthStart)
+                {
+                    task.Status = "pending";
+                    task.CompletedAt = null;
+                    task.DueDate = new DateTime(now.Year, now.Month,
+                        DateTime.DaysInMonth(now.Year, now.Month), 23, 59, 59, DateTimeKind.Utc);
+                    anyReset = true;
+                }
+            }
+        }
+
+        if (anyReset)
+            await _context.SaveChangesAsync();
+
         return Ok(new ApiResponse<List<StaffTask>> { Success = true, Data = tasks });
     }
 
     // GET /tasks/my-tasks — tasks assigned to the current user
+    // Auto-resets recurring tasks: daily tasks reset each day, monthly tasks reset each month
     [HttpGet("my-tasks")]
     public async Task<ActionResult> GetMyTasks()
     {
+        var now = DateTime.UtcNow;
+        var todayStart = now.Date;
+        var thisMonthStart = new DateTime(now.Year, now.Month, 1);
+
         var tasks = await _context.StaffTasks
             .Where(t => t.AssignedTo == CurrentUserId)
             .OrderBy(t => t.DueDate)
             .ToListAsync();
+
+        bool anyReset = false;
+
+        foreach (var task in tasks)
+        {
+            // Daily recurring tasks: reset to pending each new day
+            if (task.RecurrenceType == "daily" && task.Status == "completed" && task.CompletedAt.HasValue)
+            {
+                if (task.CompletedAt.Value.Date < todayStart)
+                {
+                    task.Status = "pending";
+                    task.CompletedAt = null;
+                    // Advance DueDate to today
+                    task.DueDate = new DateTime(todayStart.Year, todayStart.Month, todayStart.Day,
+                        task.DueDate.Hour, task.DueDate.Minute, 0, DateTimeKind.Utc);
+                    anyReset = true;
+                }
+            }
+
+            // Monthly recurring tasks: reset to pending each new month
+            if (task.RecurrenceType == "monthly" && task.Status == "completed" && task.CompletedAt.HasValue)
+            {
+                var completedMonth = new DateTime(task.CompletedAt.Value.Year, task.CompletedAt.Value.Month, 1);
+                if (completedMonth < thisMonthStart)
+                {
+                    task.Status = "pending";
+                    task.CompletedAt = null;
+                    // Advance DueDate to end of current month
+                    var endOfMonth = new DateTime(now.Year, now.Month,
+                        DateTime.DaysInMonth(now.Year, now.Month), 23, 59, 59, DateTimeKind.Utc);
+                    task.DueDate = endOfMonth;
+                    anyReset = true;
+                }
+            }
+        }
+
+        if (anyReset)
+            await _context.SaveChangesAsync();
 
         return Ok(new ApiResponse<List<StaffTask>> { Success = true, Data = tasks });
     }
@@ -111,9 +189,10 @@ public class TasksController : ControllerBase
             Priority = dto.Priority ?? "medium",
             Status = "pending",
             IsRecurring = dto.IsRecurring ?? false,
+            RecurrenceType = dto.RecurrenceType,   // 'daily' | 'monthly' | null
             DueDate = dto.DueDate,
             CreatedAt = DateTime.UtcNow,
-            IsDeleted = true  // true = active/visible (inverted soft-delete convention)
+            IsDeleted = true
         };
 
         _context.StaffTasks.Add(task);
@@ -216,7 +295,8 @@ public record TaskDto(
     string? Description,
     string? Priority,
     DateTime DueDate,
-    bool? IsRecurring
+    bool? IsRecurring,
+    string? RecurrenceType
 );
 
 public record StatusUpdateDto(string Status);

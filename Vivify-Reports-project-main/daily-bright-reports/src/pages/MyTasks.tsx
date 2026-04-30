@@ -141,11 +141,27 @@ const MyTasks: React.FC = () => {
     ...adminTasks,
   ];
 
+  const today = new Date();
+  const todayStr = format(today, 'yyyy-MM-dd');
+  const currentMonth = format(today, 'yyyy-MM');
+
   // Apply daily/monthly filter (only affects admin tasks; allocations are always shown)
   const filteredItems = allItems.filter((item) => {
     if (taskTypeFilter === 'all') return true;
     // When filtering by daily/monthly, only show admin tasks (not work allocations)
     if (item._source !== 'task') return false;
+    if (taskTypeFilter === 'daily') {
+      // Daily tasks: show only if due today (or pending/in-progress for today)
+      if (item.taskType !== 'daily') return false;
+      const dueDate = item.dueDate ? format(new Date(item.dueDate), 'yyyy-MM-dd') : '';
+      return dueDate === todayStr || item.status === 'pending' || item.status === 'in_progress';
+    }
+    if (taskTypeFilter === 'monthly') {
+      // Monthly tasks: show only if due in current month
+      if (item.taskType !== 'monthly') return false;
+      const dueDate = item.dueDate ? format(new Date(item.dueDate), 'yyyy-MM') : '';
+      return dueDate === currentMonth || item.status === 'pending' || item.status === 'in_progress';
+    }
     return item.taskType === taskTypeFilter;
   });
 

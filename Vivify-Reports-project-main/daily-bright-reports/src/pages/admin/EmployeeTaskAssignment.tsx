@@ -185,7 +185,7 @@ const EmployeeTaskAssignment: React.FC = () => {
         dueDate: new Date(dueDateTime).toISOString(),
         priority: formData.priority,
         isRecurring: taskType === 'monthly',
-        recurrenceType: taskType === 'monthly' ? 'monthly' : null,
+        recurrenceType: taskType === 'daily' ? 'daily' : 'monthly',
         taskType: taskType
       };
 

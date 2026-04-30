@@ -397,6 +397,8 @@ public class StaffTask : ISoftDelete
     public string Priority { get; set; } = "medium";
     public string Status { get; set; } = "pending";
     public bool IsRecurring { get; set; } = false;
+    // 'daily' = repeats every day | 'monthly' = repeats every month | null = one-time
+    public string? RecurrenceType { get; set; }
     public DateTime DueDate { get; set; }
     public DateTime? CompletedAt { get; set; }
     public bool IsDeleted { get; set; } = true;
