@@ -694,7 +694,7 @@ const DailyReport: React.FC = () => {
                   initialFocus className="pointer-events-auto" />
               </PopoverContent>
             </Popover>
-            <Button onClick={handleSubmit} disabled={isSubmitting || filledRowsCount === 0}
+            <Button onClick={handleSubmit} disabled={isSubmitting}
               size="sm" className="h-11 gap-2 px-8 bg-white text-primary hover:bg-white/90 font-black rounded-xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs">
               {isSubmitting ? <span className="animate-spin text-lg">⏳</span> : <Save className="h-4 w-4" />}
               Submit Report
@@ -747,7 +747,7 @@ const DailyReport: React.FC = () => {
               </div>
               <Button 
                 onClick={handleSubmit} 
-                disabled={isSubmitting || filledRowsCount === 0}
+                disabled={isSubmitting}
                 className="bg-white text-primary hover:bg-slate-100 rounded-2xl h-12 px-5 font-black text-xs uppercase tracking-wider shadow-xl active:scale-95 transition-all"
               >
                 {isSubmitting ? "Wait..." : "Submit"}

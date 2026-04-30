@@ -106,19 +106,17 @@ const navItems: NavItem[] = [
   // Resident & Shared
   { label: 'My Home', href: '/resident/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['resident'] },
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
-  
-  // Workflows
-  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: ['resident', 'admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
-  { label: 'Work Orders', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager', 'facility_manager'] },
-  { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['staff'] },
 
-  // Reporting
-  { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
-  { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
-  { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager'] },
-  
-  // Shared
+  // Staff order: Dashboard → Community Chat → My Tasks → Daily Reports → Complaints → My Reports
   { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: ['resident', 'admin', 'staff', 'property_manager'] },
+  { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['staff'] },
+  { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
+  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: ['resident', 'admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
+  { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
+
+  // Admin only
+  { label: 'Work Orders', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager', 'facility_manager'] },
+  { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager'] },
 ];
 
 // Admin dropdowns
