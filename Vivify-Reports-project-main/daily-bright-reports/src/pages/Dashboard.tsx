@@ -1442,29 +1442,29 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/admin/analytics')}>
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate('/admin/users')}>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100">
                 <BarChart3 className="h-6 w-6 text-emerald-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <CardTitle className="text-lg">Task Analytics</CardTitle>
-                <p className="text-sm text-muted-foreground">Performance insights & reports</p>
+                <CardTitle className="text-lg">User Management</CardTitle>
+                <p className="text-sm text-muted-foreground">Manage users & permissions</p>
               </div>
             </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                View completion rates and metrics
+                Create, edit and manage user accounts
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
+        <Card className="cursor-pointer hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200" onClick={() => navigate('/admin/work-allocation')}>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
@@ -1877,13 +1877,13 @@ const AdminDashboard: React.FC = () => {
                 <ArrowRight className="h-5 w-5 text-slate-200" />
               </div>
 
-              <div className="bg-white dark:bg-card p-5 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/analytics')}>
+              <div className="bg-white dark:bg-card p-5 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-5 cursor-pointer active:scale-[0.98] transition-transform" onClick={() => navigate('/admin/users')}>
                 <div className="h-14 w-14 rounded-3xl bg-emerald-100 flex items-center justify-center shrink-0">
                   <BarChart3 className="h-7 w-7 text-emerald-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-base font-black text-slate-800 tracking-tight">Task Analytics</h4>
-                  <p className="text-xs font-medium text-slate-400 mt-0.5">Performance insights & metrics</p>
+                  <h4 className="text-base font-black text-slate-800 tracking-tight">User Management</h4>
+                  <p className="text-xs font-medium text-slate-400 mt-0.5">Manage users & permissions</p>
                 </div>
                 <ArrowRight className="h-5 w-5 text-slate-200" />
               </div>

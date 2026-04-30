@@ -108,15 +108,16 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
 
   // Staff order: Dashboard → Community Chat → My Tasks → Daily Reports → Complaints → My Reports
-  { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: ['resident', 'admin', 'staff', 'property_manager'] },
+  { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: ['resident', 'staff', 'property_manager'] },
   { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['staff'] },
   { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
   { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: ['resident', 'admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
   { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
 
-  // Admin only
-  { label: 'Work Orders', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager', 'facility_manager'] },
-  { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" />, roles: ['admin', 'property_manager'] },
+  // Admin order: Dashboard → [Management dropdown] → [Employee Tasks button] → Work Allocation → Community Chat → Complaints → Analytics
+  // (These are rendered inline in JSX after Management/Employee Tasks, not via navItems for admin)
+  { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['property_manager', 'facility_manager'] },
+  { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" />, roles: ['property_manager'] },
 ];
 
 // Admin dropdowns
@@ -365,7 +366,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           {/* Center: Desktop Navigation */}
           <nav className="hidden xl:flex items-center flex-1 justify-center mx-2 min-w-0 overflow-hidden">
             <div className="flex items-center gap-0.5 border-l border-white/20 dark:border-slate-200 pl-2 overflow-x-auto scrollbar-hide">
-              {filteredNavItems.map((item) => {
+              {/* For admin roles, only render Dashboard from filteredNavItems; the rest are rendered in order below */}
+              {filteredNavItems
+                .filter(item => !isAdminRole || item.href === '/dashboard')
+                .map((item) => {
                 const unseenCount = item.href === '/my-tasks' ? unseenTasksCount : 0;
                 const isActive = location.pathname === item.href;
                 return (
@@ -396,7 +400,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 );
               })}
 
-              {/* Admin Dropdowns */}
+              {/* Admin nav — strict order: Management → Employee Tasks → Work Allocation → Community Chat → Complaints → Analytics */}
               {isAdminRole && renderDropdown(
                 'Management',
                 managementItems,
@@ -407,14 +411,38 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <button
                   onClick={() => navigate('/admin/employees')}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors text-primary-foreground/80 hover:text-white hover:bg-white/10',
-                    location.pathname.startsWith('/admin/employee') && 'bg-white/15 text-white'
+                    'flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors text-primary-foreground/80 hover:text-white hover:bg-white/10 whitespace-nowrap flex-shrink-0',
+                    location.pathname.startsWith('/admin/employee') && 'bg-white/20 text-white shadow-md'
                   )}
                 >
                   <ClipboardCheck className="h-3.5 w-3.5 flex-shrink-0" />
                   Employee Tasks
                 </button>
               )}
+              {isAdminRole && ([
+                { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" /> },
+                { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" /> },
+                { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" /> },
+                { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" /> },
+              ].map(item => (
+                <Button
+                  key={item.href}
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'h-8 px-2 gap-1 text-[11px] font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
+                    location.pathname === item.href
+                      ? 'bg-white/20 text-white shadow-md'
+                      : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
+                  )}
+                  onClick={() => navigate(item.href)}
+                >
+                  <span className="flex items-center gap-1">
+                    <span className="flex-shrink-0">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </span>
+                </Button>
+              )))}
             </div>
           </nav>
 
