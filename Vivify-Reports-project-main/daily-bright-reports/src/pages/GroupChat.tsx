@@ -56,6 +56,7 @@ const GroupChat: React.FC = () => {
       navigate('/dashboard');
     }
   }, [canView, navigate]);
+
   const chat = useChat(true);
 
   const [tab, setTab] = useState<'ai' | 'dm' | 'groups'>('ai');
@@ -77,6 +78,16 @@ const GroupChat: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = ['admin', 'super_admin', 'sub_admin', 'property_manager'].includes(user?.role ?? '');
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
+
+  // Scroll to top when switching tabs
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [tab]);
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
   const [showMembers, setShowMembers] = useState(false);
@@ -237,25 +248,25 @@ const GroupChat: React.FC = () => {
     <DashboardLayout>
       <div className="w-full h-full">
         {/* ===== DESKTOP VIEW ===== */}
-        <div className="hidden lg:flex flex-col h-[calc(100vh-5rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm animate-in fade-in duration-500">
-          <div className="flex border-b border-gray-100 shrink-0">
-            <button onClick={() => setTab('ai')} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'ai' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-400 hover:text-gray-600')}>
+        <div className="hidden lg:flex flex-col h-[calc(100vh-5rem)] overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm animate-in fade-in duration-500">
+          <div className="flex border-b border-gray-100 dark:border-slate-700 shrink-0">
+            <button onClick={() => setTab('ai')} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'ai' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400')}>
               <Sparkles className="h-3.5 w-3.5 inline mr-1" />AI Bot
             </button>
-            <button onClick={() => { setTab('dm'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'dm' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
+            <button onClick={() => { setTab('dm'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'dm' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400')}>
               <MessageSquare className="h-3.5 w-3.5 inline mr-1" />Direct Messages
             </button>
-            <button onClick={() => { setTab('groups'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'groups' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-gray-600')}>
+            <button onClick={() => { setTab('groups'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'groups' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400')}>
               <Users className="h-3.5 w-3.5 inline mr-1" />Group
             </button>
           </div>
 
           <div className="flex flex-1 overflow-hidden">
-            <aside className={cn('shrink-0 border-r border-gray-100 flex flex-col bg-white w-72', tab === 'ai' ? '!hidden' : '')}>
-              <div className="px-3 py-2 border-b border-gray-100">
+            <aside className={cn('shrink-0 border-r border-gray-100 dark:border-slate-700 flex flex-col bg-white dark:bg-slate-900 w-72', tab === 'ai' ? '!hidden' : '')}>
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-700">
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-50 border border-gray-200 outline-none focus:border-primary" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-slate-500" />
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 outline-none focus:border-primary dark:text-white" />
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -273,10 +284,10 @@ const GroupChat: React.FC = () => {
                         <Button size="sm" variant="outline" className="w-full gap-2 text-xs" onClick={() => setShowCreateGroup(true)}><Plus className="h-3.5 w-3.5" /> New Group</Button>
                       </div>
                     )}
-                    {filteredGroups.length === 0 ? <p className="p-4 text-xs text-gray-400">No groups yet.</p> : filteredGroups.map(g => (
-                      <button key={g.id} onClick={() => { setSelectedGroup(g); setSelectedUser(null); }} className={cn('w-full text-left px-3 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors', selectedGroup?.id === g.id ? 'bg-primary/5 border-r-2 border-primary' : '')}>
+                    {filteredGroups.length === 0 ? <p className="p-4 text-xs text-gray-400 dark:text-slate-500">No groups yet.</p> : filteredGroups.map(g => (
+                      <button key={g.id} onClick={() => { setSelectedGroup(g); setSelectedUser(null); }} className={cn('w-full text-left px-3 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors', selectedGroup?.id === g.id ? 'bg-primary/5 dark:bg-primary/10 border-r-2 border-primary' : '')}>
                         <div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-white" /></div>
-                        <div className="min-w-0"><p className="text-sm font-medium text-gray-800 truncate">{g.groupName}</p><p className="text-xs text-gray-400">{g.memberCount ?? 0} members</p></div>
+                        <div className="min-w-0"><p className="text-sm font-medium text-gray-800 dark:text-white truncate">{g.groupName}</p><p className="text-xs text-gray-400 dark:text-slate-500">{g.memberCount ?? 0} members</p></div>
                         {(g.unreadCount ?? 0) > 0 && <Badge className="ml-auto bg-primary text-white text-[10px] h-5 min-w-[20px] rounded-full">{g.unreadCount}</Badge>}
                       </button>
                     ))}
@@ -287,30 +298,30 @@ const GroupChat: React.FC = () => {
 
             <div className="flex-1 flex flex-col min-w-0">
               {tab === 'ai' ? <AiChat /> : !selectedUser && !selectedGroup ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-2"><MessageSquare className="h-10 w-10 opacity-30" /><p className="text-sm">Select a conversation to start chatting</p></div>
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-slate-500 gap-2"><MessageSquare className="h-10 w-10 opacity-30" /><p className="text-sm">Select a conversation to start chatting</p></div>
               ) : (
                 <>
-                  <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3 bg-white">
+                  <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 flex items-center gap-3 bg-white dark:bg-slate-900">
                     {selectedUser ? (
-                      <><div className={cn('h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold', avatarColor(selectedUser.name))}>{getInitials(selectedUser.name)}</div><div><p className="text-sm font-semibold text-gray-800">{selectedUser.name}</p><p className="text-xs text-gray-400 capitalize">{selectedUser.role}</p></div></>
+                      <><div className={cn('h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold', avatarColor(selectedUser.name))}>{getInitials(selectedUser.name)}</div><div><p className="text-sm font-semibold text-gray-800 dark:text-white">{selectedUser.name}</p><p className="text-xs text-gray-400 dark:text-slate-500 capitalize">{selectedUser.role}</p></div></>
                     ) : (
-                      <><div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-white" /></div><div><p className="text-sm font-semibold text-gray-800">{selectedGroup?.groupName}</p><p className="text-xs text-gray-400">{selectedGroup?.memberCount ?? 0} members</p></div></>
+                      <><div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-white" /></div><div><p className="text-sm font-semibold text-gray-800 dark:text-white">{selectedGroup?.groupName}</p><p className="text-xs text-gray-400 dark:text-slate-500">{selectedGroup?.memberCount ?? 0} members</p></div></>
                     )}
                   </div>
-                  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50/40">
-                    {loading ? <p className="text-center text-xs text-gray-400 py-8">Loading...</p> : messages.map((msg, i) => (
+                  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50/40 dark:bg-slate-950/40">
+                    {loading ? <p className="text-center text-xs text-gray-400 dark:text-slate-500 py-8">Loading...</p> : messages.map((msg, i) => (
                       <div key={msg.id || i} className={cn('flex items-end gap-2 group', msg.senderId === user?.id ? 'flex-row-reverse' : 'flex-row')}>
                         {msg.senderId !== user?.id && <div className={cn('h-7 w-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0', avatarColor(msg.senderName || ''))}>{getInitials(msg.senderName || '?')}</div>}
-                        <div className={cn('max-w-[70%] px-3 py-2 rounded-2xl text-sm shadow-sm relative', msg.senderId === user?.id ? 'bg-primary text-white rounded-br-sm' : 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm')}>
+                        <div className={cn('max-w-[70%] px-3 py-2 rounded-2xl text-sm shadow-sm relative', msg.senderId === user?.id ? 'bg-primary text-white rounded-br-sm' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-white border border-gray-100 dark:border-slate-700 rounded-bl-sm')}>
                           {msg.senderId !== user?.id && msg.senderName && <p className="text-[10px] font-semibold text-primary mb-0.5">{msg.senderName}</p>}
                           {msg.type === 'image' && msg.payload ? <img src={JSON.parse(msg.payload).dataUrl} className="w-full max-w-[220px] rounded-lg mb-1" /> : msg.message && <p className="leading-relaxed">{msg.message}</p>}
-                          <p className={cn('text-[10px] mt-1', msg.senderId === user?.id ? 'text-white/70 text-right' : 'text-gray-400')}>{timeLabel(msg.createdAt)}</p>
+                          <p className={cn('text-[10px] mt-1', msg.senderId === user?.id ? 'text-white/70 text-right' : 'text-gray-400 dark:text-slate-500')}>{timeLabel(msg.createdAt)}</p>
                         </div>
                       </div>
                     ))}
                     <div ref={bottomRef} />
                   </div>
-                  <div className="px-4 py-3 border-t border-gray-100 bg-white flex gap-2">
+                  <div className="px-4 py-3 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900 flex gap-2">
                     <Input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Type a message..." className="flex-1 text-sm" />
                     <Button onClick={handleSend} size="sm" className="bg-primary hover:bg-primary/90"><Send className="h-4 w-4 text-white" /></Button>
                   </div>
@@ -321,11 +332,11 @@ const GroupChat: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="flex lg:hidden flex-col min-h-screen -mx-4 -mt-4 bg-slate-50 animate-in fade-in duration-300">
+        <div className="flex lg:hidden flex-col min-h-screen -mx-4 -mt-4 bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-300">
           {mobileView === 'list' ? (
             <>
               {/* Premium Header */}
-              <div className="bg-primary/95 pt-10 pb-16 px-6 rounded-b-[2.5rem] shadow-lg text-white relative overflow-hidden">
+              <div className="bg-primary/95 dark:bg-primary/90 pt-10 pb-16 px-6 rounded-b-[2.5rem] shadow-lg text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
 
                 <div className="relative z-10 flex justify-between items-start">
@@ -358,26 +369,28 @@ const GroupChat: React.FC = () => {
               </div>
 
               {/* Floating Search */}
-              <div className="px-5 -mt-7 relative z-20">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="Search contacts or groups..."
-                    className="h-14 pl-12 pr-4 rounded-2xl bg-white border-none shadow-xl ring-1 ring-black/5 font-bold text-sm"
-                  />
+              {tab !== 'ai' && (
+                <div className="px-5 -mt-7 relative z-20">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
+                    <Input
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      placeholder="Search contacts or groups..."
+                      className="h-14 pl-12 pr-4 rounded-2xl bg-white dark:bg-slate-800 border-none shadow-xl ring-1 ring-black/5 dark:ring-white/5 font-bold text-sm dark:text-white"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* List Content */}
-              <div className="px-5 mt-6 space-y-3 pb-24 overflow-y-auto">
+              <div className={cn("px-5 space-y-3 pb-24 overflow-y-auto", tab === 'ai' ? 'mt-4' : 'mt-6')}>
                 {tab === 'ai' ? (
-                <div className="bg-white rounded-[2.5rem] h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5 border-none">
+                <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] h-[80vh] overflow-hidden shadow-xl ring-1 ring-black/5 dark:ring-white/5 border-none">
                   <AiChat />
                 </div>
               ) : (tab === 'dm' ? filteredUsers : filteredGroups).length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+                  <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500 gap-3">
                     <MessageSquare className="h-12 w-12 opacity-10" />
                     <p className="text-[10px] font-black uppercase tracking-widest italic">No conversations found</p>
                   </div>
@@ -389,7 +402,7 @@ const GroupChat: React.FC = () => {
                       else { setSelectedGroup(item); setSelectedUser(null); }
                       setMobileView('chat');
                     }}
-                    className="bg-white rounded-[1.8rem] p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] ring-1 ring-black/5 active:scale-[0.98] transition-all flex items-center gap-4 cursor-pointer"
+                    className="bg-white dark:bg-slate-800 rounded-[1.8rem] p-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] dark:shadow-none ring-1 ring-black/5 dark:ring-white/5 active:scale-[0.98] transition-all flex items-center gap-4 cursor-pointer"
                   >
                     <div className={cn(
                       'h-14 w-14 rounded-2xl flex items-center justify-center text-white text-lg font-black shrink-0 shadow-lg',
@@ -399,15 +412,15 @@ const GroupChat: React.FC = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex justify-between items-center mb-0.5">
-                        <h4 className="text-sm font-black text-slate-800 truncate">{tab === 'dm' ? item.name : item.groupName}</h4>
-                        {tab === 'dm' && <span className="text-[8px] font-black text-slate-400 uppercase bg-slate-50 px-2 py-0.5 rounded-full">{item.role}</span>}
+                        <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{tab === 'dm' ? item.name : item.groupName}</h4>
+                        {tab === 'dm' && <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase bg-slate-50 dark:bg-slate-700 px-2 py-0.5 rounded-full">{item.role}</span>}
                       </div>
-                      <p className="text-xs text-slate-400 font-medium truncate">
+                      <p className="text-xs text-slate-400 dark:text-slate-500 font-medium truncate">
                         {tab === 'dm' ? 'Start a private conversation' : `${item.memberCount ?? 0} members · Active`}
                       </p>
                     </div>
                     {(item.unreadCount ?? 0) > 0 && (
-                      <Badge className="bg-primary text-white text-[10px] font-black h-6 min-w-[24px] rounded-full flex items-center justify-center border-2 border-white shadow-md">
+                      <Badge className="bg-primary text-white text-[10px] font-black h-6 min-w-[24px] rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-md">
                         {item.unreadCount}
                       </Badge>
                     )}
@@ -418,10 +431,10 @@ const GroupChat: React.FC = () => {
           ) : (
             <div className="flex flex-col h-screen overflow-hidden animate-in slide-in-from-right-10 duration-300">
               {/* Mobile Chat Header */}
-              <div className="bg-white px-4 py-4 border-b flex items-center gap-3 shadow-sm relative z-30 pt-10">
+              <div className="bg-white dark:bg-slate-900 px-4 py-4 border-b dark:border-slate-700 flex items-center gap-3 shadow-sm relative z-30 pt-10">
                 <button
                   onClick={() => setMobileView('list')}
-                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500 active:bg-slate-100 transition-colors"
+                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-700 transition-colors"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -431,7 +444,7 @@ const GroupChat: React.FC = () => {
                       {getInitials(selectedUser.name)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-black text-slate-800 truncate">{selectedUser.name}</h4>
+                      <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{selectedUser.name}</h4>
                       <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1.5 tracking-widest">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         Online
@@ -440,12 +453,12 @@ const GroupChat: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <div className="h-10 w-10 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-md shadow-indigo-100">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-md shadow-indigo-100 dark:shadow-none">
                       <Users className="h-5 w-5 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="text-sm font-black text-slate-800 truncate">{selectedGroup?.groupName}</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{selectedGroup?.groupName}</h4>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                         {selectedGroup?.memberCount ?? 0} members
                       </p>
                     </div>
@@ -453,7 +466,7 @@ const GroupChat: React.FC = () => {
                 )}
                 {tab === 'groups' && (
                   <button
-                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-500"
+                    className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                     onClick={() => setShowMembers(true)}
                   >
                     <Users className="h-4 w-4" />
@@ -462,13 +475,13 @@ const GroupChat: React.FC = () => {
               </div>
 
               {/* Message Area */}
-              <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 bg-slate-50/50 flex flex-col">
+              <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col">
                 {loading ? (
                   <div className="flex-1 flex flex-col items-center justify-center gap-3 opacity-30">
                     <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-3">
+                  <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-3">
                     <MessageSquare className="h-12 w-12 opacity-10" />
                     <p className="text-[10px] font-black uppercase tracking-widest italic">Start the conversation</p>
                   </div>
@@ -488,13 +501,13 @@ const GroupChat: React.FC = () => {
                       )}
                       <div className={cn('max-w-[80%] flex flex-col', isOwn ? 'items-end' : 'items-start')}>
                         {!isOwn && showAvatar && msg.senderName && (
-                          <span className="text-[10px] font-black text-slate-400 ml-1 mb-1 uppercase tracking-tighter">
+                          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 ml-1 mb-1 uppercase tracking-tighter">
                             {msg.senderName}
                           </span>
                         )}
                         <div className={cn(
                           'px-4 py-3 rounded-2xl text-sm shadow-sm relative',
-                          isOwn ? 'bg-primary text-white rounded-br-none shadow-primary/20' : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none font-medium'
+                          isOwn ? 'bg-primary text-white rounded-br-none shadow-primary/20' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-white border border-slate-100 dark:border-slate-700 rounded-bl-none font-medium'
                         )}>
                           {msg.type === 'image' && msg.payload ? (
                             <img
@@ -505,7 +518,7 @@ const GroupChat: React.FC = () => {
                           ) : (
                             <p className="leading-relaxed">{msg.message}</p>
                           )}
-                          <p className={cn('text-[9px] mt-1.5 font-bold', isOwn ? 'text-white/60 text-right' : 'text-slate-300')}>
+                          <p className={cn('text-[9px] mt-1.5 font-bold', isOwn ? 'text-white/60 text-right' : 'text-slate-300 dark:text-slate-600')}>
                             {timeLabel(msg.createdAt)}
                           </p>
                         </div>
@@ -517,7 +530,7 @@ const GroupChat: React.FC = () => {
               </div>
 
               {/* Input Area */}
-              <div className="p-4 bg-white border-t border-slate-100 relative z-30 pb-10">
+              <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 relative z-30 pb-10">
                 {attachPreview && (
                   <div className="mb-3 flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 animate-in slide-in-from-bottom-2">
                     <img src={attachPreview.dataUrl} className="h-12 w-12 object-cover rounded-xl shadow-sm" />

@@ -65,6 +65,7 @@ const MyReports: React.FC = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isDesktopDatePickerOpen, setIsDesktopDatePickerOpen] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date(),
@@ -284,32 +285,32 @@ const MyReports: React.FC = () => {
 
             {/* Premium Mobile Progress Row - Grid Layout (No Scrolling) */}
             <div className="grid grid-cols-2 gap-3 py-1">
-              <div className="bg-white rounded-[1.5rem] p-3.5 shadow-lg shadow-black/10 border border-white/20">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+              <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] p-3.5 shadow-lg shadow-black/10 border border-white/20 dark:border-slate-700">
+                <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                     <FileText className="h-3 w-3 text-primary" /> Reports
                 </p>
                 <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-slate-800 tracking-tighter">{filteredReports.length}</span>
-                    <span className="text-[10px] font-bold text-slate-400">Total</span>
+                    <span className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter">{filteredReports.length}</span>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">Total</span>
                 </div>
               </div>
-              <div className="bg-white rounded-[1.5rem] p-3.5 shadow-lg shadow-black/10 border border-white/20">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+              <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] p-3.5 shadow-lg shadow-black/10 border border-white/20 dark:border-slate-700">
+                <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                     <TrendingUp className="h-3 w-3 text-emerald-500" /> Entries
                 </p>
                 <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-slate-800 tracking-tighter">{totalEntries}</span>
-                    <span className="text-[10px] font-bold text-slate-400">Items</span>
+                    <span className="text-2xl font-black text-slate-800 dark:text-white tracking-tighter">{totalEntries}</span>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">Items</span>
                 </div>
               </div>
-              <div className="col-span-2 bg-white rounded-[2rem] p-4 shadow-lg shadow-black/10 border border-white/20 flex items-center justify-between">
+              <div className="col-span-2 bg-white dark:bg-slate-800 rounded-[2rem] p-4 shadow-lg shadow-black/10 border border-white/20 dark:border-slate-700 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                   <div className="h-10 w-10 rounded-2xl bg-amber-50 flex items-center justify-center">
+                   <div className="h-10 w-10 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
                         <Clock className="h-5 w-5 text-amber-500" />
                    </div>
                    <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avg Efficiency</p>
-                        <p className="text-sm font-black text-slate-800">Entries Per Report</p>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Avg Efficiency</p>
+                        <p className="text-sm font-black text-slate-800 dark:text-white">Entries Per Report</p>
                    </div>
                 </div>
                 <div className="text-right">
@@ -345,7 +346,7 @@ const MyReports: React.FC = () => {
         </div>
 
         <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)} className="space-y-6">
-          <div className="sticky top-0 z-40 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none px-4 pt-4 lg:p-0 -mx-4 lg:mx-0">
+          <div className="sticky top-0 z-30 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none px-4 pt-4 lg:p-0 -mx-4 lg:mx-0">
             <TabsList className={cn(
               "p-1.5 bg-white dark:bg-card/50 rounded-2xl shadow-sm border border-slate-100 dark:border-white/5 w-full flex"
             )}>
@@ -355,42 +356,84 @@ const MyReports: React.FC = () => {
               <TabsTrigger value="custom" className="flex-1 lg:flex-none gap-2 rounded-xl font-black text-[11px] uppercase tracking-wider py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Custom</TabsTrigger>
             </TabsList>
 
+            {/* Desktop Custom Date Range Picker */}
             {timeRange === 'custom' && (
-              <div className="mt-4 px-1 lg:hidden animate-in fade-in slide-in-from-top-2">
-                <Button
-                    id="date-mobile"
-                    variant={"outline"}
-                    className={cn(
-                    "w-full h-12 justify-between text-left font-bold rounded-2xl bg-white border-2 border-dashed border-slate-200 text-slate-500",
-                    !dateRange && "text-muted-foreground"
-                    )}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsDatePickerOpen(true);
-                    }}
-                >
-                    <div className="flex items-center gap-3">
-                        <CalendarIcon className="h-4 w-4 text-primary" />
-                        <span className="text-[13px]">
-                            {dateRange?.from ? (
-                            dateRange.to ? (
-                                <>
-                                {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
-                                </>
-                            ) : (
-                                format(dateRange.from, "LLL dd")
-                            )
-                            ) : (
-                            "Select Date Range"
-                            )}
-                        </span>
-                    </div>
-                    <Plus className="h-4 w-4 opacity-50" />
-                </Button>
+              <div className="mt-4 hidden lg:block animate-in fade-in slide-in-from-top-2">
+                <Popover open={isDesktopDatePickerOpen} onOpenChange={setIsDesktopDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full lg:w-auto h-11 justify-start text-left font-bold rounded-xl bg-white border-2 border-dashed hover:border-primary/50 transition-all",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="h-4 w-4 mr-2 text-primary" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "LLL dd, yyyy")} - {format(dateRange.to, "LLL dd, yyyy")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "LLL dd, yyyy")
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={(range) => {
+                        setDateRange(range);
+                        if (range?.from && range?.to) {
+                          setIsDesktopDatePickerOpen(false);
+                        }
+                      }}
+                      numberOfMonths={1}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
           </div>
+
+          {/* Mobile Custom Date Range Picker - Outside sticky container */}
+          {timeRange === 'custom' && (
+            <div className="px-4 lg:hidden animate-in fade-in slide-in-from-top-2 -mt-2">
+              <Button
+                id="date-mobile"
+                variant={"outline"}
+                onClick={() => setIsDatePickerOpen(true)}
+                className={cn(
+                  "w-full h-12 justify-between text-left font-bold rounded-2xl bg-white border-2 border-dashed border-slate-200 text-slate-500 hover:border-primary/50 transition-all",
+                  !dateRange && "text-muted-foreground"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <CalendarIcon className="h-4 w-4 text-primary" />
+                  <span className="text-[13px]">
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd")
+                      )
+                    ) : (
+                      "Select Date Range"
+                    )}
+                  </span>
+                </div>
+                <Plus className="h-4 w-4 opacity-50" />
+              </Button>
+            </div>
+          )}
 
           <div className="px-4 lg:p-0 space-y-6">
             <div className="hidden lg:grid gap-6 sm:grid-cols-3">
@@ -405,63 +448,36 @@ const MyReports: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="rounded-3xl border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden group">
+              <Card className="rounded-3xl border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:bg-slate-800 overflow-hidden group">
                 <CardContent className="p-6 flex items-center gap-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100/50 group-hover:scale-110 transition-transform text-emerald-600">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100/50 dark:bg-emerald-900/30 group-hover:scale-110 transition-transform text-emerald-600 dark:text-emerald-400">
                     <TrendingUp className="h-7 w-7" />
                   </div>
                   <div>
-                    <p className="text-3xl font-black tracking-tight">{totalEntries}</p>
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-0.5">Total Work Entries</p>
+                    <p className="text-3xl font-black tracking-tight dark:text-white">{totalEntries}</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground dark:text-slate-500 mt-0.5">Total Work Entries</p>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="rounded-3xl border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden group">
+              <Card className="rounded-3xl border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none dark:bg-slate-800 overflow-hidden group">
                 <CardContent className="p-6 flex items-center gap-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100/50 group-hover:scale-110 transition-transform text-amber-600">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100/50 dark:bg-amber-900/30 group-hover:scale-110 transition-transform text-amber-600 dark:text-amber-400">
                     <Clock className="h-7 w-7" />
                   </div>
                   <div>
-                    <p className="text-3xl font-black tracking-tight">
+                    <p className="text-3xl font-black tracking-tight dark:text-white">
                       {filteredReports.length > 0 ? (totalEntries / filteredReports.length).toFixed(1) : 0}
                     </p>
-                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mt-0.5">Avg. Entries/Report</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-muted-foreground dark:text-slate-500 mt-0.5">Avg. Entries/Report</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Performance Chart */}
-            <Card className="rounded-[2.5rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden bg-white/70 backdrop-blur-sm">
-              <CardHeader className="pb-2 border-b border-slate-50">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Performance Metrics</CardTitle>
-                    {timeRange === 'custom' && (
-                        <div className="hidden lg:block">
-                            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                                <PopoverTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 rounded-lg font-bold text-xs gap-2">
-                                    <CalendarIcon className="h-3 w-3" />
-                                    Range Settings
-                                </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="end">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={(range) => {
-                                    setDateRange(range);
-                                    if (range?.from && range?.to) setIsDatePickerOpen(false);
-                                    }}
-                                    numberOfMonths={2}
-                                />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                    )}
-                </div>
+            <Card className="rounded-[2.5rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] dark:shadow-none overflow-hidden bg-white/70 dark:bg-slate-800 backdrop-blur-sm">
+              <CardHeader className="pb-2 border-b border-slate-50 dark:border-slate-700">
+                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Performance Metrics</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="h-64 relative">
@@ -553,39 +569,36 @@ const MyReports: React.FC = () => {
                              const hasPending = report.entries?.some((e: any) => e.status === 'pending');
                              const reportDate = report.createdAt || report.date || report.Date;
                              return (
-                                <div key={report.id} className="bg-white rounded-[2rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all group">
+                                <div key={report.id} className="bg-white dark:bg-slate-800 rounded-[2rem] p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 active:scale-[0.98] transition-all group">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Record Date</span>
-                                            <span className="text-sm font-black text-slate-800 mt-1">
+                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">Record Date</span>
+                                            <span className="text-sm font-black text-slate-800 dark:text-white mt-1">
                                                 {reportDate ? (() => { try { return format(parseISO(reportDate), 'dd MMM, yyyy'); } catch { return 'Unknown Date'; } })() : 'Untitled'}
                                             </span>
                                         </div>
                                         {hasPending ? (
-                                            <Badge className="bg-amber-50 text-amber-600 border-none rounded-xl px-3 py-1 font-black text-[9px] uppercase tracking-wider">Incomplete</Badge>
+                                            <Badge className="bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-none rounded-xl px-3 py-1 font-black text-[9px] uppercase tracking-wider">Incomplete</Badge>
                                         ) : (
-                                            <Badge className="bg-emerald-50 text-emerald-600 border-none rounded-xl px-3 py-1 font-black text-[9px] uppercase tracking-wider">Finalized</Badge>
+                                            <Badge className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-none rounded-xl px-3 py-1 font-black text-[9px] uppercase tracking-wider">Finalized</Badge>
                                         )}
                                     </div>
                                     
-                                    <div className="p-3.5 bg-slate-50 rounded-2xl mb-3 border border-slate-100">
-                                        <p className="text-[11px] font-bold text-slate-600 leading-relaxed italic line-clamp-2">"{report.title || report.Title || 'Standard Daily Performance Report'}"</p>
+                                    <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl mb-3 border border-slate-100 dark:border-slate-700">
+                                        <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 leading-relaxed italic line-clamp-2">"{report.title || report.Title || 'Standard Daily Performance Report'}"</p>
                                     </div>
 
-                                    <div className="flex items-center justify-between border-t border-slate-50 pt-3">
+                                    <div className="flex items-center justify-between border-t border-slate-50 dark:border-slate-700 pt-3">
                                         <div className="flex items-center gap-4">
                                             <div className="flex items-center gap-1.5">
-                                                <div className="h-5 w-5 rounded-lg bg-primary/5 flex items-center justify-center"><FileText className="h-3 w-3 text-primary" /></div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">1 Task</span>
+                                                <div className="h-5 w-5 rounded-lg bg-primary/5 dark:bg-primary/10 flex items-center justify-center"><FileText className="h-3 w-3 text-primary" /></div>
+                                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">1 Task</span>
                                             </div>
                                             <div className="flex items-center gap-1.5">
-                                                <div className="h-5 w-5 rounded-lg bg-primary/5 flex items-center justify-center"><Clock className="h-3 w-3 text-primary" /></div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{report.duration || report.totalTimeSpent || report.TotalTimeSpent || '0h'}</span>
+                                                <div className="h-5 w-5 rounded-lg bg-primary/5 dark:bg-primary/10 flex items-center justify-center"><Clock className="h-3 w-3 text-primary" /></div>
+                                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">{report.duration || report.totalTimeSpent || report.TotalTimeSpent || '0h'}</span>
                                             </div>
                                         </div>
-                                        <Button variant="ghost" size="sm" className="h-8 w-8 rounded-xl bg-slate-50 hover:bg-primary/10 hover:text-primary transition-colors">
-                                            <Download className="h-4 w-4" />
-                                        </Button>
                                     </div>
                                 </div>
                              )

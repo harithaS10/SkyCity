@@ -838,6 +838,38 @@ const MyTasks: React.FC = () => {
           </div>
         )}
 
+        {/* Status Filter Tabs */}
+        <div className="px-5 mt-4">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {[
+              { label: 'To Do', value: 'pending', count: pendingTasks.length, color: 'bg-rose-500' },
+              { label: 'In Progress', value: 'in-progress', count: inProgressTasks.length, color: 'bg-amber-500' },
+              { label: 'Done', value: 'completed', count: completedTasks.length, color: 'bg-emerald-500' },
+            ].map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => setMobileTab(tab.value as any)}
+                className={cn(
+                  "shrink-0 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1.5",
+                  mobileTab === tab.value
+                    ? `${tab.color} text-white shadow-md`
+                    : 'bg-white dark:bg-slate-800 text-slate-500 ring-1 ring-slate-100 dark:ring-slate-700'
+                )}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={cn(
+                    "px-1.5 py-0.5 rounded-full text-[8px] font-black",
+                    mobileTab === tab.value ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
+                  )}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Task List */}
         <div className="px-5 mt-4 space-y-4 pb-12">
           {isLoading ? (
