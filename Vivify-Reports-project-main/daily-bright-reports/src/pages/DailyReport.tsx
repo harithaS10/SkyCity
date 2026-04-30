@@ -457,8 +457,8 @@ const DailyReport: React.FC = () => {
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
             <div className="relative z-10 flex justify-between items-start">
               <div>
-                <h1 className="text-3xl font-black tracking-tight">Daily log</h1>
-                <p className="text-[10px] text-white/70 font-black tracking-[0.2em] uppercase mt-1">Staff Portal · {format(date, 'MMM dd')}</p>
+                <h1 className="text-2xl font-black text-white tracking-tight">Daily log</h1>
+                <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Staff Portal · {format(date, 'MMM dd')}</p>
               </div>
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
