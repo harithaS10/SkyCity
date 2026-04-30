@@ -51,10 +51,10 @@ const priorityColors: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  pending: 'border-slate-200 bg-white',
-  'in-progress': 'border-blue-200 bg-blue-50/30',
-  'in_progress': 'border-blue-200 bg-blue-50/30',
-  completed: 'border-emerald-200 bg-emerald-50/30',
+  pending: 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800',
+  'in-progress': 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/30',
+  'in_progress': 'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/30',
+  completed: 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/30 dark:bg-emerald-950/30',
 };
 
 // Task type filter for admin-assigned tasks
@@ -97,6 +97,7 @@ const MyTasks: React.FC = () => {
   });
   const [isSubmittingNewWork, setIsSubmittingNewWork] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [completionAttachments, setCompletionAttachments] = useState<File[]>([]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -340,8 +341,7 @@ const MyTasks: React.FC = () => {
       const payload = {
         ...selfAssignData,
         workId: parseInt(selfAssignData.workId),
-        clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefined,
-        dueDate: new Date(selfAssignData.dueDate).toISOString()
+clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefined,        dueDate: new Date(selfAssignData.dueDate).toISOString()
       };
       const response = await api.allocations.selfAssign(payload);
       if (response.success) {
@@ -422,14 +422,14 @@ const MyTasks: React.FC = () => {
               )}
             </div>
             {/* Title */}
-            <h3 className="font-semibold text-sm truncate text-slate-900">{task.title || task.workTitle || task.taskName}</h3>
+            <h3 className="font-semibold text-sm truncate text-slate-900 dark:text-white">{task.title || task.workTitle || task.taskName}</h3>
             {/* Description */}
             {task.description && (
-              <p className="text-xs text-slate-500 truncate mt-0.5">{task.description}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{task.description}</p>
             )}
             {/* Due date + attachments */}
             <div className="flex items-center gap-3 mt-1.5">
-              <div className={cn("flex items-center gap-1 text-xs", isOverdue(task.dueDate || task.DueDate, task.status) ? 'text-rose-600 font-medium' : 'text-slate-500')}>
+              <div className={cn("flex items-center gap-1 text-xs", isOverdue(task.dueDate || task.DueDate, task.status) ? 'text-rose-600 dark:text-rose-400 font-medium' : 'text-slate-500 dark:text-slate-400')}>
                 <Calendar className="h-3 w-3" />
                 {task.dueDate ? format(new Date(task.dueDate || task.DueDate), 'MMM dd, yyyy') : '—'}
               </div>
@@ -465,37 +465,19 @@ const MyTasks: React.FC = () => {
               </Button>
             )}
             {(task.status === 'in-progress' || task.status === 'in_progress') && (
-              <div className="flex flex-col gap-2">
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedTask(task);
-                    setCompletionDuration({ hours: "0", minutes: "0" });
-                    setIsDurationDialogOpen(true);
-                  }}
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Complete
-                </Button>
-                {task._source !== 'task' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 gap-1.5 text-xs font-medium border-blue-200 text-blue-700 hover:bg-blue-50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTask(task);
-                      setProgressNote(task.progressNote || "");
-                      setIsProgressDialogOpen(true);
-                    }}
-                  >
-                    <Clock className="h-3.5 w-3.5" />
-                    Update Progress
-                  </Button>
-                )}
-              </div>
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedTask(task);
+                  setCompletionDuration({ hours: "0", minutes: "0" });
+                  setIsDurationDialogOpen(true);
+                }}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Complete
+              </Button>
             )}
             {task.status === 'completed' && (task.completedAt || task.CompletedAt) && (
               <div className="text-right">
@@ -512,15 +494,15 @@ const MyTasks: React.FC = () => {
         </div>
 
         {task.status !== 'completed' && (
-          <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-2">
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-col gap-2">
             <p className={cn(
               "text-xs",
-              isOverdue(task.dueDate || task.DueDate, task.status) ? 'text-rose-600 font-medium' : 'text-slate-500'
+              isOverdue(task.dueDate || task.DueDate, task.status) ? 'text-rose-600 dark:text-rose-400 font-medium' : 'text-slate-500 dark:text-slate-400'
             )}>
               {getDaysRemaining(task.dueDate || task.DueDate)}
             </p>
             {task.progressNote && (
-              <div className="bg-slate-50 p-2 rounded border border-slate-100 italic text-[11px] text-slate-600 line-clamp-2">
+              <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-700 italic text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2">
                 <span className="font-semibold not-italic">Recent update:</span> "{task.progressNote}"
               </div>
             )}
@@ -720,25 +702,25 @@ const MyTasks: React.FC = () => {
                   <p className="text-sm text-slate-400 mt-1">Tasks older than 7 days are automatically hidden.</p>
                 </div>
               ) : (
-                <div className="divide-y rounded-lg border overflow-hidden">
+                <div className="divide-y dark:divide-slate-700 rounded-lg border dark:border-slate-700 overflow-hidden">
                   {completedTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="flex items-center justify-between px-4 py-2.5 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                      className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       onClick={() => { setSelectedTask(task); setIsDetailDialogOpen(true); }}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{task.title || task.workTitle || task.taskName || '—'}</p>
-                          <p className="text-xs text-muted-foreground">{task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : ''}</p>
+                          <p className="text-sm font-medium truncate text-slate-900 dark:text-white">{task.title || task.workTitle || task.taskName || '—'}</p>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">{task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : ''}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
-                        <Badge variant="outline" className={`text-[10px] ${task.priority === 'high' ? 'bg-rose-50 text-rose-700 border-rose-200' : task.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                        <Badge variant="outline" className={`text-[10px] ${task.priority === 'high' ? 'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800' : task.priority === 'low' ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'}`}>
                           {task.priority}
                         </Badge>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground dark:text-slate-500" />
                       </div>
                     </div>
                   ))}
@@ -1220,14 +1202,110 @@ const MyTasks: React.FC = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Attachment field */}
+            <div className="space-y-2">
+              <Label>Attachments (Optional)</Label>
+              <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setCompletionAttachments(files);
+                  }}
+                  className="hidden"
+                  id="completion-attachment-input"
+                />
+                <label htmlFor="completion-attachment-input" className="cursor-pointer">
+                  <div className="flex flex-col items-center gap-2">
+                    <FileText className="h-8 w-8 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">
+                      {completionAttachments.length > 0 
+                        ? `${completionAttachments.length} file(s) selected` 
+                        : 'Click to upload files'}
+                    </p>
+                  </div>
+                </label>
+              </div>
+              {completionAttachments.length > 0 && (
+                <div className="space-y-1">
+                  {completionAttachments.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-800 p-2 rounded">
+                      <span className="truncate">{file.name}</span>
+                      <button
+                        onClick={() => setCompletionAttachments(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-rose-500 hover:text-rose-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDurationDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => {
+              setIsDurationDialogOpen(false);
+              setCompletionAttachments([]);
+            }}>Cancel</Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              onClick={() => {
+              onClick={async () => {
                 const duration = `${completionDuration.hours}h ${completionDuration.minutes}m`;
-                handleStatusChange(selectedTask.id, 'completed', duration);
+                
+                // First complete the task
+                try {
+                  const task = allItems.find(t => t.id === selectedTask.id);
+                  const isAdminTask = task?._source === 'task';
+
+                  const response = isAdminTask
+                    ? await api.tasks.updateStatus(selectedTask.id, 'completed')
+                    : await api.allocations.updateStatus(selectedTask.id, 'completed', duration);
+
+                  if (response.success) {
+                    // Upload attachments if any (only for work allocations, not admin tasks)
+                    if (completionAttachments.length > 0 && !isAdminTask) {
+                      try {
+                        await api.allocations.uploadAttachmentsBase64(selectedTask.id, completionAttachments);
+                        toast.success('Task completed with attachments');
+                      } catch {
+                        toast.error('Task completed but attachments failed to upload');
+                      }
+                    } else {
+                      toast.success('Task completed successfully');
+                    }
+                    
+                    // Update local state
+                    if (isAdminTask) {
+                      setAdminTasks((prev) =>
+                        prev.map((t) =>
+                          t.id === selectedTask.id
+                            ? { ...t, status: 'completed', completedAt: new Date().toISOString() }
+                            : t
+                        )
+                      );
+                    } else {
+                      setAllocations((prev) =>
+                        prev.map((t) =>
+                          t.id === selectedTask.id
+                            ? { ...t, status: 'completed', duration: duration, completedAt: new Date().toISOString() }
+                            : t
+                        )
+                      );
+                    }
+                    
+                    setIsDurationDialogOpen(false);
+                    setCompletionAttachments([]);
+                    fetchData(); // Refresh to get updated data
+                  } else {
+                    toast.error(response.message || 'Failed to complete task');
+                  }
+                } catch (error: any) {
+                  toast.error(error.message || 'An error occurred');
+                }
               }}
             >
               Finish & Save
@@ -1238,9 +1316,9 @@ const MyTasks: React.FC = () => {
 
       {/* Task Detail Dialog — full screen on mobile (Screen 3) */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden shadow-2xl sm:rounded-2xl rounded-none sm:max-h-[90vh] h-full sm:h-auto max-h-full flex flex-col">
+        <DialogContent className="max-w-md p-0 overflow-hidden shadow-2xl sm:rounded-2xl rounded-none sm:max-h-[90vh] h-[100dvh] sm:h-auto flex flex-col">
           {selectedTask && (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full sm:max-h-[85vh]">
               {/* Mobile header with back button */}
               <div className={`flex items-center gap-3 px-4 py-3 text-white ${selectedTask.priority === 'high' ? 'bg-rose-500' :
                   selectedTask.priority === 'medium' ? 'bg-amber-500' : 'bg-[#1E5FA8]'
@@ -1258,7 +1336,7 @@ const MyTasks: React.FC = () => {
                 </Badge>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 overscroll-contain">
                 {/* Status badges */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="outline" className={`text-xs font-semibold ${selectedTask.priority === 'high' ? 'border-rose-300 text-rose-600 bg-rose-50' :
@@ -1277,37 +1355,37 @@ const MyTasks: React.FC = () => {
 
                 {/* Description */}
                 {selectedTask.description && (
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Description</p>
-                    <p className="text-sm text-foreground leading-relaxed">{selectedTask.description}</p>
+                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                    <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1">Description</p>
+                    <p className="text-sm text-slate-900 dark:text-white leading-relaxed">{selectedTask.description}</p>
                   </div>
                 )}
 
                 {/* Info grid */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Due Date</p>
-                    <p className={`text-sm font-bold mt-0.5 ${isOverdue(selectedTask.dueDate, selectedTask.status) ? 'text-rose-600' : 'text-foreground'}`}>
+                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                    <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Due Date</p>
+                    <p className={`text-sm font-bold mt-0.5 ${isOverdue(selectedTask.dueDate, selectedTask.status) ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
                       {selectedTask.dueDate ? format(new Date(selectedTask.dueDate), 'MMM dd, yyyy') : '—'}
                     </p>
                     {isOverdue(selectedTask.dueDate, selectedTask.status) && (
-                      <p className="text-[10px] text-rose-500 font-medium mt-0.5">⚠ Overdue</p>
+                      <p className="text-[10px] text-rose-500 dark:text-rose-400 font-medium mt-0.5">⚠ Overdue</p>
                     )}
                   </div>
-                  <div className="rounded-xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Work Type</p>
-                    <p className="text-sm font-bold mt-0.5 text-foreground">{selectedTask.workTitle || selectedTask.workCode || '—'}</p>
+                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                    <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Work Type</p>
+                    <p className="text-sm font-bold mt-0.5 text-slate-900 dark:text-white">{selectedTask.workTitle || selectedTask.workCode || '—'}</p>
                   </div>
                   {selectedTask.duration && (
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Duration</p>
-                      <p className="text-sm font-bold mt-0.5">{selectedTask.duration}</p>
+                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                      <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Time Spent</p>
+                      <p className="text-sm font-bold mt-0.5 text-slate-900 dark:text-white">{selectedTask.duration}</p>
                     </div>
                   )}
                   {(selectedTask.completedAt || selectedTask.CompletedAt) && (
-                    <div className="rounded-xl bg-emerald-50 p-3">
-                      <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Completed</p>
-                      <p className="text-sm font-bold mt-0.5 text-emerald-700">
+                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950 p-3">
+                      <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Completed</p>
+                      <p className="text-sm font-bold mt-0.5 text-emerald-700 dark:text-emerald-300">
                         {format(new Date(selectedTask.completedAt || selectedTask.CompletedAt), 'MMM dd, HH:mm')}
                       </p>
                     </div>
@@ -1316,16 +1394,65 @@ const MyTasks: React.FC = () => {
 
                 {/* Progress note */}
                 {selectedTask.progressNote && (
-                  <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-                    <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-1">Latest Update</p>
-                    <p className="text-sm text-blue-900 italic">"{selectedTask.progressNote}"</p>
+                  <div className="rounded-xl bg-blue-50 dark:bg-blue-950 border border-blue-100 dark:border-blue-800 p-3">
+                    <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">Latest Update</p>
+                    <p className="text-sm text-blue-900 dark:text-blue-200 italic">"{selectedTask.progressNote}"</p>
                   </div>
                 )}
 
                 {/* Attachments */}
                 {selectedTask.attachmentUrls && (
                   <div>
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Attachments</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Attachments</p>
+                      {selectedTask.status === 'completed' && selectedTask._source !== 'task' && (
+                        <div className="flex gap-1">
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,.pdf,.doc,.docx"
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files || []);
+                              if (files.length > 0) {
+                                try {
+                                  await api.allocations.uploadAttachmentsBase64(selectedTask.id, files);
+                                  toast.success('Attachments added');
+                                  fetchData();
+                                } catch {
+                                  toast.error('Failed to add attachments');
+                                }
+                              }
+                              e.target.value = '';
+                            }}
+                            className="hidden"
+                            id={`add-attachment-${selectedTask.id}`}
+                          />
+                          <label htmlFor={`add-attachment-${selectedTask.id}`}>
+                            <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" asChild>
+                              <span className="cursor-pointer">+ Add</span>
+                            </Button>
+                          </label>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-6 text-[10px] px-2 text-rose-600 hover:text-rose-700"
+                            onClick={async () => {
+                              if (confirm('Remove all attachments from this task?')) {
+                                try {
+                                  await api.allocations.deleteAttachments(selectedTask.id);
+                                  toast.success('Attachments removed');
+                                  fetchData();
+                                } catch {
+                                  toast.error('Failed to remove attachments');
+                                }
+                              }
+                            }}
+                          >
+                            Remove All
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {parseAttachments(selectedTask.attachmentUrls).map((att, i) => (
                         att.isImage ? (
@@ -1334,7 +1461,7 @@ const MyTasks: React.FC = () => {
                             onClick={() => setPreviewSrc(att.src)} />
                         ) : (
                           <a key={i} href={att.src} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-2 text-slate-700 transition-colors">
+                            className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-300 transition-colors">
                             📎 <span className="truncate max-w-[120px]">{att.name}</span>
                           </a>
                         )
@@ -1345,21 +1472,129 @@ const MyTasks: React.FC = () => {
 
                 {/* Request pending info */}
                 {selectedTask.requestStatus === 'pending' && (
-                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-sm space-y-1">
+                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-sm space-y-1">
                     <p className="font-semibold text-xs uppercase tracking-wide">Change Request Pending</p>
                     {selectedTask.requestedDueDate && <p>New Date: {format(new Date(selectedTask.requestedDueDate), 'MMM dd, yyyy')}</p>}
                     {selectedTask.requestedDescription && <p>Note: {selectedTask.requestedDescription}</p>}
                   </div>
                 )}
+
+                {/* Time and Attachment fields for in-progress tasks */}
+                {(selectedTask.status === 'in-progress' || selectedTask.status === 'in_progress') && selectedTask._source !== 'task' && (
+                  <div className="space-y-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                    <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Complete Task Details</p>
+                    
+                    {/* Time Spent */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-blue-900 dark:text-blue-200">Time Spent</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select value={completionDuration.hours} onValueChange={(v) => setCompletionDuration({ ...completionDuration, hours: v })}>
+                          <SelectTrigger className="bg-white dark:bg-slate-800">
+                            <SelectValue placeholder="Hours" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 25 }, (_, i) => (
+                              <SelectItem key={i} value={i.toString()}>{i}h</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={completionDuration.minutes} onValueChange={(v) => setCompletionDuration({ ...completionDuration, minutes: v })}>
+                          <SelectTrigger className="bg-white dark:bg-slate-800">
+                            <SelectValue placeholder="Minutes" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {['0', '5', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((m) => (
+                              <SelectItem key={m} value={m}>{m}m</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Attachments */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-blue-900 dark:text-blue-200">Attachments (Optional)</Label>
+                      <div className="border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg p-3 text-center bg-white dark:bg-slate-800">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,.pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            setCompletionAttachments(files);
+                          }}
+                          className="hidden"
+                          id="detail-completion-attachment"
+                        />
+                        <label htmlFor="detail-completion-attachment" className="cursor-pointer">
+                          <div className="flex flex-col items-center gap-1">
+                            <FileText className="h-6 w-6 text-blue-500 dark:text-blue-400" />
+                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                              {completionAttachments.length > 0 
+                                ? `${completionAttachments.length} file(s) selected` 
+                                : 'Click to upload'}
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                      {completionAttachments.length > 0 && (
+                        <div className="space-y-1">
+                          {completionAttachments.map((file, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2 rounded border border-blue-200 dark:border-blue-700">
+                              <span className="truncate text-blue-900 dark:text-blue-200">{file.name}</span>
+                              <button
+                                onClick={() => setCompletionAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                className="text-rose-500 hover:text-rose-700 font-bold"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Bottom action buttons — Mark Complete + Escalate */}
-              <div className="shrink-0 border-t bg-background p-4 space-y-2">
+              <div className="shrink-0 border-t dark:border-slate-700 bg-background p-4 space-y-2">
                 {(selectedTask.status === 'in-progress' || selectedTask.status === 'in_progress') && (
                   <Button className="w-full h-11 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl"
-                    onClick={() => {
-                      setCompletionDuration({ hours: "0", minutes: "0" });
-                      setIsDurationDialogOpen(true);
+                    onClick={async () => {
+                      const duration = `${completionDuration.hours}h ${completionDuration.minutes}m`;
+                      
+                      // Complete the task
+                      try {
+                        const task = allItems.find(t => t.id === selectedTask.id);
+                        const isAdminTask = task?._source === 'task';
+
+                        const response = isAdminTask
+                          ? await api.tasks.updateStatus(selectedTask.id, 'completed')
+                          : await api.allocations.updateStatus(selectedTask.id, 'completed', duration);
+
+                        if (response.success) {
+                          // Upload attachments if any
+                          if (completionAttachments.length > 0 && !isAdminTask) {
+                            try {
+                              await api.allocations.uploadAttachmentsBase64(selectedTask.id, completionAttachments);
+                              toast.success('Task completed with attachments');
+                            } catch {
+                              toast.error('Task completed but attachments failed');
+                            }
+                          } else {
+                            toast.success('Task completed successfully');
+                          }
+                          
+                          setIsDetailDialogOpen(false);
+                          setCompletionAttachments([]);
+                          fetchData();
+                        } else {
+                          toast.error(response.message || 'Failed to complete task');
+                        }
+                      } catch (error: any) {
+                        toast.error(error.message || 'An error occurred');
+                      }
                     }}>
                     <CheckCircle2 className="h-4 w-4" /> Mark Complete
                   </Button>
