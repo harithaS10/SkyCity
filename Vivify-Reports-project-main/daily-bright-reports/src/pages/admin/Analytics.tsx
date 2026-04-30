@@ -566,9 +566,18 @@ const Analytics: React.FC = () => {
                   )}
                   
                   <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                    <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400">
-                      <Clock className="h-3 w-3" />
-                      {e.dueDate ? safeFormatDate(e.dueDate, 'MMM dd') : 'No date'}
+                    <div className="flex items-center gap-3">
+                      {e.quantity !== undefined && e.quantity !== null && e.quantity > 0 && (
+                        <div className="flex items-center gap-1 text-[9px] font-black text-slate-500">
+                          <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">×{e.quantity}</span>
+                        </div>
+                      )}
+                      {e.timeSpent && e.timeSpent !== '0h 0m' && (
+                        <div className="flex items-center gap-1 text-[9px] font-black text-slate-500">
+                          <Clock className="h-3 w-3" />
+                          {e.timeSpent}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 text-[9px] font-black text-primary">
                       Allocations <ArrowRight className="h-3 w-3" />

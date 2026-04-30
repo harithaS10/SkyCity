@@ -236,7 +236,7 @@ const Login: React.FC = () => {
 
         {/* Footer */}
         <div className="relative z-10">
-          <p className="text-white/50 text-xs">© 2026 SkyCity. All rights reserved.</p>
+          <p className="text-white/50 text-xs">© 2026 Vivify Technocrats. All rights reserved.</p>
         </div>
       </div>
 
@@ -265,7 +265,7 @@ const Login: React.FC = () => {
 
               {/* Heading - HIDDEN ON MOBILE */}
               <div className="hidden lg:block space-y-1 text-center sm:text-left">
-                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">Welcome back</h2>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white leading-tight">Welcome</h2>
                 <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">Sign in to your account</p>
               </div>
 
@@ -357,7 +357,7 @@ const Login: React.FC = () => {
               </div>
 
               <p className="text-center text-[8px] text-slate-300 font-bold uppercase tracking-tight">
-                © 2026 SkyCity.
+                © 2026 Vivify Technocrats.
               </p>
             </div>
           </div>
