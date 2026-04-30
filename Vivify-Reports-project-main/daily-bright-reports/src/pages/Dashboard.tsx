@@ -73,7 +73,13 @@ import {
 const UserDashboard: React.FC = () => {
   const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
+  
+  // Permission checks for staff users
   const canViewDailyReports = user?.role === 'staff' ? hasPermission('daily_reports', 'view') : true;
+  const canViewWorkOrders = user?.role === 'staff' ? hasPermission('work_orders', 'view') : true;
+  const canViewComplaints = user?.role === 'staff' ? hasPermission('complaints', 'view') : true;
+  const canViewChat = user?.role === 'staff' ? hasPermission('chat', 'view') : true;
+  const canViewAnalytics = user?.role === 'staff' ? hasPermission('analytics', 'view') : true;
   const [reports, setReports] = useState<any[]>([]);
   const [allocations, setAllocations] = useState<any[]>([]);
   const [adminTasks, setAdminTasks] = useState<any[]>([]);
@@ -315,11 +321,13 @@ const UserDashboard: React.FC = () => {
                 title="Refresh dashboard">
                 <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => navigate('/my-tasks')}
-                className="gap-1.5 text-xs h-8 bg-white/20 hover:bg-white/30 text-white border-0">
-                <ListTodo className="h-3.5 w-3.5" />
-                My Tasks
-              </Button>
+              {canViewWorkOrders && (
+                <Button size="sm" variant="secondary" onClick={() => navigate('/my-tasks')}
+                  className="gap-1.5 text-xs h-8 bg-white/20 hover:bg-white/30 text-white border-0">
+                  <ListTodo className="h-3.5 w-3.5" />
+                  My Tasks
+                </Button>
+              )}
               {canViewDailyReports && (
                 <Button size="sm" onClick={() => navigate('/daily-report')}
                   className="gap-1.5 text-xs h-9 bg-white text-teal-700 hover:bg-white/90 font-bold px-4 shadow-sm border-none">
@@ -333,82 +341,116 @@ const UserDashboard: React.FC = () => {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-4 gap-2">
-        {[
-          { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-primary-foreground bg-primary border-primary/20' },
+      {(() => {
+        const quickLinks = [
+          canViewWorkOrders && { label: 'My Tasks', icon: ListTodo, path: '/my-tasks', color: 'text-primary-foreground bg-primary border-primary/20' },
           canViewDailyReports && { label: 'Daily Report', icon: FileText, path: '/daily-report', color: 'text-primary bg-primary/10 border-primary/20' },
-          { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-700 bg-amber-50 border-amber-200' },
-          { label: 'Community', icon: Users, path: '/chat', color: 'text-primary bg-primary/5 border-primary/10' },
-        ].filter(Boolean).map(({ label, icon: Icon, path, color }) => (
-          <button key={path} onClick={() => navigate(path)}
-            className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all hover:shadow-md active:scale-95", color)}>
-            <Icon className="h-5 w-5" />
-            <span className="text-[11px] font-semibold leading-tight">{label}</span>
-          </button>
-        ))}
-      </div>
+          canViewComplaints && { label: 'Complaints', icon: MessageSquare, path: '/complaints', color: 'text-amber-700 bg-amber-50 border-amber-200' },
+          canViewChat && { label: 'Community', icon: Users, path: '/chat', color: 'text-primary bg-primary/5 border-primary/10' },
+        ].filter(Boolean);
+        
+        if (quickLinks.length === 0) return null;
+        
+        return (
+          <div className={cn("grid gap-2", 
+            quickLinks.length === 1 ? "grid-cols-1" :
+            quickLinks.length === 2 ? "grid-cols-2" :
+            quickLinks.length === 3 ? "grid-cols-3" :
+            "grid-cols-4"
+          )}>
+            {quickLinks.map(({ label, icon: Icon, path, color }) => (
+              <button key={path} onClick={() => navigate(path)}
+                className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all hover:shadow-md active:scale-95", color)}>
+                <Icon className="h-5 w-5" />
+                <span className="text-[11px] font-semibold leading-tight">{label}</span>
+              </button>
+            ))}
+          </div>
+        );
+      })()}
 
 
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => navigate('/my-tasks')}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100">
-              <ListTodo className="h-4 w-4 text-amber-600" />
-            </div>
-            <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Open</span>
-          </div>
-          <p className="text-3xl font-bold">{pendingTasks.length}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Open Tasks</p>
-        </div>
-
-        <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => navigate('/my-tasks')}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-100">
-              <Clock className="h-4 w-4 text-cyan-700" />
-            </div>
-            <span className="text-[10px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-200">Active</span>
-          </div>
-          <p className="text-3xl font-bold text-cyan-700">{inProgressTasks.length}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">In Progress</p>
-        </div>
-
-        <div className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => navigate('/my-tasks')}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Done</span>
-          </div>
-          <p className="text-3xl font-bold text-emerald-600">{completedTasks.length}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
-        </div>
-
-        {canViewDailyReports && (
-          <div className={cn("rounded-2xl border p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
-            !todayReport ? 'bg-amber-50 border-amber-200' : 'bg-card')}
-            onClick={() => navigate('/daily-report')}>
-            <div className="flex items-center justify-between mb-3">
-              <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl",
-                !todayReport ? 'bg-amber-200' : 'bg-emerald-100')}>
-                <FileText className={cn("h-4 w-4", !todayReport ? 'text-amber-700' : 'text-emerald-600')} />
+      {(() => {
+        const statCards = [];
+        
+        // Always show task stats if work orders are visible
+        if (canViewWorkOrders) {
+          statCards.push(
+            <div key="open" className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate('/my-tasks')}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100">
+                  <ListTodo className="h-4 w-4 text-amber-600" />
+                </div>
+                <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Open</span>
               </div>
-              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border",
-                !todayReport ? 'text-amber-700 bg-amber-100 border-amber-300' : 'text-emerald-600 bg-emerald-50 border-emerald-200')}>
-                {!todayReport ? 'Pending' : 'Filed'}
-              </span>
+              <p className="text-3xl font-bold">{pendingTasks.length}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Open Tasks</p>
+            </div>,
+            <div key="progress" className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate('/my-tasks')}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-100">
+                  <Clock className="h-4 w-4 text-cyan-700" />
+                </div>
+                <span className="text-[10px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-200">Active</span>
+              </div>
+              <p className="text-3xl font-bold text-cyan-700">{inProgressTasks.length}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">In Progress</p>
+            </div>,
+            <div key="completed" className="rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => navigate('/my-tasks')}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Done</span>
+              </div>
+              <p className="text-3xl font-bold text-emerald-600">{completedTasks.length}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Completed</p>
             </div>
-            <p className={cn("text-sm font-bold leading-tight", !todayReport ? 'text-amber-700' : 'text-emerald-600')}>
-              {!todayReport ? 'Pending Report' : 'Report Filed'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">Today's status</p>
+          );
+        }
+        
+        // Add daily report card if visible
+        if (canViewDailyReports) {
+          statCards.push(
+            <div key="report" className={cn("rounded-2xl border p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer",
+              !todayReport ? 'bg-amber-50 border-amber-200' : 'bg-card')}
+              onClick={() => navigate('/daily-report')}>
+              <div className="flex items-center justify-between mb-3">
+                <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl",
+                  !todayReport ? 'bg-amber-200' : 'bg-emerald-100')}>
+                  <FileText className={cn("h-4 w-4", !todayReport ? 'text-amber-700' : 'text-emerald-600')} />
+                </div>
+                <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                  !todayReport ? 'text-amber-700 bg-amber-100 border-amber-300' : 'text-emerald-600 bg-emerald-50 border-emerald-200')}>
+                  {!todayReport ? 'Pending' : 'Filed'}
+                </span>
+              </div>
+              <p className={cn("text-sm font-bold leading-tight", !todayReport ? 'text-amber-700' : 'text-emerald-600')}>
+                {!todayReport ? 'Pending Report' : 'Report Filed'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">Today's status</p>
+            </div>
+          );
+        }
+        
+        if (statCards.length === 0) return null;
+        
+        return (
+          <div className={cn("grid gap-3",
+            statCards.length === 1 ? "grid-cols-1 sm:grid-cols-1" :
+            statCards.length === 2 ? "grid-cols-2 sm:grid-cols-2" :
+            statCards.length === 3 ? "grid-cols-2 sm:grid-cols-3" :
+            "grid-cols-2 sm:grid-cols-4"
+          )}>
+            {statCards}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Main Content — Today's Tasks + Activity */}
       <div className="grid gap-4 lg:grid-cols-5">
@@ -797,26 +839,39 @@ const UserDashboard: React.FC = () => {
         {/* Main Interface Grid */}
         <div className="px-5 mt-8 space-y-7">
           {/* Action Menu */}
-          <div>
-            <div className="flex justify-between items-end mb-3.5">
-              <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-tight">Quick Tools</h3>
-            </div>
-            <div className="grid grid-cols-4 gap-3">
-              {[
-                { label: 'Tasks', icon: ListTodo, path: '/my-tasks', color: 'bg-primary shadow-primary/25' },
-                canViewDailyReports && { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-primary/90 shadow-primary/25' },
-                { label: 'Chat', icon: MessageSquare, path: '/chat', color: 'bg-primary/80 shadow-primary/20' },
-                { label: 'Issues', icon: AlertCircle, path: '/complaints', color: 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/25' }
-              ].filter(Boolean).map(({ label, icon: Icon, path, color }) => (
-                <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-2.5">
-                   <div className={cn("h-14 w-14 rounded-[1.25rem] flex items-center justify-center text-white shadow-lg transition-transform active:scale-90", color)}>
-                     <Icon className="h-6 w-6" strokeWidth={2.5} />
-                   </div>
-                   <span className="text-[11px] font-bold text-slate-600">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          {(() => {
+            const mobileTools = [
+              canViewWorkOrders && { label: 'Tasks', icon: ListTodo, path: '/my-tasks', color: 'bg-primary shadow-primary/25' },
+              canViewDailyReports && { label: 'Report', icon: FileText, path: '/daily-report', color: 'bg-primary/90 shadow-primary/25' },
+              canViewChat && { label: 'Chat', icon: MessageSquare, path: '/chat', color: 'bg-primary/80 shadow-primary/20' },
+              canViewComplaints && { label: 'Issues', icon: AlertCircle, path: '/complaints', color: 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/25' }
+            ].filter(Boolean);
+            
+            if (mobileTools.length === 0) return null;
+            
+            return (
+              <div>
+                <div className="flex justify-between items-end mb-3.5">
+                  <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-tight">Quick Tools</h3>
+                </div>
+                <div className={cn("grid gap-3",
+                  mobileTools.length === 1 ? "grid-cols-1" :
+                  mobileTools.length === 2 ? "grid-cols-2" :
+                  mobileTools.length === 3 ? "grid-cols-3" :
+                  "grid-cols-4"
+                )}>
+                  {mobileTools.map(({ label, icon: Icon, path, color }) => (
+                    <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-2.5">
+                       <div className={cn("h-14 w-14 rounded-[1.25rem] flex items-center justify-center text-white shadow-lg transition-transform active:scale-90", color)}>
+                         <Icon className="h-6 w-6" strokeWidth={2.5} />
+                       </div>
+                       <span className="text-[11px] font-bold text-slate-600">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           
           {/* Overdue Warning */}
           {overdueTasks.length > 0 && (
