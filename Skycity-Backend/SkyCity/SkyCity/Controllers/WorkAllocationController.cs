@@ -209,7 +209,7 @@ public class WorkAllocationController : ControllerBase
         alloc.AttachmentUrls = System.Text.Json.JsonSerializer.Serialize(combined);
 
         await _context.SaveChangesAsync();
-        return Ok(new ApiResponse<dynamic> { Success = true, Data = new { count = dto.Files.Count } });
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = new { count = dto.Files.Count, attachmentUrls = alloc.AttachmentUrls } });
     }
 
     [HttpPost("{id}/attachments")]
@@ -298,6 +298,64 @@ public class WorkAllocationController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new ApiResponse { Success = true, Message = "Request denied" });
     }
+
+    [HttpPost("{id}/delete-attachments")]
+    public async Task<ActionResult> DeleteAttachments(int id, [FromBody] DeleteAttachmentsDto? dto = null)
+    {
+        var alloc = await _context.WorkAllocations.FindAsync(id);
+        if (alloc == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        if (string.IsNullOrEmpty(alloc.AttachmentUrls))
+            return Ok(new ApiResponse { Success = true, Message = "No attachments to delete" });
+
+        // If specific attachment name is provided, delete only that one
+        if (dto?.AttachmentName != null)
+        {
+            try
+            {
+                // Try to parse as JSON array
+                var attachments = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(alloc.AttachmentUrls);
+                if (attachments != null)
+                {
+                    // Remove the specific attachment by name
+                    var filtered = attachments.Where(a => 
+                    {
+                        if (a.TryGetProperty("name", out var nameEl) || a.TryGetProperty("Name", out nameEl))
+                        {
+                            return nameEl.GetString() != dto.AttachmentName;
+                        }
+                        return true;
+                    }).ToList();
+                    
+                    alloc.AttachmentUrls = filtered.Count > 0 
+                        ? System.Text.Json.JsonSerializer.Serialize(filtered) 
+                        : null;
+                }
+                else
+                {
+                    // Fallback: comma-separated paths
+                    var paths = alloc.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                    paths = paths.Where(p => !p.Contains(dto.AttachmentName)).ToList();
+                    alloc.AttachmentUrls = paths.Count > 0 ? string.Join(",", paths) : null;
+                }
+            }
+            catch
+            {
+                // If JSON parsing fails, treat as comma-separated paths
+                var paths = alloc.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                paths = paths.Where(p => !p.Contains(dto.AttachmentName)).ToList();
+                alloc.AttachmentUrls = paths.Count > 0 ? string.Join(",", paths) : null;
+            }
+        }
+        else
+        {
+            // Delete all attachments
+            alloc.AttachmentUrls = null;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<dynamic> { Success = true, Message = "Attachments deleted successfully", Data = new { attachmentUrls = alloc.AttachmentUrls } });
+    }
 }
 
 public class CreateAllocationDto
@@ -314,6 +372,7 @@ public class CreateAllocationDto
 public class UpdateStatusDto { public string Status { get; set; } = string.Empty; public string? Duration { get; set; } }
 public class ProgressDto { public string ProgressNote { get; set; } = string.Empty; }
 public class ReassignDto { public int NewUserId { get; set; } public string? Reason { get; set; } }
+public class DeleteAttachmentsDto { public string? AttachmentName { get; set; } }
 public class SelfAssignDto
 {
     public string Title { get; set; } = string.Empty;

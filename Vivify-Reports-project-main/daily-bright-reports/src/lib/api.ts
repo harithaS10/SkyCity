@@ -676,6 +676,8 @@ export const api = {
       })));
       return (await apiClient.post(`/workallocations/${id}/attachments-base64`, { files: encoded })).data;
     },
+    deleteAttachments: async (id: number, attachmentName?: string) =>
+      (await apiClient.post(`/workallocations/${id}/delete-attachments`, { attachmentName })).data,
     reassign: async (id: number, newUserId: number, reason?: string) =>
       (await apiClient.post(`/workallocations/${id}/reassign`, { newUserId, reason })).data,
     approveRequest: async (id: number) =>

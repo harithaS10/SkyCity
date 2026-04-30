@@ -1401,72 +1401,133 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                 )}
 
                 {/* Attachments */}
-                {selectedTask.attachmentUrls && (
+                {(selectedTask.attachmentUrls || selectedTask.status === 'completed') && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Attachments</p>
-                      {selectedTask.status === 'completed' && selectedTask._source !== 'task' && (
-                        <div className="flex gap-1">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Attachments</p>
+                      {selectedTask.status === 'completed' && (
+                        <>
                           <input
+                            id={`add-attachment-${selectedTask.id}`}
                             type="file"
                             multiple
                             accept="image/*,.pdf,.doc,.docx"
+                            className="hidden"
                             onChange={async (e) => {
                               const files = Array.from(e.target.files || []);
-                              if (files.length > 0) {
-                                try {
-                                  await api.allocations.uploadAttachmentsBase64(selectedTask.id, files);
-                                  toast.success('Attachments added');
-                                  fetchData();
-                                } catch {
-                                  toast.error('Failed to add attachments');
+                              if (files.length === 0) return;
+                              try {
+                                const response = await api.allocations.uploadAttachmentsBase64(selectedTask.id, files);
+                                if (response.success) {
+                                  toast.success(`${files.length} attachment(s) added`);
+                                  // Update selectedTask with new attachments from response
+                                  const updatedTask = { ...selectedTask, attachmentUrls: response.data.attachmentUrls };
+                                  setSelectedTask(updatedTask);
+                                  // Also update in allocations list
+                                  setAllocations(prev => prev.map(t => t.id === selectedTask.id ? updatedTask : t));
+                                  e.target.value = '';
+                                } else {
+                                  toast.error(response.message || "Failed to upload attachments");
                                 }
+                              } catch (error: any) {
+                                toast.error(error.message || "An error occurred");
                               }
-                              e.target.value = '';
                             }}
-                            className="hidden"
-                            id={`add-attachment-${selectedTask.id}`}
                           />
-                          <label htmlFor={`add-attachment-${selectedTask.id}`}>
-                            <Button size="sm" variant="outline" className="h-6 text-[10px] px-2" asChild>
-                              <span className="cursor-pointer">+ Add</span>
-                            </Button>
-                          </label>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-6 text-[10px] px-2 text-rose-600 hover:text-rose-700"
-                            onClick={async () => {
-                              if (confirm('Remove all attachments from this task?')) {
-                                try {
-                                  await api.allocations.deleteAttachments(selectedTask.id);
-                                  toast.success('Attachments removed');
-                                  fetchData();
-                                } catch {
-                                  toast.error('Failed to remove attachments');
-                                }
-                              }
-                            }}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => document.getElementById(`add-attachment-${selectedTask.id}`)?.click()}
                           >
-                            Remove All
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add
                           </Button>
-                        </div>
+                        </>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {parseAttachments(selectedTask.attachmentUrls).map((att, i) => (
-                        att.isImage ? (
-                          <img key={i} src={att.src} alt={att.name}
-                            className="h-20 w-20 rounded-xl object-cover border hover:opacity-80 transition-opacity cursor-zoom-in"
-                            onClick={() => setPreviewSrc(att.src)} />
-                        ) : (
-                          <a key={i} href={att.src} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg px-3 py-2 text-slate-700 dark:text-slate-300 transition-colors">
-                            📎 <span className="truncate max-w-[120px]">{att.name}</span>
-                          </a>
-                        )
-                      ))}
-                    </div>
+                    {selectedTask.attachmentUrls && parseAttachments(selectedTask.attachmentUrls).length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {parseAttachments(selectedTask.attachmentUrls).map((att, i) => (
+                          <div key={i} className="relative group">
+                            {att.isImage ? (
+                              <>
+                                <img
+                                  src={att.src}
+                                  alt={att.name}
+                                  className="h-20 w-20 rounded-xl object-cover border hover:opacity-80 transition-opacity cursor-zoom-in"
+                                  onClick={() => setPreviewSrc(att.src)}
+                                />
+                                {selectedTask.status === 'completed' && (
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      try {
+                                        const response = await api.allocations.deleteAttachments(selectedTask.id, att.name);
+                                        if (response.success) {
+                                          toast.success("Attachment removed");
+                                          // Update selectedTask with new attachments from response
+                                          const updatedTask = { ...selectedTask, attachmentUrls: response.data.attachmentUrls };
+                                          setSelectedTask(updatedTask);
+                                          // Also update in allocations list
+                                          setAllocations(prev => prev.map(t => t.id === selectedTask.id ? updatedTask : t));
+                                        } else {
+                                          toast.error(response.message || "Failed to remove attachment");
+                                        }
+                                      } catch (error: any) {
+                                        toast.error(error.message || "An error occurred");
+                                      }
+                                    }}
+                                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-rose-600"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <div className="relative">
+                                <a
+                                  href={att.src}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg px-3 py-2 text-slate-700 transition-colors"
+                                >
+                                  📎 <span className="truncate max-w-[120px]">{att.name}</span>
+                                </a>
+                                {selectedTask.status === 'completed' && (
+                                  <button
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      try {
+                                        const response = await api.allocations.deleteAttachments(selectedTask.id, att.name);
+                                        if (response.success) {
+                                          toast.success("Attachment removed");
+                                          // Update selectedTask with new attachments from response
+                                          const updatedTask = { ...selectedTask, attachmentUrls: response.data.attachmentUrls };
+                                          setSelectedTask(updatedTask);
+                                          // Also update in allocations list
+                                          setAllocations(prev => prev.map(t => t.id === selectedTask.id ? updatedTask : t));
+                                        } else {
+                                          toast.error(response.message || "Failed to remove attachment");
+                                        }
+                                      } catch (error: any) {
+                                        toast.error(error.message || "An error occurred");
+                                      }
+                                    }}
+                                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-rose-600"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">No attachments yet. Click "Add" to upload.</p>
+                    )}
                   </div>
                 )}
 
