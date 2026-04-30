@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,7 +76,16 @@ const createEmptyRows = (count: number, startingIndex: number = 0): WorkRow[] =>
 
 const DailyReport: React.FC = () => {
   const { user, hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const canView = user?.role === 'staff' ? hasPermission('daily_reports', 'view') : true;
   const canCreate = user?.role === 'staff' ? hasPermission('daily_reports', 'create') : true;
+
+  // Redirect if no view permission
+  React.useEffect(() => {
+    if (!canView) {
+      navigate('/dashboard');
+    }
+  }, [canView, navigate]);
   const [date, setDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [rows, setRows] = useState<WorkRow[]>(createEmptyRows(10));

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useChat, ChatMsg, TaskStatusUpdate } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,16 @@ interface Group { id: number; groupName: string; memberCount?: number; unreadCou
 
 const GroupChat: React.FC = () => {
   const { user, hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const canView = user?.role === 'staff' ? hasPermission('chat', 'view') : true;
   const canChat = user?.role === 'staff' ? hasPermission('chat', 'create') : true;
+
+  // Redirect if no view permission
+  React.useEffect(() => {
+    if (!canView) {
+      navigate('/dashboard');
+    }
+  }, [canView, navigate]);
   const chat = useChat(true);
 
   const [tab, setTab] = useState<'ai' | 'dm' | 'groups'>('ai');

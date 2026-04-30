@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -61,7 +62,16 @@ type TaskTypeFilter = 'all' | 'daily' | 'monthly';
 
 const MyTasks: React.FC = () => {
   const { user, hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const canView = user?.role === 'staff' ? hasPermission('work_orders', 'view') : true;
   const canCreate = user?.role === 'staff' ? hasPermission('work_orders', 'create') : true;
+
+  // Redirect if no view permission
+  React.useEffect(() => {
+    if (!canView) {
+      navigate('/dashboard');
+    }
+  }, [canView, navigate]);
   const [allocations, setAllocations] = useState<any[]>([]);
   const [adminTasks, setAdminTasks] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
