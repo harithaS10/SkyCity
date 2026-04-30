@@ -65,6 +65,7 @@ const MyReports: React.FC = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isDesktopDatePickerOpen, setIsDesktopDatePickerOpen] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date(),
@@ -345,7 +346,7 @@ const MyReports: React.FC = () => {
         </div>
 
         <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)} className="space-y-6">
-          <div className="sticky top-0 z-40 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none px-4 pt-4 lg:p-0 -mx-4 lg:mx-0">
+          <div className="sticky top-0 z-30 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md lg:bg-transparent lg:backdrop-blur-none px-4 pt-4 lg:p-0 -mx-4 lg:mx-0">
             <TabsList className={cn(
               "p-1.5 bg-white dark:bg-card/50 rounded-2xl shadow-sm border border-slate-100 dark:border-white/5 w-full flex"
             )}>
@@ -355,42 +356,84 @@ const MyReports: React.FC = () => {
               <TabsTrigger value="custom" className="flex-1 lg:flex-none gap-2 rounded-xl font-black text-[11px] uppercase tracking-wider py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white transition-all">Custom</TabsTrigger>
             </TabsList>
 
+            {/* Desktop Custom Date Range Picker */}
             {timeRange === 'custom' && (
-              <div className="mt-4 px-1 lg:hidden animate-in fade-in slide-in-from-top-2">
-                <Button
-                    id="date-mobile"
-                    variant={"outline"}
-                    className={cn(
-                    "w-full h-12 justify-between text-left font-bold rounded-2xl bg-white border-2 border-dashed border-slate-200 text-slate-500",
-                    !dateRange && "text-muted-foreground"
-                    )}
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsDatePickerOpen(true);
-                    }}
-                >
-                    <div className="flex items-center gap-3">
-                        <CalendarIcon className="h-4 w-4 text-primary" />
-                        <span className="text-[13px]">
-                            {dateRange?.from ? (
-                            dateRange.to ? (
-                                <>
-                                {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
-                                </>
-                            ) : (
-                                format(dateRange.from, "LLL dd")
-                            )
-                            ) : (
-                            "Select Date Range"
-                            )}
-                        </span>
-                    </div>
-                    <Plus className="h-4 w-4 opacity-50" />
-                </Button>
+              <div className="mt-4 hidden lg:block animate-in fade-in slide-in-from-top-2">
+                <Popover open={isDesktopDatePickerOpen} onOpenChange={setIsDesktopDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full lg:w-auto h-11 justify-start text-left font-bold rounded-xl bg-white border-2 border-dashed hover:border-primary/50 transition-all",
+                        !dateRange && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="h-4 w-4 mr-2 text-primary" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "LLL dd, yyyy")} - {format(dateRange.to, "LLL dd, yyyy")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "LLL dd, yyyy")
+                        )
+                      ) : (
+                        <span>Pick a date range</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={(range) => {
+                        setDateRange(range);
+                        if (range?.from && range?.to) {
+                          setIsDesktopDatePickerOpen(false);
+                        }
+                      }}
+                      numberOfMonths={1}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             )}
           </div>
+
+          {/* Mobile Custom Date Range Picker - Outside sticky container */}
+          {timeRange === 'custom' && (
+            <div className="px-4 lg:hidden animate-in fade-in slide-in-from-top-2 -mt-2">
+              <Button
+                id="date-mobile"
+                variant={"outline"}
+                onClick={() => setIsDatePickerOpen(true)}
+                className={cn(
+                  "w-full h-12 justify-between text-left font-bold rounded-2xl bg-white border-2 border-dashed border-slate-200 text-slate-500 hover:border-primary/50 transition-all",
+                  !dateRange && "text-muted-foreground"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <CalendarIcon className="h-4 w-4 text-primary" />
+                  <span className="text-[13px]">
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd")
+                      )
+                    ) : (
+                      "Select Date Range"
+                    )}
+                  </span>
+                </div>
+                <Plus className="h-4 w-4 opacity-50" />
+              </Button>
+            </div>
+          )}
 
           <div className="px-4 lg:p-0 space-y-6">
             <div className="hidden lg:grid gap-6 sm:grid-cols-3">
@@ -434,34 +477,7 @@ const MyReports: React.FC = () => {
             {/* Performance Chart */}
             <Card className="rounded-[2.5rem] border-none shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden bg-white/70 backdrop-blur-sm">
               <CardHeader className="pb-2 border-b border-slate-50">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Performance Metrics</CardTitle>
-                    {timeRange === 'custom' && (
-                        <div className="hidden lg:block">
-                            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                                <PopoverTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 rounded-lg font-bold text-xs gap-2">
-                                    <CalendarIcon className="h-3 w-3" />
-                                    Range Settings
-                                </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="end">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={(range) => {
-                                    setDateRange(range);
-                                    if (range?.from && range?.to) setIsDatePickerOpen(false);
-                                    }}
-                                    numberOfMonths={2}
-                                />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                    )}
-                </div>
+                <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Performance Metrics</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="h-64 relative">
@@ -583,9 +599,6 @@ const MyReports: React.FC = () => {
                                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{report.duration || report.totalTimeSpent || report.TotalTimeSpent || '0h'}</span>
                                             </div>
                                         </div>
-                                        <Button variant="ghost" size="sm" className="h-8 w-8 rounded-xl bg-slate-50 hover:bg-primary/10 hover:text-primary transition-colors">
-                                            <Download className="h-4 w-4" />
-                                        </Button>
                                     </div>
                                 </div>
                              )
