@@ -48,7 +48,7 @@ interface WorkRow {
   workDescription: string;
   timeSpent: string;
   clientId: string;
-  status: 'completed' | 'pending';
+  status: 'completed' | 'pending' | 'in-progress';
   dueDate: string;
   adminDueDate?: string;
   otherClientName?: string;
@@ -59,14 +59,15 @@ interface WorkRow {
 }
 
 const createEmptyRows = (count: number, startingIndex: number = 0): WorkRow[] => {
+  const today = new Date().toISOString().split('T')[0]; // yyyy-MM-dd
   return Array.from({ length: count }, (_, i) => ({
     id: `row-${startingIndex + i}-${Date.now()}`,
     workCode: '',
     workDescription: '',
     timeSpent: '0h 0m',
     clientId: '',
-    status: 'completed',
-    dueDate: '',
+    status: 'in-progress' as const,
+    dueDate: today,
     otherClientName: '',
     otherClientLogoUrl: '',
     otherWorkTitle: '',
@@ -88,6 +89,11 @@ const DailyReport: React.FC = () => {
   }, [canView, navigate]);
   const [date, setDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const isCalendarOpenRef = React.useRef(false);
+  const handleCalendarOpen = (open: boolean) => {
+    setIsCalendarOpen(open);
+    isCalendarOpenRef.current = open;
+  };
   const [rows, setRows] = useState<WorkRow[]>(createEmptyRows(10));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -111,8 +117,33 @@ const DailyReport: React.FC = () => {
     }
   };
 
+  // Close dropdown when table scrolls
+  useEffect(() => {
+    const container = tableContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      if (activeDropdown) {
+        setActiveDropdown(null);
+        setDropdownPos(null);
+      }
+    };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [activeDropdown]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Don't close work dropdown if calendar popover is open
+      if (isCalendarOpenRef.current) return;
+      // Don't close if clicking inside any Radix Popover/Dialog overlay
+      const target = event.target as HTMLElement;
+      if (
+        target.closest('[data-radix-popper-content-wrapper]') ||
+        target.closest('[data-radix-portal]') ||
+        target.closest('[role="dialog"]') ||
+        target.closest('.rdp') // react-day-picker calendar
+      ) return;
+
       const clickedInsideDesktop = dropdownRef.current && dropdownRef.current.contains(event.target as Node);
       const clickedInsideMobile = mobileDropdownRef.current && mobileDropdownRef.current.contains(event.target as Node);
       if (!clickedInsideDesktop && !clickedInsideMobile) {
@@ -120,8 +151,17 @@ const DailyReport: React.FC = () => {
         setDropdownPos(null);
       }
     };
+    const handleWindowScroll = () => {
+      if (isCalendarOpenRef.current) return;
+      setActiveDropdown(null);
+      setDropdownPos(null);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleWindowScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -135,7 +175,20 @@ const DailyReport: React.FC = () => {
           api.dailyReportDrafts.get(format(date, 'yyyy-MM-dd')).catch(() => ({ success: false, data: null }))
         ]);
 
-        if (worksRes.success && worksRes.data) setAvailableWorks(worksRes.data);
+        if (worksRes.success && worksRes.data) {
+          // Merge API works with locally saved manual works
+          const apiWorks = worksRes.data;
+          const manualWorksKey = `manual_works_${user?.associationId || 'default'}`;
+          const localManual: any[] = JSON.parse(localStorage.getItem(manualWorksKey) || '[]');
+          // Only add local works that don't already exist in API works
+          const merged = [...apiWorks];
+          localManual.forEach(lw => {
+            if (!merged.some(w => w.workTitle.toLowerCase() === lw.workTitle.toLowerCase())) {
+              merged.push(lw);
+            }
+          });
+          setAvailableWorks(merged);
+        }
 
         const worksMap: Record<number, any> = {};
         if (worksRes.success && worksRes.data) {
@@ -143,50 +196,148 @@ const DailyReport: React.FC = () => {
         }
         if (clientsRes.success && clientsRes.data) setClients(clientsRes.data);
 
-        // Load from API draft first
-        if (draftRes.success && draftRes.data?.rowsJson) {
-          try {
-            const parsedRows = JSON.parse(draftRes.data.rowsJson);
-            if (Array.isArray(parsedRows) && parsedRows.length > 0) {
-              setRows(parsedRows);
-              return;
-            }
-          } catch (e) { /* ignore parse error */ }
+        const today = format(new Date(), 'yyyy-MM-dd');
+        const isToday = format(date, 'yyyy-MM-dd') === today;
+
+        // Only restore saved draft for TODAY if it was explicitly saved by user (submitted draft)
+        // For past dates, always load from draft/localStorage
+        if (!isToday) {
+          // Past date — load from API draft
+          if (draftRes.success && draftRes.data?.rowsJson) {
+            try {
+              const parsedRows = JSON.parse(draftRes.data.rowsJson);
+              if (Array.isArray(parsedRows) && parsedRows.length > 0) {
+                setRows(parsedRows);
+                return;
+              }
+            } catch (e) { /* ignore */ }
+          }
+          // Fallback: localStorage for past dates
+          const storageKey = `daily_report_${user?.id}_${format(date, 'yyyy-MM-dd')}`;
+          const savedData = localStorage.getItem(storageKey);
+          if (savedData) {
+            try {
+              const parsedRows = JSON.parse(savedData);
+              if (Array.isArray(parsedRows) && parsedRows.length > 0) {
+                setRows(parsedRows);
+                return;
+              }
+            } catch (e) { /* ignore */ }
+          }
+          setRows(createEmptyRows(10));
+          return;
         }
 
-        // Fallback: check localStorage
-        const storageKey = `daily_report_${user?.id}_${format(date, 'yyyy-MM-dd')}`;
-        const savedData = localStorage.getItem(storageKey);
-        if (savedData) {
-          try {
-            const parsedRows = JSON.parse(savedData);
-            if (Array.isArray(parsedRows) && parsedRows.length > 0) {
-              setRows(parsedRows);
-              return;
-            }
-          } catch (e) { /* ignore */ }
-        }
+        // TODAY — always start fresh from live task data (ignore stale localStorage)
 
-        // Auto-fill from allocations
+        // Auto-fill from allocations — ONLY in-progress tasks with today's or future due date
+        // + tasks completed TODAY
         if (tasksRes.success && tasksRes.data) {
-          const tasksToFill = tasksRes.data.filter((task: any) =>
-            task.status === 'in-progress' || task.status === 'pending'
-          );
+          const today = format(new Date(), 'yyyy-MM-dd');
+          const tasksToFill = tasksRes.data.filter((task: any) => {
+            // Only show in-progress tasks (active right now — no date restriction)
+            if (task.status === 'in-progress' || task.status === 'in_progress') return true;
+            // Only show tasks completed TODAY
+            if (task.status === 'completed') {
+              const completedDate = task.completedAt || task.CompletedAt;
+              if (completedDate) {
+                return format(new Date(completedDate), 'yyyy-MM-dd') === today;
+              }
+            }
+            return false; // Skip pending and past completed tasks
+          });
           if (tasksToFill.length > 0) {
             const newRows: WorkRow[] = tasksToFill.map((task: any) => {
               const matchedWork = worksMap[task.workId];
-              return {
-                id: `autofill-${task.id}-${Date.now()}`,
-                workCode: matchedWork?.workCode || 'OTHERS',
-                workDescription: task.description || matchedWork?.workTitle || task.workTitle || task.title || '',
-                workTitle: matchedWork?.workTitle || task.workTitle || task.title || '',
-                timeSpent: task.duration || '0h 0m',
-                clientId: task.clientId?.toString() || '',
-                status: 'completed' as const,
-                dueDate: task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '',
-                adminDueDate: task.dueDate,
-                quantity: 0
-              };
+              const reportStatus: 'completed' | 'pending' | 'in-progress' =
+                task.status === 'completed' ? 'completed' : 'in-progress';
+
+              // If no matched work code, auto-save the task title as a work entry
+              // and use it directly in the Work/Code column
+              const taskTitle = task.workTitle || task.title || '';
+
+              if (matchedWork) {
+                // Has a proper work code — use it
+                return {
+                  id: `autofill-${task.id}-${Date.now()}`,
+                  workCode: matchedWork.workCode,
+                  workTitle: matchedWork.workTitle,
+                  workDescription: task.description || '',
+                  otherWorkTitle: '',
+                  timeSpent: task.duration || '0h 0m',
+                  clientId: task.clientId?.toString() || '',
+                  status: reportStatus,
+                  dueDate: format(new Date(), 'yyyy-MM-dd'),
+                  adminDueDate: task.dueDate,
+                  quantity: 0
+                };
+              } else if (taskTitle) {
+                // No work code — find or create in availableWorks, show in Work/Code column
+                const existingWork = availableWorks.find(
+                  w => w.workTitle.toLowerCase() === taskTitle.toLowerCase()
+                );
+                if (existingWork) {
+                  return {
+                    id: `autofill-${task.id}-${Date.now()}`,
+                    workCode: existingWork.workCode,
+                    workTitle: existingWork.workTitle,
+                    workDescription: task.description || '',
+                    otherWorkTitle: '',
+                    timeSpent: task.duration || '0h 0m',
+                    clientId: task.clientId?.toString() || '',
+                    status: reportStatus,
+                    dueDate: format(new Date(), 'yyyy-MM-dd'),
+                    adminDueDate: task.dueDate,
+                    quantity: 0
+                  };
+                } else {
+                  // Auto-create a work entry for this task title
+                  const code = 'M-' + taskTitle.replace(/\s+/g, '').substring(0, 6).toUpperCase() + '-' + Date.now().toString().slice(-4);
+                  const newWork = { id: Date.now(), workCode: code, workTitle: taskTitle, workType: 'Manual', isActive: true };
+                  // Save to localStorage for persistence
+                  const manualWorksKey = `manual_works_${user?.associationId || 'default'}`;
+                  const localList = JSON.parse(localStorage.getItem(manualWorksKey) || '[]');
+                  if (!localList.some((w: any) => w.workTitle.toLowerCase() === taskTitle.toLowerCase())) {
+                    localList.push(newWork);
+                    localStorage.setItem(manualWorksKey, JSON.stringify(localList));
+                  }
+                  // Add to dropdown
+                  setAvailableWorks(prev => {
+                    if (prev.some(w => w.workTitle.toLowerCase() === taskTitle.toLowerCase())) return prev;
+                    return [...prev, newWork];
+                  });
+                  // Also try saving to API
+                  api.works.create({ workCode: code, workTitle: taskTitle, workType: 'Manual' }).catch(() => {});
+                  return {
+                    id: `autofill-${task.id}-${Date.now()}`,
+                    workCode: code,
+                    workTitle: taskTitle,
+                    workDescription: task.description || '',
+                    otherWorkTitle: '',
+                    timeSpent: task.duration || '0h 0m',
+                    clientId: task.clientId?.toString() || '',
+                    status: reportStatus,
+                    dueDate: format(new Date(), 'yyyy-MM-dd'),
+                    adminDueDate: task.dueDate,
+                    quantity: 0
+                  };
+                }
+              } else {
+                // No title at all — empty row
+                return {
+                  id: `autofill-${task.id}-${Date.now()}`,
+                  workCode: '',
+                  workTitle: '',
+                  workDescription: '',
+                  otherWorkTitle: '',
+                  timeSpent: task.duration || '0h 0m',
+                  clientId: task.clientId?.toString() || '',
+                  status: reportStatus,
+                  dueDate: format(new Date(), 'yyyy-MM-dd'),
+                  adminDueDate: task.dueDate,
+                  quantity: 0
+                };
+              }
             });
             setRows(prev => {
               setAutoFilledRowIds(new Set(newRows.map(r => r.id)));
@@ -208,6 +359,8 @@ const DailyReport: React.FC = () => {
       }
     };
     fetchData();
+    // Clear rows when date changes to avoid stale data flash
+    return () => { setRows(createEmptyRows(10)); };
   }, [date, user?.id]);
 
   // Auto-save to API (debounced) + localStorage fallback
@@ -221,11 +374,90 @@ const DailyReport: React.FC = () => {
     return () => clearTimeout(timer);
   }, [rows, date, user?.id, isLoadingData]);
 
-  const handleManualSave = (index: number) => {
+  const handleManualSave = async (index: number) => {
+    const row = rows[index];
     const storageKey = `daily_report_${user?.id}_${format(date, 'yyyy-MM-dd')}`;
     localStorage.setItem(storageKey, JSON.stringify(rows));
     api.dailyReportDrafts.save(format(date, 'yyyy-MM-dd'), JSON.stringify(rows)).catch(() => {});
-    toast.success(`Row ${index + 1} saved successfully`);
+
+    // If this row has a new client name, save it to the clients list
+    if (row?.clientId === 'others' && row?.otherClientName?.trim()) {
+      const clientName = row.otherClientName.trim();
+      const alreadyExists = clients.some((c: any) => c.name?.toLowerCase() === clientName.toLowerCase());
+      if (!alreadyExists) {
+        try {
+          const res = await api.clients.create({
+            name: clientName, company: clientName,
+            email: `${clientName.toLowerCase().replace(/\s+/g, '.')}@client.com`,
+            isActive: true
+          });
+          if (res.success && res.data) {
+            setClients((prev: any[]) => [...prev, res.data]);
+            handleRowUpdate(row.id, { clientId: res.data.id.toString(), otherClientName: '' });
+            toast.success(`Client "${clientName}" saved and selected ✓`);
+            return;
+          }
+        } catch { /* keep as manual */ }
+      } else {
+        // Already exists — find and select it
+        const existing = clients.find((c: any) => c.name?.toLowerCase() === clientName.toLowerCase());
+        if (existing) handleRowUpdate(row.id, { clientId: existing.id.toString(), otherClientName: '' });
+      }
+    }
+
+    // If this row has a manual work title, save it to the dropdown and select it
+    if (row?.workCode === 'OTHERS' && row?.otherWorkTitle?.trim()) {
+      const title = row.otherWorkTitle.trim();
+
+      // Check if already exists in dropdown
+      const existing = availableWorks.find(
+        w => w.workTitle.toLowerCase() === title.toLowerCase()
+      );
+
+      if (existing) {
+        // Already exists — just select it in this row
+        handleRowUpdate(row.id, {
+          workCode: existing.workCode,
+          workTitle: existing.workTitle,
+          otherWorkTitle: '',
+        });
+        toast.success(`"${title}" selected`);
+        return;
+      }
+
+      // Generate a unique code
+      const code = 'M-' + title.replace(/\s+/g, '').substring(0, 6).toUpperCase() + '-' + Date.now().toString().slice(-4);
+      const newWork = { id: Date.now(), workCode: code, workTitle: title, workType: 'Manual', isActive: true };
+
+      // 1. Try saving to backend API
+      let savedWork = newWork;
+      try {
+        const res = await api.works.create({ workCode: code, workTitle: title, workType: 'Manual' });
+        if (res.success && res.data) {
+          savedWork = res.data;
+        }
+      } catch { /* fallback to local */ }
+
+      // 2. Save to localStorage
+      const manualWorksKey = `manual_works_${user?.associationId || 'default'}`;
+      const localList = JSON.parse(localStorage.getItem(manualWorksKey) || '[]');
+      localList.push(savedWork);
+      localStorage.setItem(manualWorksKey, JSON.stringify(localList));
+
+      // 3. Add to dropdown
+      setAvailableWorks(prev => [...prev, savedWork]);
+
+      // 4. Auto-select the saved work in this row — switch from OTHERS to the new work code
+      handleRowUpdate(row.id, {
+        workCode: savedWork.workCode,
+        workTitle: savedWork.workTitle,
+        otherWorkTitle: '',
+      });
+
+      toast.success(`"${title}" saved and selected ✓`);
+    } else {
+      toast.success(`Row ${index + 1} saved`);
+    }
   };
 
   const filteredWorks = availableWorks.filter(
@@ -430,7 +662,7 @@ const DailyReport: React.FC = () => {
             <p className="text-white/80 font-medium">Log your daily activities and time spent</p>
           </div>
           <div className="flex items-center gap-3">
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+            <Popover open={isCalendarOpen} onOpenChange={handleCalendarOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-11 gap-2 px-5 bg-white/10 hover:bg-white/20 text-white border-white/20 rounded-xl shadow-sm backdrop-blur-md">
                   <CalendarIcon className="h-4 w-4 text-white" />
@@ -439,7 +671,13 @@ const DailyReport: React.FC = () => {
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
                 <Calendar mode="single" selected={date}
-                  onSelect={(newDate) => { if (newDate) { setDate(newDate); setIsCalendarOpen(false); } }}
+                  onSelect={(newDate) => {
+                    if (newDate) {
+                      setDate(newDate);
+                      // Close after a tick so the selection registers visually
+                      setTimeout(() => handleCalendarOpen(false), 50);
+                    }
+                  }}
                   initialFocus className="pointer-events-auto" />
               </PopoverContent>
             </Popover>
@@ -460,7 +698,7 @@ const DailyReport: React.FC = () => {
                 <h1 className="text-2xl font-black text-white tracking-tight">Daily log</h1>
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Staff Portal · {format(date, 'MMM dd')}</p>
               </div>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <Popover open={isCalendarOpen} onOpenChange={handleCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" className="bg-white/10 hover:bg-white/20 text-white rounded-2xl h-11 px-4 gap-2 border-none backdrop-blur-md active:scale-95 transition-transform">
                     <CalendarIcon className="h-5 w-5" />
@@ -469,7 +707,12 @@ const DailyReport: React.FC = () => {
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 z-[100]" align="end">
                   <Calendar mode="single" selected={date}
-                    onSelect={(newDate) => { if (newDate) { setDate(newDate); setIsCalendarOpen(false); } }}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        setDate(newDate);
+                        setTimeout(() => handleCalendarOpen(false), 50);
+                      }
+                    }}
                     initialFocus />
                 </PopoverContent>
               </Popover>
@@ -540,33 +783,24 @@ const DailyReport: React.FC = () => {
                 <FileText className="h-5 w-5 text-primary" />
                 Work Entries
               </CardTitle>
-              <div className="hidden lg:flex items-center gap-1 bg-background/50 p-1 rounded-lg border border-primary/10">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => scrollTable('left')} title="Scroll Left">
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <div className="h-4 w-px bg-border mx-1" />
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => scrollTable('right')} title="Scroll Right">
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             {/* Desktop View (Table) */}
-            <div className="hidden lg:block overflow-x-auto overflow-y-visible relative" ref={tableContainerRef}>
-              <Table className="min-w-[1300px] table-fixed">
-                <TableHeader className="bg-muted/20">
+            <div className="hidden lg:block relative scrollbar-thin-primary" ref={tableContainerRef} style={{ maxHeight: '520px', overflowY: 'auto', overflowX: 'auto', scrollbarWidth: 'thin', scrollbarColor: 'hsl(var(--primary) / 0.3) transparent' }}>
+              <Table className="table-fixed" style={{ minWidth: '1400px', width: '1400px' }}>
+                <TableHeader className="bg-muted/20 sticky top-0 z-10">
                   <TableRow>
-                    <TableHead className="w-10 italic text-muted-foreground">#</TableHead>
-                    <TableHead className="w-52">Work / Code</TableHead>
-                    {hasOthersWork && <TableHead className="w-52 animate-in slide-in-from-left-2 duration-300">Manual Work</TableHead>}
-                    <TableHead className="w-auto min-w-[300px]">Description</TableHead>
-                    <TableHead className="w-24 text-center">Count</TableHead>
-                    <TableHead className="w-32">Time Spent</TableHead>
-                    <TableHead className="w-40">Client</TableHead>
-                    {hasOthersClient && <TableHead className="w-40 animate-in slide-in-from-left-2 duration-300">New Client</TableHead>}
-                    <TableHead className="w-20">Status</TableHead>
-                    <TableHead className="w-32">Due Date</TableHead>
+                    <TableHead className="w-10 text-muted-foreground text-center">#</TableHead>
+                    <TableHead className="w-56">Work / Code</TableHead>
+                    {hasOthersWork && <TableHead className="w-48 animate-in slide-in-from-left-2 duration-300">Manual Work</TableHead>}
+                    <TableHead className="w-72">Description</TableHead>
+                    <TableHead className="w-28 text-center">Count</TableHead>
+                    <TableHead className="w-36 text-center">Time Spent</TableHead>
+                    <TableHead className="w-48">Client</TableHead>
+                    {hasOthersClient && <TableHead className="w-44 animate-in slide-in-from-left-2 duration-300">New Client Name</TableHead>}
+                    <TableHead className="w-28 text-center">Status</TableHead>
+                    <TableHead className="w-40">Due Date</TableHead>
                     <TableHead className="w-24 text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -604,7 +838,11 @@ const DailyReport: React.FC = () => {
                                   setDropdownPos(null);
                                 } else {
                                   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                  setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 340) });
+                                  setDropdownPos({ 
+                                    top: rect.bottom + 4, 
+                                    left: rect.left, 
+                                    width: Math.max(rect.width, 340) 
+                                  });
                                   setActiveDropdown(`work-${row.id}`);
                                   setSearchTerm('');
                                 }
@@ -621,7 +859,15 @@ const DailyReport: React.FC = () => {
                             <div
                               ref={dropdownRef}
                               className="fixed z-[9999] rounded-xl border bg-popover p-2 text-popover-foreground shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-200"
-                              style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, minWidth: 340 }}
+                              style={{ 
+                                top: dropdownPos.top, 
+                                left: dropdownPos.left, 
+                                width: dropdownPos.width, 
+                                minWidth: 340,
+                                maxHeight: Math.min(320, window.innerHeight - dropdownPos.top - 16),
+                                display: 'flex',
+                                flexDirection: 'column'
+                              }}
                             >
                               <div className="flex items-center border-b px-2 pb-2 mb-2">
                                 <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-primary" />
@@ -633,7 +879,7 @@ const DailyReport: React.FC = () => {
                                   autoFocus
                                 />
                               </div>
-                              <div className="max-h-[240px] overflow-y-auto scrollbar-hide px-1">
+                              <div className="flex-1 overflow-y-auto scrollbar-hide px-1" style={{ maxHeight: 'calc(100% - 60px)' }}>
                                 {filteredWorks.map((work) => (
                                   <div
                                     key={work.id}
@@ -661,13 +907,30 @@ const DailyReport: React.FC = () => {
                         </div>
                       </TableCell>
                       {hasOthersWork && (
-                        <TableCell className="align-top py-4 w-52 animate-in slide-in-from-left-2 duration-300">
-                          <Input
-                            placeholder="Type Work Title..."
-                            className="h-10 text-xs border-primary/30 bg-white font-bold text-primary shadow-sm"
-                            value={row.otherWorkTitle || ''}
-                            onChange={(e) => handleRowUpdate(row.id, { otherWorkTitle: e.target.value })}
-                          />
+                        <TableCell className="align-top py-4 w-44 animate-in slide-in-from-left-2 duration-300">
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              placeholder="e.g. Site Inspection..."
+                              className="h-10 text-xs border-primary/30 bg-white font-bold text-primary shadow-sm flex-1"
+                              value={row.otherWorkTitle || ''}
+                              onChange={(e) => handleRowUpdate(row.id, { otherWorkTitle: e.target.value })}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && row.otherWorkTitle?.trim()) {
+                                  handleManualSave(index);
+                                }
+                              }}
+                            />
+                            {row.otherWorkTitle?.trim() && (
+                              <button
+                                type="button"
+                                title="Save work title (Enter)"
+                                onClick={() => handleManualSave(index)}
+                                className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all shadow-sm"
+                              >
+                                <Save className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
                         </TableCell>
                       )}
                       <TableCell className="align-top py-4 min-w-[300px]">
@@ -691,13 +954,13 @@ const DailyReport: React.FC = () => {
                         <Input
                           type="number"
                           min="0"
-                          className="h-10 text-center font-black text-black border-2 border-primary/30 bg-white shadow-sm placeholder:text-slate-200 focus-visible:ring-primary px-1"
+                          className="h-10 w-full text-center font-black text-black border-2 border-primary/30 bg-white shadow-sm placeholder:text-slate-200 focus-visible:ring-primary px-2"
                           value={row.quantity || ''}
                           onChange={(e) => handleRowUpdate(row.id, { quantity: parseInt(e.target.value) || 0 })}
                           placeholder="0"
                         />
                       </TableCell>
-                      <TableCell className="align-top py-4 w-32">
+                      <TableCell className="align-top py-4 w-36">
                         <div className="flex items-center gap-1.5 h-10">
                           <select
                             value={getTimeParts(row.timeSpent).h}
@@ -715,7 +978,7 @@ const DailyReport: React.FC = () => {
                           </select>
                         </div>
                       </TableCell>
-                      <TableCell className="align-top py-4">
+                      <TableCell className="align-top py-4 w-40">
                         <div className="flex gap-1.5 h-10">
                           <Button
                             variant={row.clientId === 'others' ? 'default' : 'outline'}
@@ -737,8 +1000,8 @@ const DailyReport: React.FC = () => {
                             onValueChange={(val) => handleRowUpdate(row.id, { clientId: val })}
                             disabled={row.clientId === 'others'}
                           >
-                            <SelectTrigger className="h-10 border-slate-200 hover:border-primary/20 overflow-hidden font-medium text-xs">
-                              <SelectValue placeholder="Client" />
+                            <SelectTrigger className="h-10 border-slate-200 hover:border-primary/20 overflow-hidden font-medium text-xs flex-1">
+                              <SelectValue placeholder="Select client" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl overflow-hidden shadow-2xl border-none">
                               {clients.map((c) => (
@@ -751,39 +1014,42 @@ const DailyReport: React.FC = () => {
                       </TableCell>
                       {hasOthersClient && (
                         <TableCell className="align-top py-4 w-44 animate-in slide-in-from-left-2 duration-300">
-                          <Input
-                            placeholder="Client Name..."
-                            className="h-10 text-xs border-primary/30 bg-white font-bold text-primary shadow-sm"
-                            value={row.otherClientName || ''}
-                            onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
-                          />
+                          {row.clientId === 'others' ? (
+                            <Input
+                              placeholder="Type client name..."
+                              className="h-10 text-xs border-primary/30 bg-white font-bold text-primary shadow-sm"
+                              value={row.otherClientName || ''}
+                              onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && row.otherClientName?.trim()) handleManualSave(index); }}
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                       )}
-                      <TableCell className="align-top py-4">
-                        <Select value={row.status} onValueChange={(val: 'completed' | 'pending') => handleRowUpdate(row.id, { status: val })}>
-                          <SelectTrigger className={cn("h-10 text-[10px] font-black uppercase tracking-widest border-slate-200", row.status === 'completed' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100")}>
+                      <TableCell className="align-top py-4 w-24">
+                        <Select value={row.status} onValueChange={(val: 'completed' | 'pending' | 'in-progress') => handleRowUpdate(row.id, { status: val })}>
+                          <SelectTrigger className={cn("h-10 text-[10px] font-black uppercase tracking-widest border-slate-200",
+                            row.status === 'completed' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                            row.status === 'in-progress' ? "bg-blue-50 text-blue-600 border-blue-100" :
+                            "bg-amber-50 text-amber-600 border-amber-100"
+                          )}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl overflow-hidden shadow-xl border-none">
                             <SelectItem value="completed" className="text-emerald-600 font-bold">DONE</SelectItem>
-                            <SelectItem value="pending" className="text-amber-600 font-bold">TO DO</SelectItem>
+                            <SelectItem value="in-progress" className="text-blue-600 font-bold">IN PROGRESS</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="align-top py-4">
-                        {row.status === 'pending' ? (
-                          <Input
-                            type="date"
-                            className="h-10 text-[10px] font-bold border-slate-200"
-                            value={row.dueDate}
-                            onChange={(e) => handleRowUpdate(row.id, { dueDate: e.target.value })}
-                            min={format(new Date(), 'yyyy-MM-dd')}
-                          />
-                        ) : (
-                          <div className="flex h-10 items-center justify-center">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                          </div>
-                        )}
+                      <TableCell className="align-top py-4 w-40">
+                        <Input
+                          type="date"
+                          className="h-10 text-xs font-bold border-slate-200 w-full"
+                          value={row.dueDate}
+                          onChange={(e) => handleRowUpdate(row.id, { dueDate: e.target.value })}
+                          min={format(new Date(), 'yyyy-MM-dd')}
+                        />
                       </TableCell>
                       <TableCell className="text-center align-top py-4">
                         <div className="flex items-center justify-center gap-1">
@@ -923,12 +1189,29 @@ const DailyReport: React.FC = () => {
                     </div>
                     {row.workCode === 'OTHERS' && (
                       <div className="mt-2.5 animate-in slide-in-from-top-2 duration-300">
-                        <Input
-                          placeholder="Type custom work name..."
-                          className="text-xs border-none bg-amber-50/50 dark:bg-amber-900/10 placeholder:text-amber-300 font-bold text-amber-700 h-10 rounded-xl ring-1 ring-amber-100 px-3.5 focus-visible:ring-amber-200"
-                          value={row.otherWorkTitle || ''}
-                          onChange={(e) => handleRowUpdate(row.id, { otherWorkTitle: e.target.value })}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder="Type custom work name..."
+                            className="text-xs border-none bg-amber-50/50 dark:bg-amber-900/10 placeholder:text-amber-300 font-bold text-amber-700 h-10 rounded-xl ring-1 ring-amber-100 px-3.5 focus-visible:ring-amber-200 flex-1"
+                            value={row.otherWorkTitle || ''}
+                            onChange={(e) => handleRowUpdate(row.id, { otherWorkTitle: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && row.otherWorkTitle?.trim()) {
+                                handleManualSave(index);
+                              }
+                            }}
+                          />
+                          {row.otherWorkTitle?.trim() && (
+                            <button
+                              type="button"
+                              title="Save"
+                              onClick={() => handleManualSave(index)}
+                              className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-primary text-white active:scale-95 transition-all shadow-sm"
+                            >
+                              <Save className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1016,14 +1299,16 @@ const DailyReport: React.FC = () => {
                        <Label className="text-[9px] uppercase font-black text-slate-400 tracking-widest ml-1">Status</Label>
                        <Select value={row.status} onValueChange={(val: 'completed' | 'pending') => handleRowUpdate(row.id, { status: val })}>
                           <SelectTrigger className={cn(
-                            "h-10 rounded-xl border-none ring-1 font-black text-[11px] uppercase tracking-wider px-2 shadow-none focus:ring-offset-0 min-w-0 overflow-hidden", 
-                            row.status === 'completed' ? "ring-emerald-100 bg-emerald-50/50 text-emerald-600" : "ring-amber-100 bg-amber-50/50 text-amber-600"
+                            "h-10 rounded-xl border-none ring-1 font-black text-[11px] uppercase tracking-wider px-2 shadow-none focus:ring-offset-0 min-w-0 overflow-hidden",
+                            row.status === 'completed' ? "ring-emerald-100 bg-emerald-50/50 text-emerald-600" :
+                            row.status === 'in-progress' ? "ring-blue-100 bg-blue-50/50 text-blue-600" :
+                            "ring-amber-100 bg-amber-50/50 text-amber-600"
                           )}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-none shadow-2xl z-[250]">
                             <SelectItem value="completed" className="font-black text-emerald-600 text-xs">DONE</SelectItem>
-                            <SelectItem value="pending" className="font-black text-amber-600 text-xs">TO DO</SelectItem>
+                            <SelectItem value="in-progress" className="font-black text-blue-600 text-xs">IN PROGRESS</SelectItem>
                           </SelectContent>
                         </Select>
                     </div>

@@ -340,7 +340,7 @@ const MyTasks: React.FC = () => {
       const payload = {
         ...selfAssignData,
         workId: parseInt(selfAssignData.workId),
-        clientId: selfAssignData.clientId ? parseInt(selfAssignData.clientId) : null,
+        clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefined,
         dueDate: new Date(selfAssignData.dueDate).toISOString()
       };
       const response = await api.allocations.selfAssign(payload);

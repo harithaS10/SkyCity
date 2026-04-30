@@ -319,7 +319,7 @@ public class SelfAssignDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int WorkId { get; set; }
-    public string? ClientId { get; set; }
+    public int? ClientId { get; set; }
     public string Priority { get; set; } = "medium";
     public DateTime DueDate { get; set; }
 }
