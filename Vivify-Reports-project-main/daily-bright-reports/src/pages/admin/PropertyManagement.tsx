@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -105,32 +106,94 @@ const EMPTY_FORM: AddPropertyForm = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/** Normalise a raw cell value to a clean string (handles scientific notation, numbers, etc.) */
+function cellToString(val: unknown): string {
+  if (val === null || val === undefined) return '';
+  const s = String(val).trim();
+  // Convert scientific notation (e.g. 9.88E+09) back to full number string
+  if (/^\d+\.?\d*[eE][+\-]?\d+$/.test(s)) {
+    try { return String(Math.round(Number(s))); } catch { return s; }
+  }
+  return s;
+}
+
+/** Map a raw row array (or object) to a BulkRow using positional or named columns */
+function rowToBulkRow(row: unknown): BulkRow {
+  if (Array.isArray(row)) {
+    return {
+      propertyType: cellToString(row[0]),
+      towerName:    cellToString(row[1]),
+      floorNo:      cellToString(row[2]),
+      doorNo:       cellToString(row[3]),
+      contactName:  cellToString(row[4]),
+      contactMobile:cellToString(row[5]),
+      areaName:     cellToString(row[6]),
+      info:         cellToString(row[7]),
+    };
+  }
+  // Object with named keys (xlsx header: 1 mode)
+  const r = row as Record<string, unknown>;
+  return {
+    propertyType:  cellToString(r['propertyType']  ?? r['PropertyType']  ?? r['property_type']  ?? r['A'] ?? ''),
+    towerName:     cellToString(r['towerName']     ?? r['TowerName']     ?? r['tower_name']     ?? r['B'] ?? ''),
+    floorNo:       cellToString(r['floorNo']       ?? r['FloorNo']       ?? r['floor_no']       ?? r['C'] ?? ''),
+    doorNo:        cellToString(r['doorNo']        ?? r['DoorNo']        ?? r['door_no']        ?? r['D'] ?? ''),
+    contactName:   cellToString(r['contactName']   ?? r['ContactName']   ?? r['contact_name']   ?? r['E'] ?? ''),
+    contactMobile: cellToString(r['contactMobile'] ?? r['ContactMobile'] ?? r['contact_mobile'] ?? r['F'] ?? ''),
+    areaName:      cellToString(r['areaName']      ?? r['AreaName']      ?? r['area_name']      ?? r['G'] ?? ''),
+    info:          cellToString(r['info']          ?? r['Info']          ?? r['H'] ?? ''),
+  };
+}
+
 function parseCSV(text: string): BulkRow[] {
   const lines = text.trim().split('\n').filter(Boolean);
   if (lines.length === 0) return [];
-  // skip header if present
   const firstLine = lines[0].trim().toLowerCase();
   const startIdx = firstLine.startsWith('propertytype') ? 1 : 0;
   return lines.slice(startIdx).map((line) => {
-    const cols = line.split(',').map((c) => c.trim());
-    return {
-      propertyType: cols[0] || '',
-      towerName: cols[1] || '',
-      floorNo: cols[2] || '',
-      doorNo: cols[3] || '',
-      contactName: cols[4] || '',
-      contactMobile: cols[5] || '',
-      areaName: cols[6] || '',
-      info: cols[7] || '',
-    };
+    const cols = line.split(',').map(cellToString);
+    return rowToBulkRow(cols);
   });
+}
+
+/** Parse an Excel file (ArrayBuffer) and return BulkRow[] */
+function parseExcel(buffer: ArrayBuffer): BulkRow[] {
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  // Use header:1 to get raw arrays; first row is headers
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  if (rows.length === 0) return [];
+
+  // Detect if first row is a header row
+  const firstRow = rows[0].map((c) => cellToString(c).toLowerCase());
+  const isHeader = firstRow.some((c) => c === 'propertytype' || c === 'towername' || c === 'areaname');
+  const dataRows = isHeader ? rows.slice(1) : rows;
+
+  return dataRows
+    .filter((row) => row.some((c) => cellToString(c) !== '')) // skip blank rows
+    .map(rowToBulkRow);
+}
+
+function downloadExcelTemplate() {
+  const data = [
+    ['propertyType', 'towerName', 'floorNo', 'doorNo', 'contactName', 'contactMobile', 'areaName', 'info'],
+    ['Apartment', 'Tower A', '1', '101', 'John Doe', '9876543210', '', ''],
+    ['Common Area', '', '', '', '', '', 'Swimming Pool', 'Main pool area'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  // Set column widths
+  ws['!cols'] = [14, 12, 8, 8, 14, 16, 16, 20].map((w) => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'property_bulk_upload');
+  XLSX.writeFile(wb, 'property_bulk_upload_template.xlsx');
 }
 
 function downloadCSVTemplate() {
   const sample = [
     CSV_COLUMNS,
-    'apartment,Tower A,1,101,John Doe,9876543210,,',
-    'others,,,,,,Swimming Pool,Main pool area',
+    'Apartment,Tower A,1,101,John Doe,9876543210,,',
+    'Common Area,,,,,,Swimming Pool,Main pool area',
   ].join('\n');
   const blob = new Blob([sample], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -249,13 +312,25 @@ const PropertyManagement: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setBulkFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      setBulkText(text);
-      setBulkRows(parseCSV(text));
-    };
-    reader.readAsText(file);
+    const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const buffer = ev.target?.result as ArrayBuffer;
+        const rows = parseExcel(buffer);
+        setBulkText('');
+        setBulkRows(rows);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        setBulkText(text);
+        setBulkRows(parseCSV(text));
+      };
+      reader.readAsText(file);
+    }
   };
 
   const handleBulkTextChange = (text: string) => {
@@ -270,50 +345,57 @@ const PropertyManagement: React.FC = () => {
     }
     setIsBulkUploading(true);
     setBulkResult(null);
-    let success = 0;
-    let failed = 0;
     const errors: string[] = [];
 
+    // Build the properties array for the bulk endpoint
+    const properties: any[] = [];
     for (let i = 0; i < bulkRows.length; i++) {
       const row = bulkRows[i];
       const rowNum = i + 1;
-      try {
-        const isApartment = row.propertyType?.toLowerCase() === 'apartment';
-        const propertyName = isApartment
-          ? row.areaName || `${row.towerName}-${row.floorNo}-${row.doorNo}`.replace(/^-+|-+$/g, '')
-          : row.areaName;
-        if (!propertyName) {
-          errors.push(`Row ${rowNum}: Missing property name`);
-          failed++;
-          continue;
-        }
-        const payload: Partial<PropertyItem> = {
-          propertyType: isApartment ? 'apartment' : 'others',
-          propertyName,
-          towerName: row.towerName || undefined,
-          floorNo: row.floorNo || undefined,
-          doorNo: row.doorNo || undefined,
-          contactName: row.contactName || undefined,
-          contactMobile: row.contactMobile || undefined,
-          commonAreas: !isApartment ? row.info || undefined : undefined,
-          address: isApartment ? row.info || undefined : undefined,
-        };
-        await api.properties.create(payload);
-        success++;
-      } catch (e: any) {
-        errors.push(`Row ${rowNum}: ${e?.message || 'Unknown error'}`);
-        failed++;
+      const isApartment = ['apartment'].includes(row.propertyType?.toLowerCase() ?? '');
+      // For apartments: use towerName as property name; for others: use areaName
+      const propertyName = isApartment
+        ? (row.towerName || `Floor${row.floorNo}-Door${row.doorNo}`.replace(/Floor-Door/g, ''))
+        : row.areaName;
+      if (!propertyName) {
+        errors.push(`Row ${rowNum}: Missing property name`);
+        continue;
       }
+      properties.push({
+        propertyName,
+        propertyType: isApartment ? 'apartment' : 'others',
+        towerName: row.towerName || null,
+        floorNo: row.floorNo || null,
+        doorNo: row.doorNo || null,
+        contactName: row.contactName || null,
+        contactMobile: row.contactMobile || null,
+        commonAreas: !isApartment ? (row.areaName ? [row.areaName] : []) : [],
+        address: row.info || null,
+        totalUnits: 0,
+      });
     }
 
-    setIsBulkUploading(false);
-    setBulkResult({ success, failed, errors });
-    if (success > 0) {
-      queryClient.invalidateQueries({ queryKey: ['properties', user?.associationId] });
-      toast.success(`${success} propert${success === 1 ? 'y' : 'ies'} uploaded`);
+    if (properties.length === 0) {
+      setIsBulkUploading(false);
+      setBulkResult({ success: 0, failed: bulkRows.length, errors });
+      return;
     }
-    if (failed > 0) {
-      toast.error(`${failed} row${failed === 1 ? '' : 's'} failed`);
+
+    try {
+      const res = await api.properties.bulkCreate({ properties });
+      const created = res?.data?.Created ?? properties.length;
+      setBulkResult({ success: created, failed: errors.length, errors });
+      if (created > 0) {
+        queryClient.invalidateQueries({ queryKey: ['properties', user?.associationId] });
+        toast.success(`${created} propert${created === 1 ? 'y' : 'ies'} uploaded`);
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Upload failed';
+      errors.push(msg);
+      setBulkResult({ success: 0, failed: properties.length, errors });
+      toast.error(msg);
+    } finally {
+      setIsBulkUploading(false);
     }
   };
 
@@ -802,33 +884,39 @@ const PropertyManagement: React.FC = () => {
             {/* Template Download */}
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
               <div>
-                <p className="text-sm font-medium text-slate-700">Download CSV Template</p>
+                <p className="text-sm font-medium text-slate-700">Download Template</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Columns: {CSV_COLUMNS}
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={downloadCSVTemplate}>
-                <Download className="h-4 w-4" />
-                Template
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button variant="outline" size="sm" className="gap-2" onClick={downloadExcelTemplate}>
+                  <Download className="h-4 w-4" />
+                  Excel
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={downloadCSVTemplate}>
+                  <Download className="h-4 w-4" />
+                  CSV
+                </Button>
+              </div>
             </div>
 
             {/* File Upload */}
             <div className="space-y-2">
-              <Label>Upload CSV File</Label>
+              <Label>Upload Excel or CSV File</Label>
               <div
                 className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
                 <p className="text-sm text-slate-600">
-                  {bulkFile ? bulkFile.name : 'Click to select a CSV file'}
+                  {bulkFile ? bulkFile.name : 'Click to select an Excel (.xlsx) or CSV file'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">or drag and drop</p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   className="hidden"
                   onChange={handleBulkFileChange}
                 />
@@ -850,9 +938,55 @@ const PropertyManagement: React.FC = () => {
 
             {/* Row Count Preview */}
             {bulkRows.length > 0 && !bulkResult && (
-              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>{bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} ready to upload</span>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>{bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} ready to upload</span>
+                </div>
+                {/* Preview table */}
+                <div className="rounded-md border overflow-hidden">
+                  <div className="overflow-x-auto max-h-48 overflow-y-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-100 sticky top-0">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">#</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Type</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Tower</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Floor</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Door</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Contact</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Mobile</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Area Name</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600">Info</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkRows.map((row, i) => (
+                          <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                            <td className="px-2 py-1 text-slate-400 border-r">{i + 1}</td>
+                            <td className="px-2 py-1 border-r">
+                              <span className={cn(
+                                'px-1.5 py-0.5 rounded text-xs font-medium',
+                                ['apartment'].includes(row.propertyType?.toLowerCase() ?? '')
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-violet-100 text-violet-700'
+                              )}>
+                                {['apartment'].includes(row.propertyType?.toLowerCase() ?? '') ? 'Apartment' : (row.propertyType ? 'Common Area' : '—')}
+                              </span>
+                            </td>
+                            <td className="px-2 py-1 border-r text-slate-700">{row.towerName || <span className="text-slate-300">—</span>}</td>
+                            <td className="px-2 py-1 border-r text-slate-700">{row.floorNo || <span className="text-slate-300">—</span>}</td>
+                            <td className="px-2 py-1 border-r text-slate-700">{row.doorNo || <span className="text-slate-300">—</span>}</td>
+                            <td className="px-2 py-1 border-r text-slate-700">{row.contactName || <span className="text-slate-300">—</span>}</td>
+                            <td className="px-2 py-1 border-r text-slate-700">{row.contactMobile || <span className="text-slate-300">—</span>}</td>
+                            <td className="px-2 py-1 border-r text-slate-700">{row.areaName || <span className="text-slate-300">—</span>}</td>
+                            <td className="px-2 py-1 text-slate-700">{row.info || <span className="text-slate-300">—</span>}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
 
