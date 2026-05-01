@@ -1026,14 +1026,14 @@ const UserDashboard: React.FC = () => {
                       ...allocations.filter(t => t.status !== 'completed').map(t => ({ ...t, _type: 'allocation' })),
                       ...adminTasks.filter(t => t.status !== 'completed' && !t.isRecurring).map(t => ({ ...t, _type: 'admin' })),
                     ].map((t: any) => (
-                      <div key={`${t._type}-${t.id}`} className="flex items-center justify-between rounded-lg border bg-slate-50 px-3 py-2.5">
+                      <div key={`${t._type}-${t.id}`} className="flex items-center justify-between rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={cn("h-2 w-2 rounded-full shrink-0",
                             t.status === 'in_progress' || t.status === 'in-progress' ? 'bg-blue-500' : 'bg-amber-400'
                           )} />
                           <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{t.title || t.taskName}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm font-medium truncate dark:text-white">{t.title || t.taskName}</p>
+                            <p className="text-xs text-muted-foreground dark:text-slate-400">
                               Due: {t.dueDate ? format(new Date(t.dueDate), 'MMM dd, yyyy') : '—'}
                             </p>
                           </div>
@@ -1072,14 +1072,14 @@ const UserDashboard: React.FC = () => {
                     adminTasks
                       .filter(t => t.status !== 'completed' && t.isRecurring)
                       .map((t: any) => (
-                        <div key={t.id} className="flex items-center justify-between rounded-lg border bg-slate-50 px-3 py-2.5">
+                        <div key={t.id} className="flex items-center justify-between rounded-lg border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className={cn("h-2 w-2 rounded-full shrink-0",
                               t.status === 'in_progress' ? 'bg-blue-500' : 'bg-purple-400'
                             )} />
                             <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{t.title || t.taskName}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-sm font-medium truncate dark:text-white">{t.title || t.taskName}</p>
+                              <p className="text-xs text-muted-foreground dark:text-slate-400">
                                 Due: {t.dueDate ? format(new Date(t.dueDate), 'MMM dd, yyyy') : '—'}
                               </p>
                             </div>
@@ -1108,8 +1108,8 @@ const UserDashboard: React.FC = () => {
             </Tabs>
           </div>
 
-          <div className="flex items-center justify-between border-t px-6 py-4">
-            <p className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t dark:border-slate-700 px-6 py-4">
+            <p className="text-xs text-muted-foreground dark:text-slate-400">
               {[...allocations, ...adminTasks].filter(t => t.status !== 'completed').length} task(s) pending
             </p>
             <div className="flex gap-2">
