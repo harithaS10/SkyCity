@@ -636,23 +636,23 @@ const GroupChat: React.FC = () => {
             </DialogHeader>
             <div className="space-y-5 py-2">
               <div className="space-y-1.5">
-                <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Name</Label>
+                <Label className="font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 ml-1">Name</Label>
                 <Input
                   placeholder="e.g. Technical Support"
                   value={groupName}
                   onChange={e => setGroupName(e.target.value)}
-                  className="h-12 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold"
+                  className="h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-700 font-bold dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="font-black text-[10px] uppercase text-slate-400 ml-1">Select Members</Label>
+                <Label className="font-black text-[10px] uppercase text-slate-400 dark:text-slate-500 ml-1">Select Members</Label>
                 <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
                   <Input
                     placeholder="Search users..."
                     value={memberSearch}
                     onChange={e => setMemberSearch(e.target.value)}
-                    className="h-11 pl-10 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100"
+                    className="h-11 pl-10 rounded-2xl bg-slate-50 dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-700 dark:text-white dark:placeholder:text-slate-500"
                   />
                 </div>
                 <div className="max-h-56 overflow-y-auto space-y-1">
@@ -668,22 +668,22 @@ const GroupChat: React.FC = () => {
                         }
                         className={cn(
                           'w-full flex items-center gap-3 p-3 rounded-2xl transition-all',
-                          selectedMembers.includes(u.id) ? 'bg-primary/5 ring-1 ring-primary/20' : 'hover:bg-slate-50'
+                          selectedMembers.includes(u.id) ? 'bg-primary/5 dark:bg-primary/10 ring-1 ring-primary/20 dark:ring-primary/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
                         )}
                       >
                         <div className={cn('h-10 w-10 rounded-xl flex items-center justify-center text-white text-xs font-black shadow-sm', avatarColor(u.name))}>
                           {getInitials(u.name)}
                         </div>
                         <div className="flex-1 text-left min-w-0">
-                          <p className="text-sm font-black truncate">{u.name}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase">{u.role}</p>
+                          <p className="text-sm font-black truncate dark:text-white">{u.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{u.role}</p>
                         </div>
                         {selectedMembers.includes(u.id) && <Check className="h-4 w-4 text-primary" />}
                       </button>
                     ))}
                 </div>
                 {selectedMembers.length > 0 && (
-                  <p className="text-xs text-muted-foreground">{selectedMembers.length} member(s) selected</p>
+                  <p className="text-xs text-muted-foreground dark:text-slate-400">{selectedMembers.length} member(s) selected</p>
                 )}
               </div>
             </div>

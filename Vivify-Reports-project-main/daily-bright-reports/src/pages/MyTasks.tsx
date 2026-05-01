@@ -970,20 +970,20 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <label htmlFor="dueDate" className="text-sm font-medium">Requested Due Date</label>
+              <label htmlFor="dueDate" className="text-sm font-medium dark:text-white">Requested Due Date</label>
               <input
                 id="dueDate"
                 type="date"
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm dark:text-white ring-offset-white dark:ring-offset-slate-950 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 dark:placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 dark:focus-visible:ring-slate-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 value={requestData.dueDate}
                 onChange={(e) => setRequestData({ ...requestData, dueDate: e.target.value })}
               />
             </div>
             <div className="grid gap-2">
-              <label htmlFor="description" className="text-sm font-medium">Description Change / Reason</label>
+              <label htmlFor="description" className="text-sm font-medium dark:text-white">Description Change / Reason</label>
               <textarea
                 id="description"
-                className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[80px] w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm dark:text-white ring-offset-white dark:ring-offset-slate-950 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 dark:focus-visible:ring-slate-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="Explain why you need changes..."
                 value={requestData.description}
                 onChange={(e) => setRequestData({ ...requestData, description: e.target.value })}
