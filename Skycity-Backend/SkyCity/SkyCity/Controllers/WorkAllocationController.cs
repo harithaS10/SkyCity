@@ -299,6 +299,108 @@ public class WorkAllocationController : ControllerBase
         return Ok(new ApiResponse { Success = true, Message = "Request denied" });
     }
 
+    [RequirePermission("work_orders", "create")]
+    [HttpPost("bulk")]
+    public async Task<ActionResult> BulkCreate([FromBody] List<BulkAllocationRowDto> rows)
+    {
+        if (rows == null || rows.Count == 0)
+            return BadRequest(new ApiResponse { Success = false, Message = "No allocation rows provided." });
+
+        // Pre-load lookup data scoped to this association
+        var workCategories = await _context.WorkCategories
+            .Where(w => w.IsActive)
+            .ToListAsync();
+
+        var assocUsers = await _context.Users
+            .Where(u => u.AssociationId == CurrentAssocId && u.IsActive)
+            .ToListAsync();
+
+        var validPriorities = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "low", "medium", "high" };
+        var acceptedDateFormats = new[] { "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ssZ", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-ddTHH:mm:ss" };
+
+        var created = new List<WorkAllocation>();
+        var errors = new List<string>();
+
+        for (int i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            int rowNum = i + 1;
+
+            // Validate title
+            if (string.IsNullOrWhiteSpace(row.Title))
+            {
+                errors.Add($"Row {rowNum}: Title is required.");
+                continue;
+            }
+
+            // Resolve WorkId
+            WorkCategory? work = null;
+            if (!string.IsNullOrWhiteSpace(row.WorkCode))
+                work = workCategories.FirstOrDefault(w => string.Equals(w.WorkCode, row.WorkCode.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (work == null && !string.IsNullOrWhiteSpace(row.WorkTitle))
+                work = workCategories.FirstOrDefault(w => string.Equals(w.WorkTitle, row.WorkTitle.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (work == null)
+            {
+                errors.Add($"Row {rowNum}: Could not match workCode '{row.WorkCode}' or workTitle '{row.WorkTitle}' to any active work category.");
+                continue;
+            }
+
+            // Resolve AssignedTo user
+            User? assignedUser = null;
+            if (!string.IsNullOrWhiteSpace(row.AssignedTo))
+            {
+                assignedUser = assocUsers.FirstOrDefault(u => string.Equals(u.Username, row.AssignedTo.Trim(), StringComparison.OrdinalIgnoreCase))
+                            ?? assocUsers.FirstOrDefault(u => string.Equals(u.FullName, row.AssignedTo.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+            if (assignedUser == null)
+            {
+                errors.Add($"Row {rowNum}: Could not find active user '{row.AssignedTo}' in this association.");
+                continue;
+            }
+
+            // Parse dueDate
+            if (!DateTime.TryParseExact(row.DueDate?.Trim(), acceptedDateFormats,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                    out var dueDate))
+            {
+                errors.Add($"Row {rowNum}: Invalid date format for dueDate '{row.DueDate}'");
+                continue;
+            }
+
+            // Normalise priority
+            var priority = "medium";
+            if (!string.IsNullOrWhiteSpace(row.Priority) && validPriorities.Contains(row.Priority.Trim()))
+                priority = row.Priority.Trim().ToLower();
+
+            created.Add(new WorkAllocation
+            {
+                Title = row.Title.Trim(),
+                Description = string.IsNullOrWhiteSpace(row.Description) ? null : row.Description.Trim(),
+                WorkId = work.Id,
+                AssignedTo = assignedUser.Id,
+                AssignedBy = CurrentUserId,
+                AssociationId = CurrentAssocId,
+                Priority = priority,
+                Status = "pending",
+                DueDate = dueDate,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        if (created.Count > 0)
+        {
+            _context.WorkAllocations.AddRange(created);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new ApiResponse<dynamic>
+        {
+            Success = true,
+            Data = new { created = created.Count, failed = errors.Count, errors }
+        });
+    }
+
     [HttpPost("{id}/delete-attachments")]
     public async Task<ActionResult> DeleteAttachments(int id, [FromBody] DeleteAttachmentsDto? dto = null)
     {
@@ -381,4 +483,15 @@ public class SelfAssignDto
     public int? ClientId { get; set; }
     public string Priority { get; set; } = "medium";
     public DateTime DueDate { get; set; }
+}
+
+public class BulkAllocationRowDto
+{
+    public string Title { get; set; } = string.Empty;
+    public string? WorkCode { get; set; }
+    public string? WorkTitle { get; set; }
+    public string? AssignedTo { get; set; }
+    public string? Priority { get; set; }
+    public string? DueDate { get; set; }
+    public string? Description { get; set; }
 }

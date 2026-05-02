@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -68,6 +69,9 @@ import {
   Eye,
   Edit,
   UserX,
+  Upload,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -109,6 +113,106 @@ const statusIcons = {
   completed: <CheckCircle2 className="h-4 w-4" />,
 };
 
+// ── Bulk Upload Types & Helpers ────────────────────────────────────────────
+
+interface BulkUploadRow {
+  title: string;
+  workCode: string;
+  workTitle: string;
+  assignedTo: string;
+  priority: string;
+  dueDate: string;
+  description: string;
+}
+
+interface BulkResult {
+  created: number;
+  failed: number;
+  errors: string[];
+}
+
+function cellToStr(val: unknown): string {
+  if (val === null || val === undefined) return '';
+  const s = String(val).trim();
+  if (/^\d+\.?\d*[eE][+\-]?\d+$/.test(s)) {
+    try { return String(Math.round(Number(s))); } catch { return s; }
+  }
+  return s;
+}
+
+function rowToBulkUploadRow(row: unknown): BulkUploadRow {
+  if (Array.isArray(row)) {
+    return {
+      title:      cellToStr(row[0]),
+      workCode:   cellToStr(row[1]),
+      workTitle:  cellToStr(row[2]),
+      assignedTo: cellToStr(row[3]),
+      priority:   cellToStr(row[4]),
+      dueDate:    cellToStr(row[5]),
+      description:cellToStr(row[6]),
+    };
+  }
+  const r = row as Record<string, unknown>;
+  const g = (...keys: string[]) => cellToStr(keys.reduce<unknown>((v, k) => v ?? r[k], undefined));
+  return {
+    title:       g('title', 'Title'),
+    workCode:    g('workCode', 'WorkCode', 'work_code'),
+    workTitle:   g('workTitle', 'WorkTitle', 'work_title'),
+    assignedTo:  g('assignedTo', 'AssignedTo', 'assigned_to'),
+    priority:    g('priority', 'Priority'),
+    dueDate:     g('dueDate', 'DueDate', 'due_date'),
+    description: g('description', 'Description'),
+  };
+}
+
+function parseBulkCSV(text: string): BulkUploadRow[] {
+  const lines = text.trim().split('\n').filter(Boolean);
+  if (lines.length === 0) return [];
+  const first = lines[0].toLowerCase();
+  const start = first.includes('title') || first.includes('workcode') ? 1 : 0;
+  return lines.slice(start).map(line => rowToBulkUploadRow(line.split(',').map(cellToStr)));
+}
+
+function parseBulkExcel(buffer: ArrayBuffer): BulkUploadRow[] {
+  const wb = XLSX.read(buffer, { type: 'array' });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  if (rows.length === 0) return [];
+  const firstRow = rows[0].map(c => cellToStr(c).toLowerCase());
+  const isHeader = firstRow.some(c => c === 'title' || c === 'workcode' || c === 'assignedto');
+  return (isHeader ? rows.slice(1) : rows)
+    .filter(r => r.some(c => cellToStr(c) !== ''))
+    .map(rowToBulkUploadRow);
+}
+
+function downloadBulkExcelTemplate() {
+  const data = [
+    ['title', 'workCode', 'workTitle', 'assignedTo', 'priority', 'dueDate', 'description'],
+    ['Fix lobby lights', 'ELEC-01', 'Electrical Work', 'john.doe', 'high', '2026-06-15', 'Replace all lobby bulbs'],
+    ['Clean pool area', 'CLEAN-02', 'Cleaning', 'jane.smith', 'medium', '2026-06-20', ''],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [18, 12, 18, 14, 10, 12, 28].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'work_allocation_bulk');
+  XLSX.writeFile(wb, 'work_allocation_bulk_upload_template.xlsx');
+}
+
+function downloadBulkCSVTemplate() {
+  const csv = [
+    'title,workCode,workTitle,assignedTo,priority,dueDate,description',
+    'Fix lobby lights,ELEC-01,Electrical Work,john.doe,high,2026-06-15,Replace all lobby bulbs',
+    'Clean pool area,CLEAN-02,Cleaning,jane.smith,medium,2026-06-20,',
+  ].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'work_allocation_bulk_upload_template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 const WorkAllocationPage: React.FC = () => {
   const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
@@ -147,6 +251,14 @@ const WorkAllocationPage: React.FC = () => {
 
   // Image preview state
   const [previewImage, setPreviewImage] = useState<{ src: string; name: string } | null>(null);
+
+  // Bulk upload state
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkRows, setBulkRows] = useState<BulkUploadRow[]>([]);
+  const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const bulkFileRef = useRef<HTMLInputElement>(null);
 
   // View Details Dialog State
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -329,6 +441,63 @@ const WorkAllocationPage: React.FC = () => {
     } catch (error: any) {
       toast.error(error.message);
     }
+  };
+
+  const handleBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['csv', 'xlsx', 'xls'].includes(ext ?? '')) {
+      toast.error('Unsupported file type. Please upload a CSV or Excel file.');
+      return;
+    }
+    setBulkFile(file);
+    setBulkResult(null);
+    if (ext === 'csv') {
+      const reader = new FileReader();
+      reader.onload = ev => setBulkRows(parseBulkCSV(ev.target?.result as string));
+      reader.readAsText(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = ev => setBulkRows(parseBulkExcel(ev.target?.result as ArrayBuffer));
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (bulkRows.length === 0) { toast.error('No rows to upload'); return; }
+    setIsBulkUploading(true);
+    setBulkResult(null);
+    try {
+      const res = await api.allocations.bulkCreate(bulkRows);
+      if (res.success) {
+        const result: BulkResult = {
+          created: res.data?.created ?? 0,
+          failed: res.data?.failed ?? 0,
+          errors: res.data?.errors ?? [],
+        };
+        setBulkResult(result);
+        if (result.created > 0) {
+          fetchData();
+          toast.success(`${result.created} allocation${result.created !== 1 ? 's' : ''} created`);
+        }
+      } else {
+        toast.error(res.message || 'Upload failed');
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || 'Upload failed';
+      toast.error(msg);
+    } finally {
+      setIsBulkUploading(false);
+    }
+  };
+
+  const handleBulkClose = () => {
+    setIsBulkOpen(false);
+    setBulkFile(null);
+    setBulkRows([]);
+    setBulkResult(null);
+    if (bulkFileRef.current) bulkFileRef.current.value = '';
   };
 
   const pendingCount = allocations.filter((a) => a && a.status === 'pending').length;
@@ -650,6 +819,158 @@ const WorkAllocationPage: React.FC = () => {
     </Dialog>
   );
 
+  const BulkUploadDialog = (
+    <Dialog open={isBulkOpen} onOpenChange={open => { if (!open) handleBulkClose(); else setIsBulkOpen(true); }}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col rounded-[2rem] sm:rounded-lg">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-primary" />
+            Bulk Upload Work Allocations
+          </DialogTitle>
+          <DialogDescription>
+            Upload a CSV or Excel file to create multiple allocations at once.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto space-y-4 py-2 min-h-0">
+          {/* Template download */}
+          <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-xl border border-dashed">
+            <span className="text-xs text-muted-foreground self-center mr-1">Download template:</span>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={downloadBulkExcelTemplate}>
+              <Download className="h-3.5 w-3.5" /> Excel (.xlsx)
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={downloadBulkCSVTemplate}>
+              <Download className="h-3.5 w-3.5" /> CSV
+            </Button>
+          </div>
+
+          {/* File picker */}
+          {!bulkFile ? (
+            <div
+              className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => bulkFileRef.current?.click()}
+            >
+              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-sm font-medium text-slate-600">Click to select a file</p>
+              <p className="text-xs text-muted-foreground mt-1">Supports .csv, .xlsx, .xls</p>
+              <input
+                ref={bulkFileRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                onChange={handleBulkFileChange}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">{bulkFile.name}</p>
+                  <p className="text-xs text-muted-foreground">{bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} parsed</p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                onClick={() => { setBulkFile(null); setBulkRows([]); setBulkResult(null); if (bulkFileRef.current) bulkFileRef.current.value = ''; }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Preview table */}
+          {bulkRows.length > 0 && !bulkResult && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} ready to upload
+              </p>
+              <div className="rounded-lg border overflow-hidden">
+                <div className="overflow-x-auto max-h-56 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-primary text-white sticky top-0">
+                      <tr>
+                        {['#', 'Title', 'Work Code', 'Work Title', 'Assigned To', 'Priority', 'Due Date', 'Description'].map(h => (
+                          <th key={h} className="px-3 py-2 text-left font-semibold whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bulkRows.map((row, i) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                          <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
+                          <td className="px-3 py-1.5 font-medium max-w-[120px] truncate">{row.title || <span className="text-destructive italic">missing</span>}</td>
+                          <td className="px-3 py-1.5">{row.workCode}</td>
+                          <td className="px-3 py-1.5">{row.workTitle}</td>
+                          <td className="px-3 py-1.5">{row.assignedTo || <span className="text-destructive italic">missing</span>}</td>
+                          <td className="px-3 py-1.5 capitalize">{row.priority || 'medium'}</td>
+                          <td className="px-3 py-1.5 whitespace-nowrap">{row.dueDate || <span className="text-destructive italic">missing</span>}</td>
+                          <td className="px-3 py-1.5 max-w-[140px] truncate text-muted-foreground">{row.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Result summary */}
+          {bulkResult && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="text-xs text-emerald-700 font-semibold">Created</p>
+                    <p className="text-2xl font-black text-emerald-700">{bulkResult.created}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-rose-50 rounded-xl border border-rose-200">
+                  <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
+                  <div>
+                    <p className="text-xs text-rose-700 font-semibold">Failed</p>
+                    <p className="text-2xl font-black text-rose-700">{bulkResult.failed}</p>
+                  </div>
+                </div>
+              </div>
+              {bulkResult.errors.length > 0 && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 space-y-1 max-h-36 overflow-y-auto">
+                  {bulkResult.errors.map((err, i) => (
+                    <p key={i} className="text-xs text-rose-700 flex items-start gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      {err}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex-shrink-0 pt-2 border-t mt-2 gap-2">
+          <Button variant="outline" className="rounded-xl" onClick={handleBulkClose} disabled={isBulkUploading}>
+            {bulkResult ? 'Close' : 'Cancel'}
+          </Button>
+          {!bulkResult && (
+            <Button
+              className="rounded-xl gap-2"
+              onClick={handleBulkUpload}
+              disabled={bulkRows.length === 0 || isBulkUploading}
+            >
+              {isBulkUploading
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</>
+                : <><Upload className="h-4 w-4" /> Upload {bulkRows.length > 0 ? `${bulkRows.length} Row${bulkRows.length !== 1 ? 's' : ''}` : ''}</>
+              }
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <DashboardLayout>
       <div className="w-full">
@@ -660,7 +981,13 @@ const WorkAllocationPage: React.FC = () => {
               <h1 className="text-3xl font-bold tracking-tight">Work Allocation</h1>
               <p className="text-muted-foreground">Assign and monitor work for your team</p>
             </div>
-            {CreateAllocationDialog}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="hidden lg:flex gap-2" onClick={() => setIsBulkOpen(true)}>
+                <Upload className="h-4 w-4" />
+                Bulk Upload
+              </Button>
+              {CreateAllocationDialog}
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -919,11 +1246,20 @@ const WorkAllocationPage: React.FC = () => {
                 <h1 className="text-2xl font-black text-white tracking-tight">Work Allocation</h1>
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Assign & Monitor Tasks</p>
               </div>
-              <div onClick={(e) => {
-                if (!canCreate) { e.preventDefault(); toast.error("You don't have permission to allocate work"); }
-                else { setIsCreateDialogOpen(true); }
-              }} className="bg-white/10 hover:bg-white/20 text-white rounded-full h-[46px] w-[46px] shadow-sm backdrop-blur-md p-0 flex items-center justify-center shrink-0 active:scale-95 transition-transform cursor-pointer">
-                <Plus className="h-6 w-6" strokeWidth={2.5} />
+              <div className="flex items-center gap-2">
+                <div
+                  onClick={() => setIsBulkOpen(true)}
+                  className="bg-white/10 hover:bg-white/20 text-white rounded-full h-[46px] w-[46px] shadow-sm backdrop-blur-md p-0 flex items-center justify-center shrink-0 active:scale-95 transition-transform cursor-pointer"
+                  title="Bulk Upload"
+                >
+                  <Upload className="h-5 w-5" strokeWidth={2.5} />
+                </div>
+                <div onClick={(e) => {
+                  if (!canCreate) { e.preventDefault(); toast.error("You don't have permission to allocate work"); }
+                  else { setIsCreateDialogOpen(true); }
+                }} className="bg-white/10 hover:bg-white/20 text-white rounded-full h-[46px] w-[46px] shadow-sm backdrop-blur-md p-0 flex items-center justify-center shrink-0 active:scale-95 transition-transform cursor-pointer">
+                  <Plus className="h-6 w-6" strokeWidth={2.5} />
+                </div>
               </div>
             </div>
           </div>
@@ -1364,6 +1700,18 @@ const WorkAllocationPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Upload Dialog */}
+      {BulkUploadDialog}
+
+      {/* Image Preview */}
+      {previewImage && (
+        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+          <DialogContent className="max-w-3xl p-2">
+            <img src={previewImage.src} alt={previewImage.name} className="w-full rounded-lg object-contain max-h-[80vh]" />
+          </DialogContent>
+        </Dialog>
+      )}
 
     </DashboardLayout>
   );

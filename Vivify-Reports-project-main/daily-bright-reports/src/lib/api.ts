@@ -686,6 +686,8 @@ export const api = {
       (await apiClient.post(`/workallocations/${id}/deny-request`, {})).data,
     requestChange: async (id: number, data: any) => 
       (await apiClient.post(`/workallocations/${id}/request-change`, data)).data,
+    bulkCreate: async (rows: any[]) =>
+      (await apiClient.post('/workallocations/bulk', rows)).data,
   },
   
   // Products
