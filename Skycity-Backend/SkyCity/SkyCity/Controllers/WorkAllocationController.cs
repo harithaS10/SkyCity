@@ -325,8 +325,11 @@ public class WorkAllocationController : ControllerBase
         if (rows == null || rows.Count == 0)
             return BadRequest(new ApiResponse { Success = false, Message = "No allocation rows provided." });
 
-        var workCategories = await _context.WorkCategories.Where(w => w.IsActive).ToListAsync();
-        var assocUsers = await _context.Users.Where(u => u.AssociationId == CurrentAssocId && u.IsActive).ToListAsync();
+        // Use a longer timeout for the entire bulk operation on slow connections
+        _context.Database.SetCommandTimeout(120);
+
+        var workCategories = await _context.WorkCategories.AsNoTracking().Where(w => w.IsActive).ToListAsync();
+        var assocUsers = await _context.Users.AsNoTracking().Where(u => u.AssociationId == CurrentAssocId && u.IsActive).ToListAsync();
         var validPriorities = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "low", "medium", "high" };
         var acceptedDateFormats = new[] { "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ssZ", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-ddTHH:mm:ss" };
 

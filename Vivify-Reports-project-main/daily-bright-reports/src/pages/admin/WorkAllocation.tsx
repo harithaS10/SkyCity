@@ -185,26 +185,104 @@ function parseBulkExcel(buffer: ArrayBuffer): BulkUploadRow[] {
     .map(rowToBulkUploadRow);
 }
 
-function downloadBulkExcelTemplate() {
-  const data = [
-    ['title', 'workCode', 'workTitle', 'assignedTo', 'priority', 'dueDate', 'description'],
-    ['Fix lobby lights', 'ELEC-01', 'Electrical Work', 'john.doe', 'high', '2026-06-15', 'Replace all lobby bulbs'],
-    ['Clean pool area', 'CLEAN-02', 'Cleaning', 'jane.smith', 'medium', '2026-06-20', ''],
-  ];
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [18, 12, 18, 14, 10, 12, 28].map(w => ({ wch: w }));
+function downloadBulkExcelTemplate(
+  works: Array<{ workCode: string; workTitle: string }> = [],
+  users: Array<{ name: string; username?: string }> = []
+) {
+  // Build header row
+  const headers = ['title', 'workCode', 'workTitle', 'assignedTo', 'priority', 'dueDate', 'description'];
+
+  // Build sample rows from real data (up to 3 examples)
+  const sampleWorks = works.slice(0, 3);
+  const sampleUsers = users.slice(0, 3);
+  const today = new Date();
+  const fmtDate = (offset: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().split('T')[0];
+  };
+
+  const dataRows = sampleWorks.length > 0
+    ? sampleWorks.map((w, i) => [
+        `Sample task ${i + 1}`,
+        w.workCode,
+        w.workTitle,
+        sampleUsers[i]?.username || sampleUsers[i]?.name || '',
+        ['high', 'medium', 'low'][i % 3],
+        fmtDate(7 + i * 3),
+        '',
+      ])
+    : [
+        ['Sample task 1', 'USE-REAL-CODE', 'Use real work title', 'use.real.username', 'medium', fmtDate(7), 'Optional description'],
+      ];
+
+  // Build reference sheet with valid work categories
+  const refWorkRows: unknown[][] = [['workCode', 'workTitle']];
+  works.forEach(w => refWorkRows.push([w.workCode, w.workTitle]));
+
+  // Build reference sheet with valid users
+  const refUserRows: unknown[][] = [['username / fullName']];
+  users.forEach(u => refUserRows.push([u.username || u.name]));
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'work_allocation_bulk');
+
+  // Main data sheet
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+  ws['!cols'] = [18, 14, 20, 16, 10, 12, 28].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Upload Data');
+
+  // Reference: work categories
+  if (refWorkRows.length > 1) {
+    const wsRef = XLSX.utils.aoa_to_sheet(refWorkRows);
+    wsRef['!cols'] = [16, 24].map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, wsRef, 'Valid Work Categories');
+  }
+
+  // Reference: users
+  if (refUserRows.length > 1) {
+    const wsUsers = XLSX.utils.aoa_to_sheet(refUserRows);
+    wsUsers['!cols'] = [{ wch: 24 }];
+    XLSX.utils.book_append_sheet(wb, wsUsers, 'Valid Users');
+  }
+
   XLSX.writeFile(wb, 'work_allocation_bulk_upload_template.xlsx');
 }
 
-function downloadBulkCSVTemplate() {
-  const csv = [
-    'title,workCode,workTitle,assignedTo,priority,dueDate,description',
-    'Fix lobby lights,ELEC-01,Electrical Work,john.doe,high,2026-06-15,Replace all lobby bulbs',
-    'Clean pool area,CLEAN-02,Cleaning,jane.smith,medium,2026-06-20,',
-  ].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
+function downloadBulkCSVTemplate(
+  works: Array<{ workCode: string; workTitle: string }> = [],
+  users: Array<{ name: string; username?: string }> = []
+) {
+  const today = new Date();
+  const fmtDate = (offset: number) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().split('T')[0];
+  };
+
+  const lines = ['title,workCode,workTitle,assignedTo,priority,dueDate,description'];
+
+  if (works.length > 0) {
+    works.slice(0, 3).forEach((w, i) => {
+      const u = users[i]?.username || users[i]?.name || '';
+      lines.push(`Sample task ${i + 1},${w.workCode},${w.workTitle},${u},medium,${fmtDate(7 + i * 3)},`);
+    });
+  } else {
+    lines.push(`Sample task 1,USE-REAL-CODE,Use real work title,use.real.username,medium,${fmtDate(7)},Optional description`);
+  }
+
+  // Append reference comments
+  if (works.length > 0) {
+    lines.push('');
+    lines.push('# Valid workCode values (copy from below):');
+    works.forEach(w => lines.push(`# ${w.workCode},${w.workTitle}`));
+  }
+  if (users.length > 0) {
+    lines.push('');
+    lines.push('# Valid assignedTo values (username or full name):');
+    users.forEach(u => lines.push(`# ${u.username || u.name}`));
+  }
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -470,22 +548,46 @@ const WorkAllocationPage: React.FC = () => {
     setBulkResult(null);
     try {
       const res = await api.allocations.bulkCreate(bulkRows);
-      if (res.success) {
+      // Handle both { success, data: { created, failed, errors } } and direct shapes
+      const payload = res?.data ?? res;
+      const isSuccess = res?.success ?? true;
+
+      if (isSuccess) {
         const result: BulkResult = {
-          created: res.data?.created ?? 0,
-          failed: res.data?.failed ?? 0,
-          errors: res.data?.errors ?? [],
+          created: payload?.created ?? 0,
+          failed: payload?.failed ?? 0,
+          errors: payload?.errors ?? [],
         };
         setBulkResult(result);
         if (result.created > 0) {
           fetchData();
           toast.success(`${result.created} allocation${result.created !== 1 ? 's' : ''} created`);
+        } else {
+          toast.error('No allocations were created. Check the errors below.');
         }
       } else {
-        toast.error(res.message || 'Upload failed');
+        const errMsg = res?.message || 'Upload failed';
+        setBulkResult({ created: 0, failed: bulkRows.length, errors: [errMsg] });
+        toast.error(errMsg);
       }
     } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'Upload failed';
+      const serverData = e?.response?.data;
+      const msg = serverData?.message || e?.message || 'Upload failed';
+      // If the server returned a partial result even in error, use it
+      if (serverData?.data?.created !== undefined || serverData?.data?.failed !== undefined) {
+        setBulkResult({
+          created: serverData.data.created ?? 0,
+          failed: serverData.data.failed ?? bulkRows.length,
+          errors: serverData.data.errors ?? [msg],
+        });
+      } else {
+        const serverErrors: string[] = serverData?.errors ?? [];
+        setBulkResult({
+          created: 0,
+          failed: bulkRows.length,
+          errors: serverErrors.length > 0 ? serverErrors : [msg],
+        });
+      }
       toast.error(msg);
     } finally {
       setIsBulkUploading(false);
@@ -504,7 +606,11 @@ const WorkAllocationPage: React.FC = () => {
   const inProgressCount = allocations.filter((a) => a && a.status === 'in-progress').length;
   const completedCount = allocations.filter((a) => a && a.status === 'completed').length;
 
-  const getUserName = (userId: number) => users.find((u) => u.id === userId)?.name || 'Unknown';
+  const getUserName = (userId: number, allocation?: any) => {
+    // Prefer the pre-resolved name already returned by the backend
+    if (allocation?.clientName) return allocation.clientName;
+    return users.find((u) => u.id === userId)?.name || users.find((u) => u.id === userId)?.fullName || 'Unknown';
+  };
 
   const isOverdue = (dueDate: string, status: string) => {
     if (status === 'completed') return false;
@@ -819,7 +925,7 @@ const WorkAllocationPage: React.FC = () => {
     </Dialog>
   );
 
-  const BulkUploadDialog = (
+  const renderBulkUploadDialog = () => (
     <Dialog open={isBulkOpen} onOpenChange={open => { if (!open) handleBulkClose(); else setIsBulkOpen(true); }}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col rounded-[2rem] sm:rounded-lg">
         <DialogHeader className="flex-shrink-0">
@@ -836,13 +942,15 @@ const WorkAllocationPage: React.FC = () => {
           {/* Template download */}
           <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-xl border border-dashed">
             <span className="text-xs text-muted-foreground self-center mr-1">Download template:</span>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={downloadBulkExcelTemplate}>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => downloadBulkExcelTemplate(availableWorks, users)}>
               <Download className="h-3.5 w-3.5" /> Excel (.xlsx)
             </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={downloadBulkCSVTemplate}>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => downloadBulkCSVTemplate(availableWorks, users)}>
               <Download className="h-3.5 w-3.5" /> CSV
             </Button>
           </div>
+
+
 
           {/* File picker */}
           {!bulkFile ? (
@@ -1057,12 +1165,12 @@ const WorkAllocationPage: React.FC = () => {
                     <Table className="border-x table-fixed w-full">
                       <colgroup>
                         <col style={{ width: '56px' }} />
+                        <col style={{ width: '16%' }} />
                         <col style={{ width: '18%' }} />
-                        <col style={{ width: '20%' }} />
-                        <col style={{ width: '15%' }} />
-                        <col style={{ width: '15%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '80px' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '160px' }} />
                       </colgroup>
                       <TableHeader className="bg-primary hover:bg-primary">
                         <TableRow className="hover:bg-transparent border-none">
@@ -1072,7 +1180,7 @@ const WorkAllocationPage: React.FC = () => {
                           <TableHead className="text-white font-semibold h-11">Assigned To</TableHead>
                           <TableHead className="text-white font-semibold h-11">Status & Due</TableHead>
                           <TableHead className="text-white font-semibold h-11 text-center">Priority</TableHead>
-                          <TableHead className="text-right text-white font-semibold px-4 h-11">Action</TableHead>
+                          <TableHead className="text-center text-white font-semibold px-4 h-11">Action</TableHead>
                         </TableRow>
                       </TableHeader>
                     </Table>
@@ -1080,12 +1188,12 @@ const WorkAllocationPage: React.FC = () => {
                       <Table className="border-x table-fixed w-full">
                         <colgroup>
                           <col style={{ width: '56px' }} />
+                          <col style={{ width: '16%' }} />
                           <col style={{ width: '18%' }} />
-                          <col style={{ width: '20%' }} />
-                          <col style={{ width: '15%' }} />
-                          <col style={{ width: '15%' }} />
-                          <col style={{ width: '12%' }} />
-                          <col style={{ width: '80px' }} />
+                          <col style={{ width: '13%' }} />
+                          <col style={{ width: '13%' }} />
+                          <col style={{ width: '10%' }} />
+                          <col style={{ width: '160px' }} />
                         </colgroup>
                         <TableBody>
                           {filteredAllocations.map((allocation, index) => (
@@ -1153,9 +1261,9 @@ const WorkAllocationPage: React.FC = () => {
                               <TableCell className="align-top border-r border-slate-200">
                                 <div className="flex items-center gap-2">
                                   <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
-                                    {getUserName(allocation.assignedTo).charAt(0)}
+                                    {getUserName(allocation.assignedTo, allocation).charAt(0)}
                                   </div>
-                                  <span className="font-medium text-sm">{getUserName(allocation.assignedTo)}</span>
+                                  <span className="font-medium text-sm">{getUserName(allocation.assignedTo, allocation)}</span>
                                 </div>
                                 <Button
                                   variant="link"
@@ -1181,49 +1289,50 @@ const WorkAllocationPage: React.FC = () => {
                                   {allocation.priority}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-right align-top px-4">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-48">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => { setSelectedAllocation(allocation); setIsViewDialogOpen(true); }}>
-                                      <Eye className="h-4 w-4 mr-2" />
-                                      View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => openReassignDialog(allocation)}>
-                                      <UserX className="h-4 w-4 mr-2" />
-                                      Reassign Task
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                          <Trash2 className="h-4 w-4 mr-2" />
+                              <TableCell className="align-middle px-2">
+                                <div className="flex items-center justify-center gap-1 flex-wrap">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 px-2.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 hover:text-blue-700 gap-1"
+                                    onClick={() => { setSelectedAllocation(allocation); setIsViewDialogOpen(true); }}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" /> View
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 px-2.5 text-xs font-semibold text-amber-600 hover:bg-amber-50 hover:text-amber-700 gap-1"
+                                    onClick={() => openReassignDialog(allocation)}
+                                  >
+                                    <UserX className="h-3.5 w-3.5" /> Reassign
+                                  </Button>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 px-2.5 text-xs font-semibold text-destructive hover:bg-destructive/10 gap-1"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete Allocation?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently remove this assigned work for {getUserName(allocation.assignedTo, allocation)}. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteAllocation(allocation.id)} className="bg-destructive hover:bg-destructive/90">
                                           Delete
-                                        </DropdownMenuItem>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Delete Allocation?</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            This will permanently remove this assigned work for {getUserName(allocation.assignedTo)}. This action cannot be undone.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDeleteAllocation(allocation.id)} className="bg-destructive hover:bg-destructive/90">
-                                            Delete
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -1387,9 +1496,9 @@ const WorkAllocationPage: React.FC = () => {
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                       <div className="flex items-center gap-2 bg-white dark:bg-slate-800 ring-1 ring-slate-100 dark:ring-slate-700 pr-3 pl-1 py-1 rounded-full shadow-sm">
                         <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-black border border-primary/20">
-                          {getUserName(allocation.assignedTo).charAt(0)}
+                          {getUserName(allocation.assignedTo, allocation).charAt(0)}
                         </div>
-                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{getUserName(allocation.assignedTo)}</span>
+                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{getUserName(allocation.assignedTo, allocation)}</span>
                       </div>
 
                       <div className={cn(
@@ -1480,7 +1589,7 @@ const WorkAllocationPage: React.FC = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle className="font-black text-xl tracking-tight">Delete Allocation?</AlertDialogTitle>
                             <AlertDialogDescription className="font-semibold text-slate-500">
-                              This will permanently remove this task for {getUserName(allocation.assignedTo)}. This action cannot be undone.
+                              This will permanently remove this task for {getUserName(allocation.assignedTo, allocation)}. This action cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter className="flex-row gap-2 mt-4">
@@ -1620,9 +1729,9 @@ const WorkAllocationPage: React.FC = () => {
                   <Label className="text-xs font-bold uppercase text-muted-foreground">Assigned To</Label>
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                      {getUserName(selectedAllocation.assignedTo).charAt(0)}
+                      {getUserName(selectedAllocation.assignedTo, selectedAllocation).charAt(0)}
                     </div>
-                    <span className="font-medium text-sm">{getUserName(selectedAllocation.assignedTo)}</span>
+                    <span className="font-medium text-sm">{getUserName(selectedAllocation.assignedTo, selectedAllocation)}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -1702,7 +1811,7 @@ const WorkAllocationPage: React.FC = () => {
       </Dialog>
 
       {/* Bulk Upload Dialog */}
-      {BulkUploadDialog}
+      {renderBulkUploadDialog()}
 
       {/* Image Preview */}
       {previewImage && (
