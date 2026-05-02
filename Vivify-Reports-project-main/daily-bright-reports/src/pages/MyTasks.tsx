@@ -132,8 +132,18 @@ const MyTasks: React.FC = () => {
     }
   };
 
+  // Track previous request statuses to detect changes
+  const [prevRequestStatuses, setPrevRequestStatuses] = useState<Record<number, string>>({});
+
   useEffect(() => {
     fetchData();
+    
+    // Poll for updates every 30 seconds to catch admin approvals/rejections
+    const interval = setInterval(() => {
+      fetchData();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Merge allocations + admin tasks into one list
@@ -141,6 +151,47 @@ const MyTasks: React.FC = () => {
     ...allocations,
     ...adminTasks,
   ];
+
+  // Detect request status changes and show notifications
+  useEffect(() => {
+    // Skip on initial mount (when prevRequestStatuses is empty)
+    if (Object.keys(prevRequestStatuses).length === 0) {
+      // Initialize tracking on first load
+      const initialStatuses: Record<number, string> = {};
+      allItems.forEach(task => {
+        if (task.requestStatus) {
+          initialStatuses[task.id] = task.requestStatus;
+        }
+      });
+      setPrevRequestStatuses(initialStatuses);
+      return;
+    }
+
+    allItems.forEach(task => {
+      const prevStatus = prevRequestStatuses[task.id];
+      const currentStatus = task.requestStatus;
+      
+      // Only notify if status changed from pending to approved/rejected
+      if (prevStatus === 'pending' && currentStatus === 'approved') {
+        toast.success(`✓ Request approved for "${task.title || task.taskName}"! Due date updated.`, {
+          duration: 5000,
+        });
+      } else if (prevStatus === 'pending' && currentStatus === 'rejected') {
+        toast.error(`✗ Request rejected for "${task.title || task.taskName}". Original due date remains.`, {
+          duration: 5000,
+        });
+      }
+    });
+    
+    // Update tracked statuses
+    const newStatuses: Record<number, string> = {};
+    allItems.forEach(task => {
+      if (task.requestStatus) {
+        newStatuses[task.id] = task.requestStatus;
+      }
+    });
+    setPrevRequestStatuses(newStatuses);
+  }, [allocations, adminTasks]); // Use allocations and adminTasks as dependencies instead of allItems
 
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
@@ -182,14 +233,29 @@ const MyTasks: React.FC = () => {
   const getClient = (clientId?: number) =>
     clientId ? clients.find((c) => c.id === clientId) : null;
 
+  const startOfLocalDay = (d: Date) => {
+    const copy = new Date(d);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+  };
+
+  // Parse a date string safely — strips time/timezone so it's always treated as local date
+  const parseLocalDate = (dateStr: string): Date => {
+    if (!dateStr) return new Date();
+    // Take only the date part (YYYY-MM-DD) and parse as local midnight
+    const datePart = dateStr.split('T')[0];
+    const [year, month, day] = datePart.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   const isOverdue = (dueDate: string, status: string) => {
     if (status === 'completed') return false;
-    return new Date(dueDate) < new Date();
+    return startOfLocalDay(parseLocalDate(dueDate)) < startOfLocalDay(new Date());
   };
 
   const getDaysRemaining = (dueDate: string) => {
-    const days = differenceInDays(new Date(dueDate), new Date());
-    if (days < 0) return `${Math.abs(days)} days overdue`;
+    const days = differenceInDays(startOfLocalDay(parseLocalDate(dueDate)), startOfLocalDay(new Date()));
+    if (days < 0) return `${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} overdue`;
     if (days === 0) return 'Due today';
     if (days === 1) return '1 day remaining';
     return `${days} days remaining`;
@@ -418,7 +484,13 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                 </Badge>
               )}
               {task.requestStatus === 'pending' && (
-                <Badge className="bg-amber-100 text-amber-800 border-amber-300 px-1.5 py-0 h-4 text-[10px]">Pending Request</Badge>
+                <Badge className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 px-1.5 py-0 h-4 text-[10px] animate-pulse">⏳ Pending Request</Badge>
+              )}
+              {task.requestStatus === 'approved' && (
+                <Badge className="bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 px-1.5 py-0 h-4 text-[10px] font-bold">✓ Approved</Badge>
+              )}
+              {task.requestStatus === 'rejected' && (
+                <Badge className="bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800 px-1.5 py-0 h-4 text-[10px] font-bold">✗ Rejected</Badge>
               )}
             </div>
             {/* Title */}
@@ -431,7 +503,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
             <div className="flex items-center gap-3 mt-1.5">
               <div className={cn("flex items-center gap-1 text-xs", isOverdue(task.dueDate || task.DueDate, task.status) ? 'text-rose-600 dark:text-rose-400 font-medium' : 'text-slate-500 dark:text-slate-400')}>
                 <Calendar className="h-3 w-3" />
-                {task.dueDate ? format(new Date(task.dueDate || task.DueDate), 'MMM dd, yyyy') : '—'}
+                {task.dueDate ? format(parseLocalDate(task.dueDate || task.DueDate), 'MMM dd, yyyy') : '—'}
               </div>
               {task.attachmentUrls && (
                 <div className="flex gap-1" onClick={e => e.stopPropagation()}>
@@ -713,7 +785,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                         <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate text-slate-900 dark:text-white">{task.title || task.workTitle || task.taskName || '—'}</p>
-                          <p className="text-xs text-muted-foreground dark:text-slate-400">{task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : ''}</p>
+                          <p className="text-xs text-muted-foreground dark:text-slate-400">{task.dueDate ? format(parseLocalDate(task.dueDate), 'MMM dd, yyyy') : ''}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
@@ -882,6 +954,9 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                         </Badge>
                         {overdue && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider h-5 px-2 rounded-full bg-rose-500 text-white border-none">Overdue</Badge>}
                         {task._source === 'task' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider h-5 px-2 rounded-full bg-slate-900 text-white border-none">Admin</Badge>}
+                        {task.requestStatus === 'pending' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider h-5 px-2 rounded-full bg-amber-500 text-white border-none animate-pulse">⏳ Pending</Badge>}
+                        {task.requestStatus === 'approved' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider h-5 px-2 rounded-full bg-emerald-500 text-white border-none">✓ Approved</Badge>}
+                        {task.requestStatus === 'rejected' && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider h-5 px-2 rounded-full bg-rose-600 text-white border-none">✗ Rejected</Badge>}
                       </div>
                       <div className="text-[10px] font-black text-slate-300">#{task.id}</div>
                     </div>
@@ -901,7 +976,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                         <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Due Date</span>
                         <div className={cn("flex items-center gap-1 text-[11px] font-black", overdue ? "text-rose-500" : "text-slate-700 dark:text-slate-300")}>
                           <Calendar className="h-3 w-3" />
-                          {task.dueDate ? format(new Date(task.dueDate || task.DueDate), 'MMM dd, yyyy') : 'No date'}
+                          {task.dueDate ? format(parseLocalDate(task.dueDate || task.DueDate), 'MMM dd, yyyy') : 'No date'}
                         </div>
                       </div>
 
@@ -1339,17 +1414,23 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
               <div className="flex-1 overflow-y-auto p-4 space-y-4 overscroll-contain">
                 {/* Status badges */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={`text-xs font-semibold ${selectedTask.priority === 'high' ? 'border-rose-300 text-rose-600 bg-rose-50' :
-                      selectedTask.priority === 'medium' ? 'border-amber-300 text-amber-600 bg-amber-50' :
-                        'border-emerald-300 text-emerald-600 bg-emerald-50'
+                  <Badge variant="outline" className={`text-xs font-semibold ${selectedTask.priority === 'high' ? 'border-rose-300 text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800' :
+                      selectedTask.priority === 'medium' ? 'border-amber-300 text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800' :
+                        'border-emerald-300 text-emerald-600 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
                     }`}>
                     {selectedTask.priority?.toUpperCase()} PRIORITY
                   </Badge>
                   {selectedTask._source === 'task' && (
-                    <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Admin Assigned</Badge>
+                    <Badge className="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-xs">Admin Assigned</Badge>
                   )}
                   {selectedTask.requestStatus === 'pending' && (
-                    <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs">Request Pending</Badge>
+                    <Badge className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800 text-xs animate-pulse">⏳ Request Pending</Badge>
+                  )}
+                  {selectedTask.requestStatus === 'approved' && (
+                    <Badge className="bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 text-xs font-bold">✓ Request Approved</Badge>
+                  )}
+                  {selectedTask.requestStatus === 'rejected' && (
+                    <Badge className="bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 text-xs font-bold">✗ Request Rejected</Badge>
                   )}
                 </div>
 
@@ -1366,7 +1447,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                   <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
                     <p className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Due Date</p>
                     <p className={`text-sm font-bold mt-0.5 ${isOverdue(selectedTask.dueDate, selectedTask.status) ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
-                      {selectedTask.dueDate ? format(new Date(selectedTask.dueDate), 'MMM dd, yyyy') : '—'}
+                      {selectedTask.dueDate ? format(parseLocalDate(selectedTask.dueDate), 'MMM dd, yyyy') : '—'}
                     </p>
                     {isOverdue(selectedTask.dueDate, selectedTask.status) && (
                       <p className="text-[10px] text-rose-500 dark:text-rose-400 font-medium mt-0.5">⚠ Overdue</p>
@@ -1531,12 +1612,33 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                   </div>
                 )}
 
-                {/* Request pending info */}
+                {/* Request status info */}
                 {selectedTask.requestStatus === 'pending' && (
                   <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-sm space-y-1">
-                    <p className="font-semibold text-xs uppercase tracking-wide">Change Request Pending</p>
-                    {selectedTask.requestedDueDate && <p>New Date: {format(new Date(selectedTask.requestedDueDate), 'MMM dd, yyyy')}</p>}
-                    {selectedTask.requestedDescription && <p>Note: {selectedTask.requestedDescription}</p>}
+                    <p className="font-semibold text-xs uppercase tracking-wide flex items-center gap-1">
+                      <Clock className="h-3 w-3 animate-pulse" />
+                      Change Request Pending
+                    </p>
+                    {selectedTask.requestedDueDate && <p>Requested Date: {format(new Date(selectedTask.requestedDueDate), 'MMM dd, yyyy')}</p>}
+                    {selectedTask.requestedDescription && <p>Reason: {selectedTask.requestedDescription}</p>}
+                  </div>
+                )}
+                {selectedTask.requestStatus === 'approved' && (
+                  <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-sm space-y-1">
+                    <p className="font-semibold text-xs uppercase tracking-wide flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Request Approved
+                    </p>
+                    <p>✓ Your due date extension has been approved by the administrator.</p>
+                  </div>
+                )}
+                {selectedTask.requestStatus === 'rejected' && (
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-sm space-y-1">
+                    <p className="font-semibold text-xs uppercase tracking-wide flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Request Rejected
+                    </p>
+                    <p>✗ Your change request was not approved. Original due date remains.</p>
                   </div>
                 )}
 
@@ -1669,7 +1771,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                 {(selectedTask.status === 'pending' || selectedTask.status === 'in-progress' || selectedTask.status === 'in_progress') && (
                   <Button variant="outline" className="w-full h-10 gap-2 border-dashed text-sm rounded-xl"
                     onClick={() => {
-                      setRequestData({ dueDate: selectedTask.dueDate ? format(new Date(selectedTask.dueDate), 'yyyy-MM-dd') : '', description: '' });
+                      setRequestData({ dueDate: selectedTask.dueDate ? format(parseLocalDate(selectedTask.dueDate), 'yyyy-MM-dd') : '', description: '' });
                       setIsRequestDialogOpen(true);
                     }}>
                     Escalate / Request Change
