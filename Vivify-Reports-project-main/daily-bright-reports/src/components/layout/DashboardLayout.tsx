@@ -454,63 +454,15 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
             <ModeToggle className="text-primary-foreground/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8" />
 
-            {/* Notification Bell (Staff & Resident) — request approvals/rejections */}
+            {/* Combined Notification + Reminder Bell (Staff & Resident) */}
             {(user?.role === 'staff' || user?.role === 'resident') && (
-              <NotificationBell />
-            )}
-
-            {/* Reminder Bell (Staff & Resident) */}
-            {(user?.role === 'staff' || user?.role === 'resident') && (
-              <div className="relative" ref={reminderPanelRef}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-primary-foreground/80 hover:bg-white/10 hover:text-white"
-                  onClick={() => setShowReminderPanel(v => !v)}
-                >
-                  <Bell className={cn('h-4 w-4', unreadCount > 0 && 'text-amber-300')} />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white leading-none">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </Button>
-                {showReminderPanel && (
-                  <div className="absolute right-0 top-11 z-50 w-80 rounded-lg border bg-white shadow-xl dark:bg-card">
-                    <div className="flex items-center justify-between border-b px-4 py-3">
-                      <span className="font-semibold text-sm text-slate-900 dark:text-foreground">Task Reminders</span>
-                      {unreadCount > 0 && (
-                        <button
-                          onClick={() => { persistDismiss(new Set(reminders.map((r: any) => r.id))); setShowReminderPanel(false); }}
-                          className="text-xs text-muted-foreground hover:text-slate-900"
-                        >Dismiss all</button>
-                      )}
-                    </div>
-                    <div className="max-h-72 overflow-y-auto">
-                      {visibleReminders.length === 0 ? (
-                        <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-                          <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-                          <p className="text-sm">No pending reminders</p>
-                        </div>
-                      ) : visibleReminders.map((r: any) => (
-                        <div key={r.id} className="flex items-start gap-3 border-b px-4 py-3 last:border-0">
-                          <AlertCircle className={cn('mt-0.5 h-4 w-4 shrink-0', priorityColors[r.priority] || 'text-slate-400')} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate text-slate-900 dark:text-foreground">{r.taskName}</p>
-                            <p className="text-xs text-muted-foreground">Due: {format(new Date(r.dueDate), 'MMM dd, yyyy')}</p>
-                            <span className={cn('text-[10px] font-semibold capitalize', priorityColors[r.priority])}>
-                              {r.priority} priority
-                            </span>
-                          </div>
-                          <button onClick={() => persistDismiss(new Set([...dismissedIds, r.id]))} className="text-muted-foreground hover:text-slate-900 shrink-0 mt-0.5">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <NotificationBell
+                reminders={visibleReminders}
+                unreadReminderCount={unreadCount}
+                onDismissReminder={(id) => persistDismiss(new Set([...dismissedIds, id]))}
+                onDismissAllReminders={() => { persistDismiss(new Set(reminders.map((r: any) => r.id))); }}
+                panelRef={reminderPanelRef}
+              />
             )}
 
             {/* User Menu */}
