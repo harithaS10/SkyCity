@@ -68,7 +68,7 @@ import { ModeToggle } from '@/components/ModeToggle';
 import { ChatBox } from '@/components/ChatBox';
 import { Badge } from '@/components/ui/badge';
 import logo from '@/assets/skycity-logo.png';
-import { NotificationBell } from '@/components/NotificationBell';
+import { toast } from 'sonner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -170,6 +170,34 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const [showReminderPanel, setShowReminderPanel] = useState(false);
   const reminderPanelRef = useRef<HTMLDivElement>(null);
   const DISMISSED_KEY = `reminder_dismissed_${user?.id ?? 'user'}`;
+
+  // API notifications (approved/rejected requests)
+  const [apiNotifications, setApiNotifications] = useState<any[]>([]);
+  const apiNotifUnread = apiNotifications.filter((n: any) => !n.isRead).length;
+  const prevNotifIdsRef = React.useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (user?.role !== 'staff' && user?.role !== 'resident') return;
+    const fetchApiNotifs = async () => {
+      try {
+        const res = await api.notifications.getAll();
+        if (res.success && Array.isArray(res.data)) {
+          // Toast for brand-new ones
+          res.data.forEach((n: any) => {
+            if (!prevNotifIdsRef.current.has(n.id) && prevNotifIdsRef.current.size > 0) {
+              if (n.type === 'request_approved') toast.success(n.title, { description: n.message, duration: 6000 });
+              else if (n.type === 'request_rejected') toast.error(n.title, { description: n.message, duration: 6000 });
+            }
+          });
+          prevNotifIdsRef.current = new Set(res.data.map((n: any) => n.id));
+          setApiNotifications(res.data);
+        }
+      } catch { /* silent */ }
+    };
+    fetchApiNotifs();
+    const interval = setInterval(fetchApiNotifs, 20000);
+    return () => clearInterval(interval);
+  }, [user?.role]);
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(() => {
     try {
       const stored = localStorage.getItem(`reminder_dismissed_${user?.id ?? 'user'}`);
@@ -456,13 +484,77 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
             {/* Combined Notification + Reminder Bell (Staff & Resident) */}
             {(user?.role === 'staff' || user?.role === 'resident') && (
-              <NotificationBell
-                reminders={visibleReminders}
-                unreadReminderCount={unreadCount}
-                onDismissReminder={(id) => persistDismiss(new Set([...dismissedIds, id]))}
-                onDismissAllReminders={() => { persistDismiss(new Set(reminders.map((r: any) => r.id))); }}
-                panelRef={reminderPanelRef}
-              />
+              <div className="relative" ref={reminderPanelRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-primary-foreground/80 hover:bg-white/10 hover:text-white"
+                  onClick={() => setShowReminderPanel(v => !v)}
+                >
+                  <Bell className={cn('h-4 w-4', (unreadCount + apiNotifUnread) > 0 && 'text-amber-300')} />
+                  {(unreadCount + apiNotifUnread) > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white leading-none">
+                      {(unreadCount + apiNotifUnread) > 9 ? '9+' : unreadCount + apiNotifUnread}
+                    </span>
+                  )}
+                </Button>
+                {showReminderPanel && (
+                  <div className="absolute right-0 top-11 z-50 w-80 rounded-lg border bg-white shadow-xl dark:bg-card">
+                    <div className="flex items-center justify-between border-b px-4 py-3">
+                      <span className="font-semibold text-sm text-slate-900 dark:text-foreground">Notifications</span>
+                      {(unreadCount + apiNotifUnread) > 0 && (
+                        <button
+                          onClick={() => {
+                            persistDismiss(new Set(reminders.map((r: any) => r.id)));
+                            api.notifications.markAllRead().then(() => setApiNotifications(prev => prev.map(n => ({ ...n, isRead: true }))));
+                            setShowReminderPanel(false);
+                          }}
+                          className="text-xs text-muted-foreground hover:text-slate-900 dark:hover:text-white"
+                        >Dismiss all</button>
+                      )}
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {/* API Notifications (approved/rejected requests) */}
+                      {apiNotifications.map((n: any) => (
+                        <div key={`notif-${n.id}`}
+                          onClick={() => api.notifications.markRead(n.id).then(() => setApiNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x)))}
+                          className={cn('flex items-start gap-3 border-b px-4 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800', !n.isRead && 'bg-blue-50/50 dark:bg-blue-950/20')}
+                        >
+                          <span className="text-base mt-0.5 shrink-0">
+                            {n.type === 'request_approved' ? '✅' : n.type === 'request_rejected' ? '❌' : '🔔'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate text-slate-900 dark:text-foreground">{n.title}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                          </div>
+                          {!n.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
+                        </div>
+                      ))}
+                      {/* Task Reminders */}
+                      {visibleReminders.length === 0 && apiNotifications.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+                          <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+                          <p className="text-sm">No notifications</p>
+                        </div>
+                      ) : visibleReminders.map((r: any) => (
+                        <div key={`rem-${r.id}`} className="flex items-start gap-3 border-b px-4 py-3 last:border-0">
+                          <AlertCircle className={cn('mt-0.5 h-4 w-4 shrink-0', priorityColors[r.priority] || 'text-slate-400')} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate text-slate-900 dark:text-foreground">{r.taskName}</p>
+                            <p className="text-xs text-muted-foreground">Due: {format(new Date(r.dueDate), 'MMM dd, yyyy')}</p>
+                            <span className={cn('text-[10px] font-semibold capitalize', priorityColors[r.priority])}>
+                              {r.priority} priority
+                            </span>
+                          </div>
+                          <button onClick={() => persistDismiss(new Set([...dismissedIds, r.id]))} className="text-muted-foreground hover:text-slate-900 dark:hover:text-white shrink-0 mt-0.5">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* User Menu */}
