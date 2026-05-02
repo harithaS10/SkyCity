@@ -860,6 +860,14 @@ export const api = {
       (await apiClient.post('/works/bulk', { works })).data,
   },
   
+  // Notifications
+  notifications: {
+    getAll: async () => (await apiClient.get('/notifications')).data,
+    getUnreadCount: async () => (await apiClient.get('/notifications/unread-count')).data,
+    markRead: async (id: number) => (await apiClient.post(`/notifications/${id}/read`, {})).data,
+    markAllRead: async () => (await apiClient.post('/notifications/mark-all-read', {})).data,
+  },
+
   // Chat & Groups
   chat: {
     getUsers: async () => (await apiClient.get('/chat/users')).data,

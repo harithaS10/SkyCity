@@ -68,6 +68,7 @@ import { ModeToggle } from '@/components/ModeToggle';
 import { ChatBox } from '@/components/ChatBox';
 import { Badge } from '@/components/ui/badge';
 import logo from '@/assets/skycity-logo.png';
+import { NotificationBell } from '@/components/NotificationBell';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -452,6 +453,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             
 
             <ModeToggle className="text-primary-foreground/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8" />
+
+            {/* Notification Bell (Staff & Resident) — request approvals/rejections */}
+            {(user?.role === 'staff' || user?.role === 'resident') && (
+              <NotificationBell />
+            )}
 
             {/* Reminder Bell (Staff & Resident) */}
             {(user?.role === 'staff' || user?.role === 'resident') && (

@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SkycityBackend.Attributes;
 using SkycityBackend.Data;
 using SkycityBackend.DTOs;
 using SkycityBackend.Models;
+using SkycityBackend.Services;
 using System.Security.Claims;
-
-using SkycityBackend.Attributes;
 
 namespace SkycityBackend.Controllers;
 
@@ -17,10 +17,13 @@ public class WorkAllocationController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _env;
-    public WorkAllocationController(AppDbContext context, IWebHostEnvironment env)
+    private readonly INotificationService _notifications;
+
+    public WorkAllocationController(AppDbContext context, IWebHostEnvironment env, INotificationService notifications)
     {
         _context = context;
         _env = env;
+        _notifications = notifications;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
@@ -34,7 +37,6 @@ public class WorkAllocationController : ControllerBase
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
 
-        // Enrich with user names and work titles
         var userIds = items.SelectMany(a => new[] { a.AssignedTo, a.AssignedBy }).Distinct().ToList();
         var users = await _context.Users
             .Where(u => userIds.Contains(u.Id))
@@ -56,8 +58,8 @@ public class WorkAllocationController : ControllerBase
             a.ProgressNote, a.RequestStatus, a.RequestedDueDate, a.RequestedDescription,
             a.ReassignReason, a.ReassignedFrom, a.CreatedAt, a.Duration, a.CompletedAt,
             a.AttachmentUrls,
-            clientName   = userMap.GetValueOrDefault(a.AssignedTo, ""),
-            workTitle    = !string.IsNullOrEmpty(workMap.GetValueOrDefault(a.WorkId, ""))
+            clientName = userMap.GetValueOrDefault(a.AssignedTo, ""),
+            workTitle = !string.IsNullOrEmpty(workMap.GetValueOrDefault(a.WorkId, ""))
                 ? workMap[a.WorkId]
                 : (!string.IsNullOrEmpty(a.Title) ? a.Title : null),
             lastProgressUpdate = a.ProgressNote != null ? a.CreatedAt : (DateTime?)null,
@@ -197,9 +199,7 @@ public class WorkAllocationController : ControllerBase
         if (dto.Files == null || dto.Files.Count == 0)
             return BadRequest(new ApiResponse { Success = false, Message = "No files provided" });
 
-        // Store as JSON array of {name, type, data} in AttachmentUrls
         var existing = string.IsNullOrEmpty(alloc.AttachmentUrls) ? "[]" : alloc.AttachmentUrls;
-        // If existing is comma-separated paths (old format), wrap in array
         if (!existing.TrimStart().StartsWith("["))
             existing = "[]";
 
@@ -284,6 +284,16 @@ public class WorkAllocationController : ControllerBase
         if (alloc.RequestedDueDate.HasValue) alloc.DueDate = alloc.RequestedDueDate.Value;
         if (alloc.RequestedDescription != null) alloc.Description = alloc.RequestedDescription;
         await _context.SaveChangesAsync();
+
+        var newDate = alloc.DueDate.ToString("MMM dd, yyyy");
+        await _notifications.SendAsync(
+            alloc.AssignedTo,
+            "✅ Request Approved",
+            $"Your due date extension request for \"{alloc.Title}\" has been approved. New due date: {newDate}.",
+            "request_approved",
+            alloc.Id
+        );
+
         return Ok(new ApiResponse { Success = true, Message = "Request approved" });
     }
 
@@ -296,6 +306,15 @@ public class WorkAllocationController : ControllerBase
         alloc.RequestedDueDate = null;
         alloc.RequestedDescription = null;
         await _context.SaveChangesAsync();
+
+        await _notifications.SendAsync(
+            alloc.AssignedTo,
+            "❌ Request Rejected",
+            $"Your due date extension request for \"{alloc.Title}\" was not approved. The original due date remains.",
+            "request_rejected",
+            alloc.Id
+        );
+
         return Ok(new ApiResponse { Success = true, Message = "Request denied" });
     }
 
@@ -306,15 +325,8 @@ public class WorkAllocationController : ControllerBase
         if (rows == null || rows.Count == 0)
             return BadRequest(new ApiResponse { Success = false, Message = "No allocation rows provided." });
 
-        // Pre-load lookup data scoped to this association
-        var workCategories = await _context.WorkCategories
-            .Where(w => w.IsActive)
-            .ToListAsync();
-
-        var assocUsers = await _context.Users
-            .Where(u => u.AssociationId == CurrentAssocId && u.IsActive)
-            .ToListAsync();
-
+        var workCategories = await _context.WorkCategories.Where(w => w.IsActive).ToListAsync();
+        var assocUsers = await _context.Users.Where(u => u.AssociationId == CurrentAssocId && u.IsActive).ToListAsync();
         var validPriorities = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "low", "medium", "high" };
         var acceptedDateFormats = new[] { "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ssZ", "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-ddTHH:mm:ss" };
 
@@ -326,14 +338,12 @@ public class WorkAllocationController : ControllerBase
             var row = rows[i];
             int rowNum = i + 1;
 
-            // Validate title
             if (string.IsNullOrWhiteSpace(row.Title))
             {
                 errors.Add($"Row {rowNum}: Title is required.");
                 continue;
             }
 
-            // Resolve WorkId
             WorkCategory? work = null;
             if (!string.IsNullOrWhiteSpace(row.WorkCode))
                 work = workCategories.FirstOrDefault(w => string.Equals(w.WorkCode, row.WorkCode.Trim(), StringComparison.OrdinalIgnoreCase));
@@ -341,11 +351,10 @@ public class WorkAllocationController : ControllerBase
                 work = workCategories.FirstOrDefault(w => string.Equals(w.WorkTitle, row.WorkTitle.Trim(), StringComparison.OrdinalIgnoreCase));
             if (work == null)
             {
-                errors.Add($"Row {rowNum}: Could not match workCode '{row.WorkCode}' or workTitle '{row.WorkTitle}' to any active work category.");
+                errors.Add($"Row {rowNum}: Could not match workCode '{row.WorkCode}' or workTitle '{row.WorkTitle}'.");
                 continue;
             }
 
-            // Resolve AssignedTo user
             User? assignedUser = null;
             if (!string.IsNullOrWhiteSpace(row.AssignedTo))
             {
@@ -354,21 +363,19 @@ public class WorkAllocationController : ControllerBase
             }
             if (assignedUser == null)
             {
-                errors.Add($"Row {rowNum}: Could not find active user '{row.AssignedTo}' in this association.");
+                errors.Add($"Row {rowNum}: Could not find active user '{row.AssignedTo}'.");
                 continue;
             }
 
-            // Parse dueDate
             if (!DateTime.TryParseExact(row.DueDate?.Trim(), acceptedDateFormats,
                     System.Globalization.CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
                     out var dueDate))
             {
-                errors.Add($"Row {rowNum}: Invalid date format for dueDate '{row.DueDate}'");
+                errors.Add($"Row {rowNum}: Invalid date format '{row.DueDate}'.");
                 continue;
             }
 
-            // Normalise priority
             var priority = "medium";
             if (!string.IsNullOrWhiteSpace(row.Priority) && validPriorities.Contains(row.Priority.Trim()))
                 priority = row.Priority.Trim().ToLower();
@@ -410,88 +417,41 @@ public class WorkAllocationController : ControllerBase
         if (string.IsNullOrEmpty(alloc.AttachmentUrls))
             return Ok(new ApiResponse { Success = true, Message = "No attachments to delete" });
 
-        // If specific attachment name is provided, delete only that one
         if (dto?.AttachmentName != null)
         {
             try
             {
-                // Try to parse as JSON array
                 var attachments = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(alloc.AttachmentUrls);
                 if (attachments != null)
                 {
-                    // Remove the specific attachment by name
-                    var filtered = attachments.Where(a => 
+                    var filtered = attachments.Where(a =>
                     {
                         if (a.TryGetProperty("name", out var nameEl) || a.TryGetProperty("Name", out nameEl))
-                        {
                             return nameEl.GetString() != dto.AttachmentName;
-                        }
                         return true;
                     }).ToList();
-                    
-                    alloc.AttachmentUrls = filtered.Count > 0 
-                        ? System.Text.Json.JsonSerializer.Serialize(filtered) 
-                        : null;
+                    alloc.AttachmentUrls = filtered.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(filtered) : null;
                 }
                 else
                 {
-                    // Fallback: comma-separated paths
-                    var paths = alloc.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
-                    paths = paths.Where(p => !p.Contains(dto.AttachmentName)).ToList();
+                    var paths = alloc.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Where(p => !p.Contains(dto.AttachmentName)).ToList();
                     alloc.AttachmentUrls = paths.Count > 0 ? string.Join(",", paths) : null;
                 }
             }
             catch
             {
-                // If JSON parsing fails, treat as comma-separated paths
-                var paths = alloc.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
-                paths = paths.Where(p => !p.Contains(dto.AttachmentName)).ToList();
+                var paths = alloc.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Where(p => !p.Contains(dto.AttachmentName)).ToList();
                 alloc.AttachmentUrls = paths.Count > 0 ? string.Join(",", paths) : null;
             }
         }
         else
         {
-            // Delete all attachments
             alloc.AttachmentUrls = null;
         }
 
         await _context.SaveChangesAsync();
         return Ok(new ApiResponse<dynamic> { Success = true, Message = "Attachments deleted successfully", Data = new { attachmentUrls = alloc.AttachmentUrls } });
     }
-}
-
-public class CreateAllocationDto
-{
-    public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public int WorkId { get; set; }
-    public List<int> AssignedToIds { get; set; } = new();
-    public DateTime DueDate { get; set; }
-    public string? Priority { get; set; }
-    public Dictionary<int, string>? UserDescriptions { get; set; }
-}
-
-public class UpdateStatusDto { public string Status { get; set; } = string.Empty; public string? Duration { get; set; } }
-public class ProgressDto { public string ProgressNote { get; set; } = string.Empty; }
-public class ReassignDto { public int NewUserId { get; set; } public string? Reason { get; set; } }
-public class DeleteAttachmentsDto { public string? AttachmentName { get; set; } }
-public class SelfAssignDto
-{
-    public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public int WorkId { get; set; }
-    public int? ClientId { get; set; }
-    public string Priority { get; set; } = "medium";
-    public DateTime DueDate { get; set; }
-}
-
-public class BulkAllocationRowDto
-{
-    public string Title { get; set; } = string.Empty;
-    public string? WorkCode { get; set; }
-    public string? WorkTitle { get; set; }
-    public string? AssignedTo { get; set; }
-    public string? Priority { get; set; }
-    public string? DueDate { get; set; }
-    public string? Description { get; set; }
 }
