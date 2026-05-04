@@ -71,7 +71,7 @@ export const BrandingProvider: React.FC<{ children: ReactNode }> = ({
   const { user } = useAuth();
   const previousColor = useRef<string | undefined>(undefined);
 
-  const companyName = user?.companyName || 'SkyCity';
+  const companyName = user?.associationName || user?.companyName || 'SkyCity';
   const logoUrl = user?.logoUrl;
   const themeColor = user?.themeColor;
 

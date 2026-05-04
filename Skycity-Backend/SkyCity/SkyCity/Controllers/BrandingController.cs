@@ -38,9 +38,9 @@ public class BrandingController : ControllerBase
             Success = true,
             Data = new
             {
-                assoc.AssociationName,
-                assoc.LogoUrl,
-                assoc.ThemeColor,
+                associationName = assoc.AssociationName,
+                logoUrl = assoc.LogoUrl,
+                themeColor = assoc.ThemeColor,
             }
         });
     }
@@ -105,7 +105,7 @@ public class BrandingController : ControllerBase
         {
             Success = true,
             Message = "Branding updated",
-            Data = new { assoc.AssociationName, assoc.LogoUrl, assoc.ThemeColor }
+            Data = new { associationName = assoc.AssociationName, logoUrl = assoc.LogoUrl, themeColor = assoc.ThemeColor }
         });
     }
 }
