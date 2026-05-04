@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Vivify Reports</string>
-    <string name="title_activity_main">Vivify Reports</string>
-    <string name="package_name">com.vivify.dailybright</string>
-    <string name="custom_url_scheme">com.vivify.dailybright</string>
+    <string name="app_name">SkyCity</string>
+    <string name="title_activity_main">SkyCity</string>
+    <string name="package_name">com.skycity.reports</string>
+    <string name="custom_url_scheme">com.skycity.reports</string>
 </resources>
