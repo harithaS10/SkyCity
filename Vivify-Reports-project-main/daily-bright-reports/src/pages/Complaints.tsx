@@ -498,7 +498,10 @@ const Complaints: React.FC = () => {
         </div>
         
         {/* Create Dialog */}
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '' });
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>New Complaint</DialogTitle>
