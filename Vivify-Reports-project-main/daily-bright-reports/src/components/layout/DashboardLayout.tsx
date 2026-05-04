@@ -184,8 +184,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     const fetchApiNotifs = async () => {
       try {
         const res = await api.notifications.getAll();
-        if (res.success && Array.isArray(res.data)) {
-          // Toast for brand-new ones
+        if (res?.success && Array.isArray(res.data)) {
           res.data.forEach((n: any) => {
             if (!prevNotifIdsRef.current.has(n.id) && prevNotifIdsRef.current.size > 0) {
               if (n.type === 'request_approved') toast.success(n.title, { description: n.message, duration: 6000 });
@@ -195,26 +194,25 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           prevNotifIdsRef.current = new Set(res.data.map((n: any) => n.id));
           setApiNotifications(res.data);
         }
-      } catch { /* silent */ }
+      } catch { /* silent — endpoint may not be available yet */ }
     };
     fetchApiNotifs();
-    const interval = setInterval(fetchApiNotifs, 20000);
+    const interval = setInterval(fetchApiNotifs, 60000); // reduced to 60s to reduce server load
     return () => clearInterval(interval);
   }, [user?.role]);
 
-  // Polling for admin notifications (self-assign, task started, completed, progress, request-change)
+  // Polling for admin notifications
   useEffect(() => {
     const isAdmin = user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'property_manager' || user?.role === 'facility_manager';
     if (!isAdmin) return;
     const fetchAdminNotifs = async () => {
       try {
         const res = await api.notifications.getAll();
-        if (res.success && Array.isArray(res.data)) {
-          // Toast for brand-new admin notifications
+        if (res?.success && Array.isArray(res.data)) {
           res.data.forEach((n: any) => {
             if (!prevNotifIdsRef.current.has(n.id) && prevNotifIdsRef.current.size > 0) {
               if (n.type === 'task_completed') toast.success(n.title, { description: n.message, duration: 6000 });
-              else if (n.type === 'self_assign' || n.type === 'task_started' || n.type === 'request_change' || n.type === 'progress_update')
+              else if (['self_assign','task_started','request_change','progress_update'].includes(n.type))
                 toast.info(n.title, { description: n.message, duration: 6000 });
             }
           });
@@ -224,7 +222,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       } catch { /* silent */ }
     };
     fetchAdminNotifs();
-    const interval = setInterval(fetchAdminNotifs, 20000);
+    const interval = setInterval(fetchAdminNotifs, 60000);
     return () => clearInterval(interval);
   }, [user?.role]);
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(() => {
