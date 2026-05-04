@@ -86,7 +86,7 @@ const UserManagement: React.FC = () => {
     username: '',
     email: '',
     password: '',
-    role: 'user',
+    role: 'staff',
     departmentId: '',
     roleId: '',
   });
@@ -332,9 +332,15 @@ const UserManagement: React.FC = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-card">
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="manager">Manager / Supervisor</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="sub_admin">Sub Admin</SelectItem>
+                        <SelectItem value="property_manager">Property Manager</SelectItem>
+                        <SelectItem value="facility_manager">Facility Manager</SelectItem>
+                        <SelectItem value="staff">Staff</SelectItem>
+                        <SelectItem value="vendor">Vendor</SelectItem>
+                        <SelectItem value="resident">Resident</SelectItem>
+                        <SelectItem value="accountant">Accountant</SelectItem>
+                        <SelectItem value="helpdesk">Helpdesk</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

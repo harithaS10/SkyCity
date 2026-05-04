@@ -106,17 +106,41 @@ public class UserController : ControllerBase
         var created = new List<object>();
         var errors = new List<string>();
 
+        // Load all existing users including soft-deleted ones
+        var existingUsers = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.AssociationId == CurrentAssocId || CurrentAssocId == 0)
+            .ToListAsync();
+
+        var existingMap = existingUsers
+            .ToDictionary(u => u.Username.ToLower(), u => u);
+
         foreach (var u in dto.Users)
         {
-            if (await _context.Users.AnyAsync(x => x.Username == u.Username))
-            {
-                errors.Add($"Username '{u.Username}' already taken");
-                continue;
-            }
-
             var roleStr = u.Role == "user" ? "resident" : (u.Role ?? "staff");
             if (!Enum.TryParse<UserRole>(roleStr, true, out var parsedRole))
                 parsedRole = UserRole.staff;
+
+            if (existingMap.TryGetValue(u.Username.ToLower(), out var existing))
+            {
+                if (existing.IsDeleted)
+                {
+                    // IsDeleted=true means active — user exists and is active, skip
+                    errors.Add($"Username '{u.Username}' already exists");
+                    continue;
+                }
+                else
+                {
+                    // IsDeleted=false means soft-deleted — restore the user
+                    existing.IsDeleted = true;
+                    existing.IsActive = true;
+                    existing.FullName = u.FullName;
+                    existing.PasswordHash = u.Password;
+                    existing.Role = parsedRole;
+                    created.Add(new { existing.Username, existing.FullName, role = existing.Role.ToString() });
+                    continue;
+                }
+            }
 
             var user = new User
             {
