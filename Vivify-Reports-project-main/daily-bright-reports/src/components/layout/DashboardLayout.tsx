@@ -168,14 +168,17 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   // Reminder bell (user only)
   const [reminders, setReminders] = useState<any[]>([]);
   const [showReminderPanel, setShowReminderPanel] = useState(false);
+  const [showAdminNotifPanel, setShowAdminNotifPanel] = useState(false);
   const reminderPanelRef = useRef<HTMLDivElement>(null);
+  const adminNotifPanelRef = useRef<HTMLDivElement>(null);
   const DISMISSED_KEY = `reminder_dismissed_${user?.id ?? 'user'}`;
 
-  // API notifications (approved/rejected requests)
+  // API notifications (approved/rejected requests for staff/resident, admin notifications for admins)
   const [apiNotifications, setApiNotifications] = useState<any[]>([]);
   const apiNotifUnread = apiNotifications.filter((n: any) => !n.isRead).length;
   const prevNotifIdsRef = React.useRef<Set<number>>(new Set());
 
+  // Polling for staff/resident notifications
   useEffect(() => {
     if (user?.role !== 'staff' && user?.role !== 'resident') return;
     const fetchApiNotifs = async () => {
@@ -196,6 +199,32 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     };
     fetchApiNotifs();
     const interval = setInterval(fetchApiNotifs, 20000);
+    return () => clearInterval(interval);
+  }, [user?.role]);
+
+  // Polling for admin notifications (self-assign, task started, completed, progress, request-change)
+  useEffect(() => {
+    const isAdmin = user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'property_manager' || user?.role === 'facility_manager';
+    if (!isAdmin) return;
+    const fetchAdminNotifs = async () => {
+      try {
+        const res = await api.notifications.getAll();
+        if (res.success && Array.isArray(res.data)) {
+          // Toast for brand-new admin notifications
+          res.data.forEach((n: any) => {
+            if (!prevNotifIdsRef.current.has(n.id) && prevNotifIdsRef.current.size > 0) {
+              if (n.type === 'task_completed') toast.success(n.title, { description: n.message, duration: 6000 });
+              else if (n.type === 'self_assign' || n.type === 'task_started' || n.type === 'request_change' || n.type === 'progress_update')
+                toast.info(n.title, { description: n.message, duration: 6000 });
+            }
+          });
+          prevNotifIdsRef.current = new Set(res.data.map((n: any) => n.id));
+          setApiNotifications(res.data);
+        }
+      } catch { /* silent */ }
+    };
+    fetchAdminNotifs();
+    const interval = setInterval(fetchAdminNotifs, 20000);
     return () => clearInterval(interval);
   }, [user?.role]);
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(() => {
@@ -299,6 +328,9 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     const handler = (e: MouseEvent) => {
       if (reminderPanelRef.current && !reminderPanelRef.current.contains(e.target as Node)) {
         setShowReminderPanel(false);
+      }
+      if (adminNotifPanelRef.current && !adminNotifPanelRef.current.contains(e.target as Node)) {
+        setShowAdminNotifPanel(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -481,6 +513,83 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             
 
             <ModeToggle className="text-primary-foreground/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8" />
+
+            {/* Admin Notification Bell */}
+            {(user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'property_manager' || user?.role === 'facility_manager') && (
+              <div className="relative" ref={adminNotifPanelRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-primary-foreground/80 hover:bg-white/10 hover:text-white"
+                  onClick={() => setShowAdminNotifPanel(v => !v)}
+                >
+                  <Bell className={cn('h-4 w-4', apiNotifUnread > 0 && 'text-amber-300')} />
+                  {apiNotifUnread > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white leading-none">
+                      {apiNotifUnread > 9 ? '9+' : apiNotifUnread}
+                    </span>
+                  )}
+                </Button>
+                {showAdminNotifPanel && (
+                  <div className="fixed sm:absolute right-0 sm:right-0 top-16 sm:top-11 left-0 sm:left-auto z-[100] sm:w-80 w-full sm:rounded-lg rounded-none border bg-white shadow-xl dark:bg-card">
+                    <div className="flex items-center justify-between border-b px-4 py-3">
+                      <span className="font-semibold text-sm text-slate-900 dark:text-foreground flex items-center gap-2">
+                        <Bell className="h-4 w-4 text-primary" />
+                        Employee Notifications
+                        {apiNotifUnread > 0 && (
+                          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-rose-500 text-[9px] font-bold text-white">{apiNotifUnread}</span>
+                        )}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {apiNotifications.length > 0 && (
+                          <button
+                            onClick={() => api.notifications.markAllRead().then(() => setApiNotifications(prev => prev.map(n => ({ ...n, isRead: true }))))}
+                            className="text-xs text-primary hover:text-primary/80 font-medium"
+                          >Mark all read</button>
+                        )}
+                        <button onClick={() => setShowAdminNotifPanel(false)} className="text-muted-foreground hover:text-slate-900 dark:hover:text-white">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="max-h-[60vh] sm:max-h-80 overflow-y-auto">
+                      {apiNotifications.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
+                          <Bell className="h-10 w-10 text-slate-200" />
+                          <p className="text-sm font-medium">No notifications yet</p>
+                          <p className="text-xs text-center px-6">Notifications will appear here when employees start tasks, complete work, or request changes.</p>
+                        </div>
+                      ) : apiNotifications.map((n: any) => {
+                        const icons: Record<string, string> = {
+                          task_completed: '✅',
+                          task_started: '▶️',
+                          self_assign: '📋',
+                          progress_update: '📝',
+                          request_change: '⚠️',
+                          request_approved: '✅',
+                          request_rejected: '❌',
+                        };
+                        return (
+                          <div
+                            key={`admin-notif-${n.id}`}
+                            className={cn('flex items-start gap-3 border-b px-4 py-3 last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors', !n.isRead && 'bg-blue-50/60 dark:bg-blue-950/20')}
+                            onClick={() => api.notifications.markRead(n.id).then(() => setApiNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x)))}
+                          >
+                            <span className="text-lg mt-0.5 shrink-0">{icons[n.type] ?? '🔔'}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-foreground leading-tight">{n.title}</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{n.message}</p>
+                              <p className="text-[10px] text-muted-foreground/60 mt-1">{format(new Date(n.createdAt), 'MMM dd, hh:mm a')}</p>
+                            </div>
+                            {!n.isRead && <span className="h-2.5 w-2.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Combined Notification + Reminder Bell (Staff & Resident) */}
             {(user?.role === 'staff' || user?.role === 'resident') && (

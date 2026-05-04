@@ -1249,11 +1249,23 @@ const WorkAllocationPage: React.FC = () => {
                                   </div>
                                 )}
                                 {allocation.requestStatus === 'pending' && (
-                                  <div className="mt-2 p-2 bg-amber-50/50 rounded border border-amber-200/50 text-[10px]">
-                                    <p className="font-bold text-amber-800 mb-1">Update Request:</p>
-                                    <div className="flex gap-2 mt-2">
-                                      <Button size="sm" className="h-5 text-[9px] px-2 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleApproveRequest(allocation.id)}>Approve</Button>
-                                      <Button size="sm" variant="destructive" className="h-5 text-[9px] px-2" onClick={() => handleDenyRequest(allocation.id)}>Deny</Button>
+                                  <div className="mt-2 p-2.5 bg-amber-50 rounded-lg border border-amber-200 text-[10px] space-y-1.5">
+                                    <p className="font-bold text-amber-800 flex items-center gap-1">⚠️ Update Request</p>
+                                    {allocation.requestedDueDate && (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-amber-700 font-semibold shrink-0">New Due Date:</span>
+                                        <span className="text-amber-900 font-bold">{format(new Date(allocation.requestedDueDate), 'MMM dd, yyyy')}</span>
+                                      </div>
+                                    )}
+                                    {allocation.requestedDescription && (
+                                      <div>
+                                        <span className="text-amber-700 font-semibold">Note:</span>
+                                        <p className="text-amber-900 mt-0.5 italic leading-snug">{allocation.requestedDescription}</p>
+                                      </div>
+                                    )}
+                                    <div className="flex gap-2 pt-1">
+                                      <Button size="sm" className="h-6 text-[9px] px-2.5 bg-emerald-600 hover:bg-emerald-700" onClick={() => handleApproveRequest(allocation.id)}>Approve</Button>
+                                      <Button size="sm" variant="destructive" className="h-6 text-[9px] px-2.5" onClick={() => handleDenyRequest(allocation.id)}>Deny</Button>
                                     </div>
                                   </div>
                                 )}
@@ -1550,20 +1562,37 @@ const WorkAllocationPage: React.FC = () => {
 
                     {/* Request Actions */}
                     {allocation.requestStatus === 'pending' && (
-                      <div className="grid grid-cols-2 gap-2 pt-2">
-                        <Button 
-                          onClick={() => handleApproveRequest(allocation.id)}
-                          className="h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest shadow-md shadow-emerald-500/20"
-                        >
-                          Approve Update
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => handleDenyRequest(allocation.id)}
-                          className="h-10 rounded-xl border-rose-100 text-rose-500 hover:bg-rose-50 text-[10px] font-black uppercase tracking-widest"
-                        >
-                          Decline
-                        </Button>
+                      <div className="space-y-3 pt-2 border-t border-amber-100">
+                        <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 space-y-2">
+                          <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest flex items-center gap-1">⚠️ Update Request</p>
+                          {allocation.requestedDueDate && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-amber-700 shrink-0">New Due Date:</span>
+                              <span className="text-[11px] font-black text-amber-900">{format(new Date(allocation.requestedDueDate), 'MMM dd, yyyy')}</span>
+                            </div>
+                          )}
+                          {allocation.requestedDescription && (
+                            <div>
+                              <span className="text-[10px] font-bold text-amber-700">Employee Note:</span>
+                              <p className="text-[11px] text-amber-900 mt-0.5 italic leading-relaxed">{allocation.requestedDescription}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button 
+                            onClick={() => handleApproveRequest(allocation.id)}
+                            className="h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest shadow-md shadow-emerald-500/20"
+                          >
+                            ✅ Approve
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => handleDenyRequest(allocation.id)}
+                            className="h-10 rounded-xl border-rose-100 text-rose-500 hover:bg-rose-50 text-[10px] font-black uppercase tracking-widest"
+                          >
+                            ❌ Decline
+                          </Button>
+                        </div>
                       </div>
                     )}
 

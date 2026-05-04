@@ -29,6 +29,24 @@ public class WorkAllocationController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
     private int CurrentAssocId => int.TryParse(User.FindFirst("AssociationId")?.Value, out var id) ? id : 0;
 
+    /// <summary>Returns all admin/sub_admin/property_manager user IDs for the current association.</summary>
+    private async Task<List<int>> GetAdminIdsAsync()
+    {
+        var adminRoles = new[] { "admin", "sub_admin", "property_manager", "facility_manager" };
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => u.AssociationId == CurrentAssocId && u.IsActive && adminRoles.Contains(u.Role.ToString()))
+            .Select(u => u.Id)
+            .ToListAsync();
+    }
+
+    private async Task NotifyAdminsAsync(string title, string message, string type, int referenceId)
+    {
+        var adminIds = await GetAdminIdsAsync();
+        if (adminIds.Count > 0)
+            await _notifications.SendBulkAsync(adminIds, title, message, type, referenceId);
+    }
+
     [HttpGet("all")]
     public async Task<ActionResult> GetAll()
     {
@@ -127,6 +145,16 @@ public class WorkAllocationController : ControllerBase
         };
         _context.WorkAllocations.Add(alloc);
         await _context.SaveChangesAsync();
+
+        // Notify admins
+        var employee = await _context.Users.AsNoTracking().Where(u => u.Id == CurrentUserId).Select(u => u.FullName).FirstOrDefaultAsync() ?? "An employee";
+        await NotifyAdminsAsync(
+            "New Self-Assigned Work",
+            $"{employee} self-assigned: \"{dto.Title}\"",
+            "self_assign",
+            alloc.Id
+        );
+
         return Ok(new ApiResponse<dynamic> { Success = true, Message = "Work started and admin notified", Data = alloc });
     }
 
@@ -162,12 +190,37 @@ public class WorkAllocationController : ControllerBase
     {
         var alloc = await _context.WorkAllocations.FindAsync(id);
         if (alloc == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+        var prevStatus = alloc.Status;
         alloc.Status = dto.Status;
         if (!string.IsNullOrEmpty(dto.Duration))
             alloc.Duration = dto.Duration;
         if (dto.Status == "completed")
             alloc.CompletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+
+        // Notify admins when employee starts or completes a task
+        if (dto.Status == "in-progress" && prevStatus != "in-progress")
+        {
+            var employee = await _context.Users.AsNoTracking().Where(u => u.Id == CurrentUserId).Select(u => u.FullName).FirstOrDefaultAsync() ?? "An employee";
+            await NotifyAdminsAsync(
+                "Task Started",
+                $"{employee} started working on \"{alloc.Title}\"",
+                "task_started",
+                alloc.Id
+            );
+        }
+        else if (dto.Status == "completed")
+        {
+            var employee = await _context.Users.AsNoTracking().Where(u => u.Id == CurrentUserId).Select(u => u.FullName).FirstOrDefaultAsync() ?? "An employee";
+            var durationText = !string.IsNullOrEmpty(dto.Duration) ? $" (Duration: {dto.Duration})" : "";
+            await NotifyAdminsAsync(
+                "Task Completed ✅",
+                $"{employee} completed \"{alloc.Title}\"{durationText}",
+                "task_completed",
+                alloc.Id
+            );
+        }
+
         return Ok(new ApiResponse { Success = true, Message = "Status updated" });
     }
 
@@ -178,6 +231,16 @@ public class WorkAllocationController : ControllerBase
         if (alloc == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
         alloc.ProgressNote = dto.ProgressNote;
         await _context.SaveChangesAsync();
+
+        // Notify admins of progress update
+        var employee = await _context.Users.AsNoTracking().Where(u => u.Id == CurrentUserId).Select(u => u.FullName).FirstOrDefaultAsync() ?? "An employee";
+        await NotifyAdminsAsync(
+            "Progress Update 📝",
+            $"{employee} updated progress on \"{alloc.Title}\": {dto.ProgressNote}",
+            "progress_update",
+            alloc.Id
+        );
+
         return Ok(new ApiResponse { Success = true, Message = "Progress updated" });
     }
 
@@ -272,6 +335,16 @@ public class WorkAllocationController : ControllerBase
         alloc.RequestedDueDate = dto.DueDate;
         alloc.RequestedDescription = dto.Description;
         await _context.SaveChangesAsync();
+
+        // Notify admins of the change request
+        var employee = await _context.Users.AsNoTracking().Where(u => u.Id == CurrentUserId).Select(u => u.FullName).FirstOrDefaultAsync() ?? "An employee";
+        await NotifyAdminsAsync(
+            "Update Request ⚠️",
+            $"{employee} requested changes on \"{alloc.Title}\"",
+            "request_change",
+            alloc.Id
+        );
+
         return Ok(new ApiResponse { Success = true, Message = "Request submitted" });
     }
 
