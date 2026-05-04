@@ -290,9 +290,10 @@ const PropertyManagement: React.FC = () => {
       toast.error('Property name is required');
       return;
     }
-    const payload: Partial<PropertyItem> = {
+    const payload: Partial<PropertyItem> & { associationId?: number } = {
       propertyType: form.propertyType,
       propertyName: form.propertyName.trim(),
+      associationId: Number(user?.associationId),
     };
     if (form.propertyType === 'apartment') {
       if (form.towerName) payload.towerName = form.towerName.trim();
@@ -302,7 +303,7 @@ const PropertyManagement: React.FC = () => {
       if (form.contactMobile) payload.contactMobile = form.contactMobile.trim();
       if (form.address) payload.address = form.address.trim();
     } else {
-      if (form.commonAreas) payload.commonAreas = form.commonAreas.trim();
+      if (form.commonAreas) payload.commonAreas = form.commonAreas.trim().split(',').map((s: string) => s.trim()).filter(Boolean) as any;
       if (form.address) payload.address = form.address.trim();
     }
     createMutation.mutate(payload);

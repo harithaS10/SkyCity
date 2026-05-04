@@ -4,7 +4,7 @@ namespace SkycityBackend.DTOs;
 
 public class CreatePropertyDto
 {
-    [Required] public int AssociationId { get; set; }
+    public int AssociationId { get; set; }
     [Required] [MaxLength(255)] public string PropertyName { get; set; } = string.Empty;
     [MaxLength(500)] public string? Address { get; set; }
     public int TotalUnits { get; set; }

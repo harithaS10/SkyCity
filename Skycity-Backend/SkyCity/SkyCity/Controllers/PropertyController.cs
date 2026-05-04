@@ -49,6 +49,18 @@ public class PropertyController : ControllerBase
         });
     }
 
+    // Diagnostic: list actual table names in the DB
+    [AllowAnonymous]
+    [HttpGet("db-tables")]
+    public async Task<ActionResult> GetDbTables()
+    {
+        var tables = await _context.Database
+            .SqlQueryRaw<string>("SELECT TABLE_SCHEMA + '.' + TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' ORDER BY TABLE_NAME")
+            .ToListAsync();
+        var db = _context.Database.GetDbConnection().Database;
+        return Ok(new { database = db, tables });
+    }
+
     [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
     [HttpPost("bulk")]
     public async Task<ActionResult> CreatePropertiesBulk([FromBody] BulkCreatePropertyDto dto)
@@ -89,12 +101,14 @@ public class PropertyController : ControllerBase
             return BadRequest(new ApiResponse { Success = false, Message = "Invalid input" });
 
         var userAssocId = int.Parse(User.FindFirst("AssociationId")?.Value ?? "0");
-        if (dto.AssociationId != userAssocId && !User.IsInRole("super_admin"))
-            return Forbid();
+        // Use JWT association — ignore body AssociationId for non-super-admins
+        var assocId = User.IsInRole("super_admin") && dto.AssociationId > 0
+            ? dto.AssociationId
+            : userAssocId;
 
         var property = new Property
         {
-            AssociationId = dto.AssociationId,
+            AssociationId = assocId,
             PropertyName  = dto.PropertyName,
             Address       = dto.Address,
             TotalUnits    = dto.TotalUnits,
@@ -111,9 +125,17 @@ public class PropertyController : ControllerBase
         };
 
         _context.Properties.Add(property);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            var inner = ex.InnerException?.Message ?? ex.Message;
+            return StatusCode(500, new ApiResponse { Success = false, Message = $"DB error: {inner}" });
+        }
 
-        await _auditService.LogChangeAsync<Property>("Create", "Property", property);
+        try { await _auditService.LogChangeAsync<Property>("Create", "Property", property); } catch { /* non-critical */ }
 
         return CreatedAtAction(nameof(GetProperties), new { associationId = property.AssociationId }, new ApiResponse<Property> { Data = property });
     }
