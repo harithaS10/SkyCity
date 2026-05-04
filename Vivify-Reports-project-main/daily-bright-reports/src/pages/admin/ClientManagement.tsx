@@ -133,7 +133,8 @@ const ClientManagement: React.FC = () => {
         toast.error(response.message || 'Failed to create client');
       }
     } catch (error: any) {
-      toast.error(error.message || 'An error occurred');
+      const msg = error?.response?.data?.message || error?.response?.data?.errors?.dto?.[0] || error?.message || 'An error occurred';
+      toast.error(msg);
     }
   };
 

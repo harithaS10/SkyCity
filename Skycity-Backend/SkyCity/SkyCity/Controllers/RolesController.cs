@@ -25,6 +25,13 @@ public class RolesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] RoleDto dto)
     {
+        // Prevent duplicate role name
+        var existing = await _context.Roles
+            .Where(r => r.RoleName.ToLower() == dto.RoleName.ToLower())
+            .FirstOrDefaultAsync();
+        if (existing != null)
+            return BadRequest(new ApiResponse { Success = false, Message = $"Role \"{existing.RoleName}\" already exists." });
+
         var role = new RoleDefinition
         {
             RoleName = dto.RoleName,
@@ -46,6 +53,14 @@ public class RolesController : ControllerBase
     {
         var role = await _context.Roles.FindAsync(id);
         if (role == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        // Prevent duplicate on update (exclude self)
+        var duplicate = await _context.Roles
+            .Where(r => r.Id != id && r.RoleName.ToLower() == dto.RoleName.ToLower())
+            .FirstOrDefaultAsync();
+        if (duplicate != null)
+            return BadRequest(new ApiResponse { Success = false, Message = $"Role \"{duplicate.RoleName}\" already exists." });
+
         role.RoleName = dto.RoleName;
         role.RoleType = dto.RoleType ?? role.RoleType;
         role.PermissionsJson = System.Text.Json.JsonSerializer.Serialize(dto.Permissions ?? new());
@@ -72,29 +87,53 @@ public class RolesController : ControllerBase
         return Ok(new ApiResponse { Success = true, Message = "Deleted" });
     }
 
-    // POST /roles/bulk — bulk create roles
+    // POST /roles/bulk — bulk create roles, skipping duplicates
     [HttpPost("bulk")]
     public async Task<ActionResult> BulkCreate([FromBody] BulkRoleDto dto)
     {
         if (dto.Roles == null || !dto.Roles.Any())
             return BadRequest(new ApiResponse { Success = false, Message = "No roles provided" });
 
-        var roles = dto.Roles.Select(r => new RoleDefinition
-        {
-            RoleName = r.RoleName,
-            RoleType = r.RoleType ?? r.RoleName.ToLower().Replace(" ", "_"),
-            PermissionLevel = 0,
-            CanCreateUsers = r.Permissions?.ContainsKey("users") == true,
-            CanAssignComplaints = r.Permissions?.ContainsKey("complaints") == true,
-            CanApproveWorkOrders = r.Permissions?.ContainsKey("work_orders") == true,
-            CanViewFinancials = r.Permissions?.ContainsKey("analytics") == true,
-            PermissionsJson = System.Text.Json.JsonSerializer.Serialize(r.Permissions ?? new()),
-            IsDeleted = true
-        }).ToList();
+        var existingNames = await _context.Roles
+            .Select(r => r.RoleName.ToLower())
+            .ToListAsync();
 
-        _context.Roles.AddRange(roles);
-        await _context.SaveChangesAsync();
-        return Ok(new ApiResponse<List<object>> { Success = true, Data = roles.Select(r => ToDto(r)).ToList() });
+        var toAdd = new List<RoleDefinition>();
+        var skipped = new List<string>();
+
+        foreach (var r in dto.Roles)
+        {
+            if (existingNames.Contains(r.RoleName.ToLower()))
+            {
+                skipped.Add($"Role \"{r.RoleName}\" already exists");
+                continue;
+            }
+            toAdd.Add(new RoleDefinition
+            {
+                RoleName = r.RoleName,
+                RoleType = r.RoleType ?? r.RoleName.ToLower().Replace(" ", "_"),
+                PermissionLevel = 0,
+                CanCreateUsers = r.Permissions?.ContainsKey("users") == true,
+                CanAssignComplaints = r.Permissions?.ContainsKey("complaints") == true,
+                CanApproveWorkOrders = r.Permissions?.ContainsKey("work_orders") == true,
+                CanViewFinancials = r.Permissions?.ContainsKey("analytics") == true,
+                PermissionsJson = System.Text.Json.JsonSerializer.Serialize(r.Permissions ?? new()),
+                IsDeleted = true
+            });
+            existingNames.Add(r.RoleName.ToLower());
+        }
+
+        if (toAdd.Count > 0)
+        {
+            _context.Roles.AddRange(toAdd);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new ApiResponse<dynamic>
+        {
+            Success = true,
+            Data = new { created = toAdd.Count, skipped = skipped.Count, skippedDetails = skipped }
+        });
     }
 }
 

@@ -43,9 +43,25 @@ public class ClientsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(new ApiResponse { Success = false, Message = "Invalid input" });
 
+        var assocId = IsSuperAdmin ? (dto.AssociationId ?? CurrentAssocId) : CurrentAssocId;
+
+        // Prevent duplicates: same name or same email within the same association
+        var duplicate = await _context.Clients
+            .Where(c => c.AssociationId == assocId)
+            .Where(c => c.Name.ToLower() == dto.Name.ToLower() || c.Email.ToLower() == dto.Email.ToLower())
+            .FirstOrDefaultAsync();
+
+        if (duplicate != null)
+        {
+            var reason = duplicate.Name.ToLower() == dto.Name.ToLower()
+                ? $"A client named \"{duplicate.Name}\" already exists."
+                : $"Email \"{duplicate.Email}\" is already used by client \"{duplicate.Name}\".";
+            return BadRequest(new ApiResponse { Success = false, Message = reason });
+        }
+
         var client = new Client
         {
-            AssociationId = IsSuperAdmin ? (dto.AssociationId ?? CurrentAssocId) : CurrentAssocId,
+            AssociationId = assocId,
             Name = dto.Name,
             Company = dto.Company,
             Email = dto.Email,
@@ -99,28 +115,67 @@ public class ClientsController : ControllerBase
         return Ok(new ApiResponse { Success = true, Message = "Client deleted" });
     }
 
-    // POST /clients/bulk — bulk create clients
+    // POST /clients/bulk — bulk create clients, skipping duplicates
     [HttpPost("bulk")]
     public async Task<ActionResult> BulkCreate([FromBody] BulkClientDto dto)
     {
         if (dto.Clients == null || !dto.Clients.Any())
             return BadRequest(new ApiResponse { Success = false, Message = "No clients provided" });
 
-        var clients = dto.Clients.Select(c => new Client
-        {
-            AssociationId = IsSuperAdmin ? (c.AssociationId ?? CurrentAssocId) : CurrentAssocId,
-            Name = c.Name,
-            Company = c.Company,
-            Email = c.Email,
-            Phone = c.Phone,
-            LogoUrl = c.LogoUrl,
-            IsActive = c.IsActive ?? true,
-            CreatedAt = DateTime.UtcNow
-        }).ToList();
+        var assocId = CurrentAssocId;
 
-        _context.Clients.AddRange(clients);
-        await _context.SaveChangesAsync();
-        return Ok(new ApiResponse<List<Client>> { Success = true, Data = clients });
+        // Load existing names and emails for this association
+        var existingNames = await _context.Clients
+            .Where(c => c.AssociationId == assocId)
+            .Select(c => c.Name.ToLower())
+            .ToListAsync();
+        var existingEmails = await _context.Clients
+            .Where(c => c.AssociationId == assocId)
+            .Select(c => c.Email.ToLower())
+            .ToListAsync();
+
+        var toAdd = new List<Client>();
+        var skipped = new List<string>();
+
+        foreach (var c in dto.Clients)
+        {
+            if (existingNames.Contains(c.Name.ToLower()))
+            {
+                skipped.Add($"Client \"{c.Name}\" already exists");
+                continue;
+            }
+            if (existingEmails.Contains(c.Email.ToLower()))
+            {
+                skipped.Add($"Email \"{c.Email}\" already exists");
+                continue;
+            }
+            toAdd.Add(new Client
+            {
+                AssociationId = IsSuperAdmin ? (c.AssociationId ?? assocId) : assocId,
+                Name = c.Name,
+                Company = c.Company,
+                Email = c.Email,
+                Phone = c.Phone,
+                LogoUrl = c.LogoUrl,
+                IsActive = c.IsActive ?? true,
+                CreatedAt = DateTime.UtcNow
+            });
+            // Track in-memory to catch duplicates within the same batch
+            existingNames.Add(c.Name.ToLower());
+            existingEmails.Add(c.Email.ToLower());
+        }
+
+        if (toAdd.Count > 0)
+        {
+            _context.Clients.AddRange(toAdd);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new ApiResponse<dynamic>
+        {
+            Success = true,
+            Data = new { created = toAdd.Count, skipped = skipped.Count, skippedDetails = skipped }
+        });
     }
 }
 
