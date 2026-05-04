@@ -502,11 +502,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   <div className="absolute right-0 top-11 z-50 w-80 rounded-lg border bg-white shadow-xl dark:bg-card">
                     <div className="flex items-center justify-between border-b px-4 py-3">
                       <span className="font-semibold text-sm text-slate-900 dark:text-foreground">Notifications</span>
-                      {(unreadCount + apiNotifUnread) > 0 && (
+                      {(visibleReminders.length > 0 || apiNotifications.length > 0) && (
                         <button
                           onClick={() => {
                             persistDismiss(new Set(reminders.map((r: any) => r.id)));
-                            api.notifications.markAllRead().then(() => setApiNotifications(prev => prev.map(n => ({ ...n, isRead: true }))));
+                            api.notifications.markAllRead().then(() => setApiNotifications([]));
                             setShowReminderPanel(false);
                           }}
                           className="text-xs text-muted-foreground hover:text-slate-900 dark:hover:text-white"
@@ -517,8 +517,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       {/* API Notifications (approved/rejected requests) */}
                       {apiNotifications.map((n: any) => (
                         <div key={`notif-${n.id}`}
-                          onClick={() => api.notifications.markRead(n.id).then(() => setApiNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x)))}
-                          className={cn('flex items-start gap-3 border-b px-4 py-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800', !n.isRead && 'bg-blue-50/50 dark:bg-blue-950/20')}
+                          className={cn('flex items-start gap-3 border-b px-4 py-3', !n.isRead && 'bg-blue-50/50 dark:bg-blue-950/20')}
                         >
                           <span className="text-base mt-0.5 shrink-0">
                             {n.type === 'request_approved' ? '✅' : n.type === 'request_rejected' ? '❌' : '🔔'}
@@ -527,7 +526,12 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                             <p className="text-sm font-medium truncate text-slate-900 dark:text-foreground">{n.title}</p>
                             <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
                           </div>
-                          {!n.isRead && <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
+                          <button
+                            onClick={() => api.notifications.markRead(n.id).then(() => setApiNotifications(prev => prev.filter(x => x.id !== n.id)))}
+                            className="text-muted-foreground hover:text-slate-900 dark:hover:text-white shrink-0 mt-0.5"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       ))}
                       {/* Task Reminders */}
