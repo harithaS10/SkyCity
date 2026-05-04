@@ -32,6 +32,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Check,
+  X,
 } from 'lucide-react';
 import {
   Table,
@@ -400,22 +402,35 @@ const DailyReport: React.FC = () => {
       if (!alreadyExists) {
         try {
           const res = await api.clients.create({
-            name: clientName, company: clientName,
+            name: clientName,
+            company: clientName,
             email: `${clientName.toLowerCase().replace(/\s+/g, '.')}@client.com`,
             isActive: true
           });
-          if (res.success && res.data) {
-            setClients((prev: any[]) => [...prev, res.data]);
-            handleRowUpdate(row.id, { clientId: res.data.id.toString(), otherClientName: '' });
-            toast.success(`Client "${clientName}" saved and selected ✓`);
+          // Handle both { success, data } and direct data shapes
+          const payload = res?.data ?? res;
+          const ok = res?.success ?? true;
+          if (ok && payload?.id) {
+            setClients((prev: any[]) => [...prev, payload]);
+            handleRowUpdate(row.id, { clientId: payload.id.toString(), otherClientName: '' });
+            toast.success(`Client "${clientName}" saved ✓`);
             return;
+          } else {
+            toast.error(`Failed to save client "${clientName}". Please try again.`);
           }
-        } catch { /* keep as manual */ }
+        } catch (err: any) {
+          const msg = err?.response?.data?.message || err?.message || 'Failed to save client';
+          toast.error(msg);
+        }
       } else {
         // Already exists — find and select it
         const existing = clients.find((c: any) => c.name?.toLowerCase() === clientName.toLowerCase());
-        if (existing) handleRowUpdate(row.id, { clientId: existing.id.toString(), otherClientName: '' });
+        if (existing) {
+          handleRowUpdate(row.id, { clientId: existing.id.toString(), otherClientName: '' });
+          toast.success(`Client "${clientName}" selected ✓`);
+        }
       }
+      return;
     }
 
     // If this row has a manual work title, save it to the dropdown and select it
@@ -609,9 +624,40 @@ const DailyReport: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      // Auto-save any unsaved "others" clients before submitting
+      let updatedRows = [...rows];
+      for (let i = 0; i < updatedRows.length; i++) {
+        const row = updatedRows[i];
+        if (row.clientId === 'others' && row.otherClientName?.trim()) {
+          const clientName = row.otherClientName.trim();
+          const existing = clients.find((c: any) => c.name?.toLowerCase() === clientName.toLowerCase());
+          if (existing) {
+            updatedRows[i] = { ...row, clientId: existing.id.toString(), otherClientName: '' };
+          } else {
+            try {
+              const res = await api.clients.create({
+                name: clientName,
+                company: clientName,
+                email: `${clientName.toLowerCase().replace(/\s+/g, '.')}@client.com`,
+                isActive: true
+              });
+              const payload = res?.data ?? res;
+              const ok = res?.success ?? true;
+              if (ok && payload?.id) {
+                setClients((prev: any[]) => [...prev, payload]);
+                updatedRows[i] = { ...row, clientId: payload.id.toString(), otherClientName: '' };
+              }
+            } catch { /* submit with newClientName fallback */ }
+          }
+        }
+      }
+      setRows(updatedRows);
+
       const reportData = {
         date: format(date, 'yyyy-MM-dd'),
-        entries: filledRows.map(row => ({
+        entries: updatedRows.filter((row) =>
+          row.workDescription.trim() || row.workCode === 'OTHERS'
+        ).map(row => ({
           workCode: row.workCode,
           workTitle: row.workCode === 'OTHERS' ? (row.otherWorkTitle || 'Manual Entry') : (row.workTitle || (row.workDescription.includes('] ') ? row.workDescription.split('] ')[1] : row.workDescription)),
           description: row.workDescription,
@@ -872,48 +918,75 @@ const DailyReport: React.FC = () => {
                           {activeDropdown === `work-${row.id}` && dropdownPos && (
                             <div
                               ref={dropdownRef}
-                              className="fixed z-[9999] rounded-xl border bg-popover p-2 text-popover-foreground shadow-[0_10px_40px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-200"
+                              className="fixed z-[9999] rounded-xl border bg-white dark:bg-card shadow-[0_20px_60px_rgba(0,0,0,0.18)] animate-in fade-in zoom-in-95 duration-200"
                               style={{ 
                                 top: dropdownPos.top, 
                                 left: dropdownPos.left, 
-                                width: dropdownPos.width, 
-                                minWidth: 340,
-                                maxHeight: Math.min(320, window.innerHeight - dropdownPos.top - 16),
-                                display: 'flex',
-                                flexDirection: 'column'
+                                width: Math.max(dropdownPos.width, 360),
                               }}
                             >
-                              <div className="flex items-center border-b px-2 pb-2 mb-2">
-                                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50 text-primary" />
+                              {/* Search header */}
+                              <div className="flex items-center gap-2 px-3 py-2.5 border-b bg-slate-50">
+                                <Search className="h-4 w-4 shrink-0 text-primary" />
                                 <input
-                                  className="flex h-10 w-full rounded-md bg-transparent text-sm outline-none placeholder:text-muted-foreground font-medium"
+                                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground font-medium"
                                   placeholder="Search work or code..."
                                   value={searchTerm}
                                   onChange={(e) => setSearchTerm(e.target.value)}
                                   autoFocus
                                 />
+                                {searchTerm && (
+                                  <button onClick={() => setSearchTerm('')} className="text-muted-foreground hover:text-slate-700 shrink-0">
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                               </div>
-                              <div className="flex-1 overflow-y-auto scrollbar-hide px-1" style={{ maxHeight: 'calc(100% - 60px)' }}>
-                                {filteredWorks.map((work) => (
+
+                              {/* Count */}
+                              <div className="px-3 pt-2 pb-0.5">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                                  {filteredWorks.length} work{filteredWorks.length !== 1 ? 's' : ''} available
+                                </p>
+                              </div>
+
+                              {/* Results list — fixed height scroll */}
+                              <div className="overflow-y-auto px-1.5 py-1" style={{ maxHeight: 240 }}>
+                                {filteredWorks.length === 0 ? (
+                                  <div className="py-8 text-center">
+                                    <Search className="h-7 w-7 mx-auto mb-2 text-slate-200" />
+                                    <p className="text-sm text-muted-foreground">No results for "{searchTerm}"</p>
+                                  </div>
+                                ) : filteredWorks.map((work) => (
                                   <div
                                     key={work.id}
-                                    className="relative flex cursor-default select-none items-center rounded-lg px-2.5 py-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground transition-all mb-1 last:mb-0"
+                                    className={cn(
+                                      "flex items-center gap-3 px-2.5 py-2.5 cursor-pointer rounded-lg transition-colors hover:bg-primary/5",
+                                      row.workCode === work.workCode && "bg-primary/10"
+                                    )}
                                     onClick={() => handleSelectWork(row.id, work)}
                                   >
-                                    <span className="font-bold text-primary mr-3 bg-primary/5 px-2 py-0.5 rounded text-[11px] min-w-[65px] text-center shrink-0">[{work.workCode}]</span>
-                                    <span className="font-semibold truncate">{work.workTitle}</span>
+                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded font-mono shrink-0 min-w-[56px] text-center">
+                                      {work.workCode}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate leading-tight">{work.workTitle}</p>
+                                      {work.workType && work.workType !== 'Standard' && (
+                                        <p className="text-[10px] text-muted-foreground">{work.workType}</p>
+                                      )}
+                                    </div>
+                                    {row.workCode === work.workCode && <Check className="h-4 w-4 text-primary shrink-0" />}
                                   </div>
                                 ))}
-                                {filteredWorks.length === 0 && (
-                                  <div className="py-8 text-center text-sm text-muted-foreground italic">No work matching "{searchTerm}" found.</div>
-                                )}
-                                <div className="border-t mt-2 pt-2">
-                                  <div
-                                    className="relative flex cursor-pointer select-none items-center rounded-lg px-2.5 py-3 text-sm font-bold text-primary hover:bg-primary/5 transition-colors"
-                                    onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); setDropdownPos(null); }}
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" /> Others (Manual Entry)
-                                  </div>
+                              </div>
+
+                              {/* Footer */}
+                              <div className="border-t bg-slate-50 px-2 py-1.5">
+                                <div
+                                  className="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer hover:bg-primary/5 transition-colors text-primary font-bold text-sm"
+                                  onClick={() => { handleRowUpdate(row.id, { workCode: 'OTHERS', workDescription: '' }); setActiveDropdown(null); setDropdownPos(null); }}
+                                >
+                                  <Plus className="h-4 w-4 shrink-0" />
+                                  <span>Others (Manual Entry)</span>
                                 </div>
                               </div>
                             </div>
@@ -1029,13 +1102,25 @@ const DailyReport: React.FC = () => {
                       {hasOthersClient && (
                         <TableCell className="align-top py-4 w-44 animate-in slide-in-from-left-2 duration-300">
                           {row.clientId === 'others' ? (
-                            <Input
-                              placeholder="Type client name..."
-                              className="h-10 text-xs border-primary/30 bg-white font-bold text-primary shadow-sm"
-                              value={row.otherClientName || ''}
-                              onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
-                              onKeyDown={(e) => { if (e.key === 'Enter' && row.otherClientName?.trim()) handleManualSave(index); }}
-                            />
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                placeholder="Type client name..."
+                                className="h-10 text-xs border-primary/30 bg-white font-bold text-primary shadow-sm flex-1"
+                                value={row.otherClientName || ''}
+                                onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && row.otherClientName?.trim()) handleManualSave(index); }}
+                              />
+                              {row.otherClientName?.trim() && (
+                                <button
+                                  type="button"
+                                  title="Save client (Enter)"
+                                  onClick={() => handleManualSave(index)}
+                                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all shadow-sm"
+                                >
+                                  <Save className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
@@ -1057,9 +1142,17 @@ const DailyReport: React.FC = () => {
                         </Select>
                       </TableCell>
                       <TableCell className="align-top py-4 w-40">
+                        {row.adminDueDate && (
+                          <div className="mb-1.5 flex items-center gap-1.5">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-rose-500">Task Due</span>
+                            <span className="text-[11px] font-black text-rose-600 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded-md">
+                              {format(new Date(row.adminDueDate), 'MMM dd, yyyy')}
+                            </span>
+                          </div>
+                        )}
                         <Input
                           type="date"
-                          className="h-10 text-xs font-bold border-slate-200 w-full"
+                          className="h-9 text-xs font-bold border-slate-200 w-full"
                           value={row.dueDate}
                           onChange={(e) => handleRowUpdate(row.id, { dueDate: e.target.value })}
                           min={format(new Date(), 'yyyy-MM-dd')}
@@ -1331,12 +1424,25 @@ const DailyReport: React.FC = () => {
                   {/* New Client Mobile */}
                   {row.clientId === 'others' && (
                     <div className="mt-3 px-1 animate-in slide-in-from-top-2 duration-300">
-                      <Input
-                        placeholder="Enter client name..."
-                        className="h-10 border-none bg-primary/5 placeholder:text-primary/30 font-bold text-primary rounded-xl ring-1 ring-primary/10 px-3.5 text-xs"
-                        value={row.otherClientName || ''}
-                        onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          placeholder="Enter client name..."
+                          className="h-10 border-none bg-primary/5 placeholder:text-primary/30 font-bold text-primary rounded-xl ring-1 ring-primary/10 px-3.5 text-xs flex-1"
+                          value={row.otherClientName || ''}
+                          onChange={(e) => handleRowUpdate(row.id, { otherClientName: e.target.value })}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && row.otherClientName?.trim()) handleManualSave(index); }}
+                        />
+                        {row.otherClientName?.trim() && (
+                          <button
+                            type="button"
+                            title="Save client"
+                            onClick={() => handleManualSave(index)}
+                            className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl bg-primary text-white active:scale-95 transition-all shadow-sm"
+                          >
+                            <Save className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
 

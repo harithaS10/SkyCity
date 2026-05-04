@@ -775,6 +775,28 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       </div>
                     </Button>
                   ))}
+
+                  {/* Work Allocation, Community Chat, Complaints, Analytics */}
+                  <div className="pt-3 pb-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground px-3 uppercase tracking-wide">Operations</p>
+                  </div>
+                  {[
+                    { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-4 w-4" /> },
+                    { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-4 w-4" /> },
+                    { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-4 w-4" /> },
+                    { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-4 w-4" /> },
+                  ].map((item) => (
+                    <Button key={item.href} variant="ghost"
+                      className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
+                        location.pathname === item.href ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      )}
+                      onClick={() => { navigate(item.href); setIsMobileMenuOpen(false); }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="h-4 w-4 flex-shrink-0">{item.icon}</span>{item.label}
+                      </div>
+                    </Button>
+                  ))}
                 </>
               )}
             </div>
