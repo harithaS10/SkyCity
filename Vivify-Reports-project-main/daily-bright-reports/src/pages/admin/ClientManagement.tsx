@@ -122,6 +122,12 @@ const ClientManagement: React.FC = () => {
       return;
     }
 
+    // Frontend duplicate check
+    const nameDup = clients.find(c => c.name?.toLowerCase() === newClient.name.toLowerCase());
+    if (nameDup) { toast.error(`A client named "${nameDup.name}" already exists.`); return; }
+    const emailDup = clients.find(c => c.email?.toLowerCase() === newClient.email.toLowerCase());
+    if (emailDup) { toast.error(`Email "${emailDup.email}" is already used by "${emailDup.name}".`); return; }
+
     try {
       const response = await api.clients.create(newClient);
       if (response.success) {
@@ -208,22 +214,55 @@ const ClientManagement: React.FC = () => {
   const handleBulkUpload = async () => {
     const items = parseCsvClients(bulkCsvText);
     if (!items.length) { toast.error('No valid rows found. Check the CSV format.'); return; }
+
+    // Frontend duplicate check — filter out rows that already exist locally
+    const existingNames = new Set(clients.map(c => c.name?.toLowerCase()));
+    const existingEmails = new Set(clients.map(c => c.email?.toLowerCase()));
+    const skippedLocally: string[] = [];
+    const uniqueItems = items.filter((item: any) => {
+      if (existingNames.has(item.name?.toLowerCase())) {
+        skippedLocally.push(`"${item.name}" already exists`);
+        return false;
+      }
+      if (existingEmails.has(item.email?.toLowerCase())) {
+        skippedLocally.push(`Email "${item.email}" already exists`);
+        return false;
+      }
+      // Track within batch
+      existingNames.add(item.name?.toLowerCase());
+      existingEmails.add(item.email?.toLowerCase());
+      return true;
+    });
+
+    if (!uniqueItems.length) {
+      setBulkResult({ created: 0, errors: skippedLocally });
+      toast.error('All rows are duplicates — nothing to upload.');
+      return;
+    }
+
     setIsBulkUploading(true);
     setBulkResult(null);
-    const errors: string[] = [];
-    let created = 0;
     try {
-      const res = await api.clients.bulkCreate(items);
+      const res = await api.clients.bulkCreate(uniqueItems);
       if (res.success) {
-        created = res.data?.length ?? items.length;
-        setBulkResult({ created, errors });
-        toast.success(`${created} clients created successfully`);
-        fetchClients();
+        // Handle both old (array) and new ({ created, skipped, skippedDetails }) response shapes
+        const created = res.data?.created ?? res.data?.length ?? uniqueItems.length;
+        const serverSkipped: string[] = res.data?.skippedDetails ?? [];
+        const allSkipped = [...skippedLocally, ...serverSkipped];
+        setBulkResult({ created, errors: allSkipped });
+        if (created > 0) {
+          toast.success(`${created} client${created !== 1 ? 's' : ''} created`);
+          fetchClients();
+        }
+        if (allSkipped.length > 0) {
+          toast.warning(`${allSkipped.length} row${allSkipped.length !== 1 ? 's' : ''} skipped (duplicates)`);
+        }
       } else {
         toast.error(res.message || 'Bulk upload failed');
       }
     } catch (e: any) {
-      toast.error(e.message || 'Bulk upload failed');
+      const msg = e?.response?.data?.message || e?.message || 'Bulk upload failed';
+      toast.error(msg);
     } finally {
       setIsBulkUploading(false);
     }
