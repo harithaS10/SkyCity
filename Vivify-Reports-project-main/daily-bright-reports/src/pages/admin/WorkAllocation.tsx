@@ -317,6 +317,12 @@ const WorkAllocationPage: React.FC = () => {
   const [isWorkPopoverOpen, setIsWorkPopoverOpen] = useState(false);
   const [isUserPopoverOpen, setIsUserPopoverOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
+  const [filterEmployee, setFilterEmployee] = useState<string>('all');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
+  const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const employeeDropdownRef = useRef<HTMLDivElement>(null);
   const [newAllocation, setNewAllocation] = useState({
     title: '',
     description: '',
@@ -380,14 +386,39 @@ const WorkAllocationPage: React.FC = () => {
     fetchData();
   }, []);
 
+  // Close employee dropdown on outside click
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(e.target as Node)) {
+        setEmployeeDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const filteredAllocations = allocations.filter((allocation) => {
     if (!allocation) return false;
     const matchesSearch =
       (allocation.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (allocation.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || allocation.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    const matchesEmployee = filterEmployee === 'all' || String(allocation.assignedTo) === filterEmployee;
+    const dueDate = allocation.dueDate ? new Date(allocation.dueDate) : null;
+    const matchesFrom = !filterDateFrom || (dueDate && dueDate >= new Date(filterDateFrom));
+    const matchesTo = !filterDateTo || (dueDate && dueDate <= new Date(filterDateTo + 'T23:59:59'));
+    return matchesSearch && matchesStatus && matchesEmployee && matchesFrom && matchesTo;
   });
+
+  const hasActiveFilters = filterEmployee !== 'all' || filterDateFrom !== '' || filterDateTo !== '' || filterStatus !== 'all' || searchQuery !== '';
+
+  const clearFilters = () => {
+    setFilterEmployee('all');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setFilterStatus('all');
+    setSearchQuery('');
+  };
 
   const handleCreateAllocation = async () => {
     if (!newAllocation.title || newAllocation.assignedToIds.length === 0 || !newAllocation.dueDate) {
@@ -1138,19 +1169,107 @@ const WorkAllocationPage: React.FC = () => {
           </div>
 
           <Card className="border-none shadow-xl border-t-4 border-t-primary overflow-hidden">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <CardTitle>Allocation Records</CardTitle>
-                <div className="flex gap-2">
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search allocations..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 bg-muted/50 focus:bg-background h-9"
-                    />
+            <CardHeader className="pb-3">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Title */}
+                <CardTitle className="shrink-0">
+                  Allocation Records
+                  {hasActiveFilters && (
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      ({filteredAllocations.length} of {allocations.length})
+                    </span>
+                  )}
+                </CardTitle>
+
+                {/* Filters — inline */}
+                <div className="flex flex-wrap items-center gap-2 flex-1">
+                  {/* Employee dropdown */}
+                  {/* Employee dropdown — custom, always opens downward */}
+                  {(() => {
+                    const selectedUser = filterEmployee === 'all' ? null : users.find((u: any) => String(u.id) === filterEmployee);
+                    return (
+                      <div className="relative" ref={employeeDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => setEmployeeDropdownOpen(v => !v)}
+                          className="flex items-center gap-1.5 h-8 pl-2.5 pr-2 text-xs rounded-md border border-input bg-background text-foreground w-40 hover:bg-accent transition-colors"
+                        >
+                          <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="flex-1 text-left truncate">{selectedUser ? selectedUser.name : 'All Employees'}</span>
+                          <svg className="h-3.5 w-3.5 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {employeeDropdownOpen && (
+                          <div className="absolute left-0 top-full mt-1 z-[200] w-48 rounded-md border bg-white dark:bg-card shadow-lg">
+                            {/* Search input */}
+                            <div className="p-2 border-b">
+                              <div className="relative">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  placeholder="Search employee..."
+                                  value={employeeSearch}
+                                  onChange={e => setEmployeeSearch(e.target.value)}
+                                  className="w-full pl-7 pr-2 py-1 text-xs rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                />
+                              </div>
+                            </div>
+                            {/* Options */}
+                            <div className="max-h-48 overflow-y-auto">
+                              {[{ id: 'all', name: 'All Employees' }, ...users]
+                                .filter((u: any) => u.name.toLowerCase().includes(employeeSearch.toLowerCase()))
+                                .map((u: any) => (
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    className={cn(
+                                      'w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors',
+                                      String(u.id) === filterEmployee && 'bg-primary/10 text-primary font-semibold'
+                                    )}
+                                    onClick={() => { setFilterEmployee(String(u.id)); setEmployeeDropdownOpen(false); setEmployeeSearch(''); }}
+                                  >
+                                    {u.name}
+                                  </button>
+                                ))}
+                              {[{ id: 'all', name: 'All Employees' }, ...users].filter((u: any) => u.name.toLowerCase().includes(employeeSearch.toLowerCase())).length === 0 && (
+                                <p className="px-3 py-2 text-xs text-muted-foreground">No employees found</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Date from */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground shrink-0">From</span>
+                    <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="h-8 w-34 text-xs" />
                   </div>
+
+                  {/* Date to */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground shrink-0">To</span>
+                    <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="h-8 w-34 text-xs" />
+                  </div>
+
+                  {/* Clear */}
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1" onClick={clearFilters}>
+                      <X className="h-3.5 w-3.5" /> Clear
+                    </Button>
+                  )}
+                </div>
+
+                {/* Search — pushed to end */}
+                <div className="relative w-full sm:w-56 sm:ml-auto">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search allocations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 bg-muted/50 focus:bg-background h-8 text-xs"
+                  />
                 </div>
               </div>
             </CardHeader>
