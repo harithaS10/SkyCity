@@ -62,9 +62,18 @@ public class UserController : ControllerBase
         if (user == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
 
         user.FullName = dto.FullName ?? user.FullName;
+        user.Username = dto.Username ?? user.Username;
+        user.Email = dto.Email ?? user.Email;
         user.Phone = dto.Phone ?? user.Phone;
         user.Address = dto.Address ?? user.Address;
         user.IsActive = dto.IsActive ?? user.IsActive;
+        
+        // Update password if provided
+        if (!string.IsNullOrEmpty(dto.Password))
+        {
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        }
+        
         if (!string.IsNullOrEmpty(dto.Role))
         {
             var roleStr = dto.Role == "user" ? "resident" : dto.Role;
@@ -170,6 +179,9 @@ public class UserController : ControllerBase
 public class UpdateUserDto
 {
     public string? FullName { get; set; }
+    public string? Username { get; set; }
+    public string? Email { get; set; }
+    public string? Password { get; set; }
     public string? Phone { get; set; }
     public string? Address { get; set; }
     public bool? IsActive { get; set; }

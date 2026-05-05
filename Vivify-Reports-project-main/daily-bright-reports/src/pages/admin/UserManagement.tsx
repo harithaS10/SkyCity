@@ -41,6 +41,7 @@ import { toast } from 'sonner';
 import {
   UserPlus,
   Trash2,
+  Pencil,
   Users,
   Shield,
   User,
@@ -76,6 +77,8 @@ const UserManagement: React.FC = () => {
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [bulkCsvText, setBulkCsvText] = useState('');
   const [isBulkUploading, setIsBulkUploading] = useState(false);
@@ -145,6 +148,55 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       toast.error(error.message || "Error creating user");
+    }
+  };
+
+  const handleEditClick = (user: any) => {
+    setEditingUser({
+      id: user.id,
+      name: user.name || user.fullName || '',
+      username: user.username || '',
+      email: user.email || '',
+      password: '', // Empty password field
+      phone: user.phone || '',
+      address: user.address || '',
+      role: user.role || 'staff',
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditUser = async () => {
+    if (!editingUser.name || !editingUser.username) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const payload: any = {
+        FullName: editingUser.name,
+        Username: editingUser.username,
+        Email: editingUser.email,
+        Phone: editingUser.phone,
+        Address: editingUser.address,
+        Role: editingUser.role,
+      };
+      
+      // Only include password if it's been changed (not empty)
+      if (editingUser.password && editingUser.password.trim()) {
+        payload.Password = editingUser.password;
+      }
+      
+      const response = await api.users.update(editingUser.id, payload);
+      if (response.success) {
+        toast.success(`User updated successfully`);
+        setEditingUser(null);
+        setIsEditDialogOpen(false);
+        fetchUsers();
+      } else {
+        toast.error(response.message || "Failed to update user");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Error updating user");
     }
   };
 
@@ -391,6 +443,109 @@ const UserManagement: React.FC = () => {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Edit User Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="bg-card max-h-[90vh] flex flex-col">
+                <DialogHeader className="shrink-0">
+                  <DialogTitle>Edit User</DialogTitle>
+                  <DialogDescription>
+                    Update user information. Leave password blank to keep current password.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
+                  {editingUser && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-name">Full Name *</Label>
+                        <Input
+                          id="edit-name"
+                          placeholder="John Doe"
+                          value={editingUser.name}
+                          onChange={(e) => setEditingUser((prev: any) => ({ ...prev, name: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-username">Username *</Label>
+                        <Input
+                          id="edit-username"
+                          placeholder="johndoe"
+                          value={editingUser.username}
+                          onChange={(e) => setEditingUser((prev: any) => ({ ...prev, username: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-email">Email</Label>
+                        <Input
+                          id="edit-email"
+                          type="email"
+                          placeholder="john@company.com"
+                          value={editingUser.email}
+                          onChange={(e) => setEditingUser((prev: any) => ({ ...prev, email: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-password">Password <span className="text-muted-foreground text-xs">(optional - leave blank to keep current)</span></Label>
+                        <Input
+                          id="edit-password"
+                          type="password"
+                          placeholder="Enter new password or leave blank"
+                          value={editingUser.password}
+                          onChange={(e) => setEditingUser((prev: any) => ({ ...prev, password: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-phone">Phone</Label>
+                        <Input
+                          id="edit-phone"
+                          placeholder="1234567890"
+                          value={editingUser.phone}
+                          onChange={(e) => setEditingUser((prev: any) => ({ ...prev, phone: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-address">Address</Label>
+                        <Input
+                          id="edit-address"
+                          placeholder="123 Main St"
+                          value={editingUser.address}
+                          onChange={(e) => setEditingUser((prev: any) => ({ ...prev, address: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-role">Role *</Label>
+                        <Select
+                          value={editingUser.role}
+                          onValueChange={(value: string) => setEditingUser((prev: any) => ({ ...prev, role: value }))}
+                        >
+                          <SelectTrigger className="bg-background">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="sub_admin">Sub Admin</SelectItem>
+                            <SelectItem value="property_manager">Property Manager</SelectItem>
+                            <SelectItem value="facility_manager">Facility Manager</SelectItem>
+                            <SelectItem value="staff">Staff</SelectItem>
+                            <SelectItem value="vendor">Vendor</SelectItem>
+                            <SelectItem value="resident">Resident</SelectItem>
+                            <SelectItem value="accountant">Accountant</SelectItem>
+                            <SelectItem value="helpdesk">Helpdesk</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t">
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleEditUser}>Update User</Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
             </div>
           </div>
 
@@ -528,6 +683,14 @@ const UserManagement: React.FC = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  onClick={() => handleEditClick(user)}
+                                  className="hover:text-primary hover:bg-primary/10"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => handleDeleteUser(user.id)}
                                   className="hover:text-destructive hover:bg-destructive/10"
                                 >
@@ -623,6 +786,9 @@ const UserManagement: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-white rounded-2xl shadow-xl p-2 border-slate-100">
+                            <DropdownMenuItem onClick={() => handleEditClick(user)} className="text-primary cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-primary/10 focus:bg-primary/10">
+                              <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-rose-600 cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-rose-50 hover:text-rose-700 focus:bg-rose-50 focus:text-rose-700">
                               <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                             </DropdownMenuItem>

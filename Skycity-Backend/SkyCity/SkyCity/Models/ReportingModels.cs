@@ -224,6 +224,7 @@ public class User : ISoftDelete
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
+    public string? Email { get; set; }
     public UserRole Role { get; set; } = UserRole.resident;
     public int? AssociationId { get; set; }
     public int? PropertyId { get; set; }
