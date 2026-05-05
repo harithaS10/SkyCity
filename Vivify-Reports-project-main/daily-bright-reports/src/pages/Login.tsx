@@ -193,6 +193,7 @@ const Login: React.FC = () => {
   const handleCookieDecline = () => {
     try { localStorage.setItem(COOKIE_CONSENT_KEY, 'declined'); } catch { /* ignore */ }
     setCookieConsent('declined');
+    toast.info('Essential cookies are still required for login and security. Optional cookies have been disabled.');
   };
 
   const features = [
@@ -389,8 +390,8 @@ const Login: React.FC = () => {
       </div>
       {/* Cookie Consent Banner */}
       {cookieConsent === null && (
-        <div className="fixed bottom-0 left-0 right-0 z-[999] p-3 sm:p-4">
-          <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="fixed bottom-0 left-0 right-0 z-[999] p-0">
+          <div className="w-full bg-white dark:bg-slate-900 shadow-2xl border-t border-slate-100 dark:border-slate-800 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-start gap-3 flex-1 min-w-0">
               <div
                 className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
