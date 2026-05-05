@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api, CustomRole, RolePermissions, PermissionSet } from '@/lib/api';
+import { downloadCSV } from '@/lib/downloadUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -128,12 +129,9 @@ const RoleManagement: React.FC = () => {
     setCanExportPerm(r.permissions?.export ?? false);
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     const csv = 'roleName\nSite Manager\nField Supervisor\nData Analyst';
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'roles_template.csv'; a.click();
-    URL.revokeObjectURL(url);
+    await downloadCSV(csv, 'roles_template.csv', 'Roles Upload Template');
   };
 
   const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

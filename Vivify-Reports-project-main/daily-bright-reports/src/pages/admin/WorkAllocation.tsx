@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { downloadExcel, downloadCSV } from '@/lib/downloadUtils';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
@@ -185,110 +189,46 @@ function parseBulkExcel(buffer: ArrayBuffer): BulkUploadRow[] {
     .map(rowToBulkUploadRow);
 }
 
-function downloadBulkExcelTemplate(
+async function downloadBulkExcelTemplate(
   works: Array<{ workCode: string; workTitle: string }> = [],
   users: Array<{ name: string; username?: string }> = []
 ) {
-  // Build header row
   const headers = ['title', 'workCode', 'workTitle', 'assignedTo', 'priority', 'dueDate', 'description'];
-
-  // Build sample rows from real data (up to 3 examples)
   const sampleWorks = works.slice(0, 3);
   const sampleUsers = users.slice(0, 3);
   const today = new Date();
-  const fmtDate = (offset: number) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + offset);
-    return d.toISOString().split('T')[0];
-  };
-
+  const fmtDate = (offset: number) => { const d = new Date(today); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; };
   const dataRows = sampleWorks.length > 0
-    ? sampleWorks.map((w, i) => [
-        `Sample task ${i + 1}`,
-        w.workCode,
-        w.workTitle,
-        sampleUsers[i]?.username || sampleUsers[i]?.name || '',
-        ['high', 'medium', 'low'][i % 3],
-        fmtDate(7 + i * 3),
-        '',
-      ])
-    : [
-        ['Sample task 1', 'USE-REAL-CODE', 'Use real work title', 'use.real.username', 'medium', fmtDate(7), 'Optional description'],
-      ];
-
-  // Build reference sheet with valid work categories
+    ? sampleWorks.map((w, i) => [`Sample task ${i + 1}`, w.workCode, w.workTitle, sampleUsers[i]?.username || sampleUsers[i]?.name || '', ['high', 'medium', 'low'][i % 3], fmtDate(7 + i * 3), ''])
+    : [['Sample task 1', '', '', '', 'medium', fmtDate(7), 'Optional description']];
   const refWorkRows: unknown[][] = [['workCode', 'workTitle']];
   works.forEach(w => refWorkRows.push([w.workCode, w.workTitle]));
-
-  // Build reference sheet with valid users
   const refUserRows: unknown[][] = [['username / fullName']];
   users.forEach(u => refUserRows.push([u.username || u.name]));
-
   const wb = XLSX.utils.book_new();
-
-  // Main data sheet
   const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
   ws['!cols'] = [18, 14, 20, 16, 10, 12, 28].map(w => ({ wch: w }));
   XLSX.utils.book_append_sheet(wb, ws, 'Upload Data');
-
-  // Reference: work categories
-  if (refWorkRows.length > 1) {
-    const wsRef = XLSX.utils.aoa_to_sheet(refWorkRows);
-    wsRef['!cols'] = [16, 24].map(w => ({ wch: w }));
-    XLSX.utils.book_append_sheet(wb, wsRef, 'Valid Work Categories');
-  }
-
-  // Reference: users
-  if (refUserRows.length > 1) {
-    const wsUsers = XLSX.utils.aoa_to_sheet(refUserRows);
-    wsUsers['!cols'] = [{ wch: 24 }];
-    XLSX.utils.book_append_sheet(wb, wsUsers, 'Valid Users');
-  }
-
-  XLSX.writeFile(wb, 'work_allocation_bulk_upload_template.xlsx');
+  if (refWorkRows.length > 1) { const wsRef = XLSX.utils.aoa_to_sheet(refWorkRows); wsRef['!cols'] = [16, 24].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, wsRef, 'Valid Work Categories'); }
+  if (refUserRows.length > 1) { const wsUsers = XLSX.utils.aoa_to_sheet(refUserRows); wsUsers['!cols'] = [{ wch: 24 }]; XLSX.utils.book_append_sheet(wb, wsUsers, 'Valid Users'); }
+  await downloadExcel(wb, 'work_allocation_bulk_upload_template.xlsx', 'Work Allocation Template');
 }
 
-function downloadBulkCSVTemplate(
+async function downloadBulkCSVTemplate(
   works: Array<{ workCode: string; workTitle: string }> = [],
   users: Array<{ name: string; username?: string }> = []
 ) {
   const today = new Date();
-  const fmtDate = (offset: number) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + offset);
-    return d.toISOString().split('T')[0];
-  };
-
+  const fmtDate = (offset: number) => { const d = new Date(today); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; };
   const lines = ['title,workCode,workTitle,assignedTo,priority,dueDate,description'];
-
   if (works.length > 0) {
-    works.slice(0, 3).forEach((w, i) => {
-      const u = users[i]?.username || users[i]?.name || '';
-      lines.push(`Sample task ${i + 1},${w.workCode},${w.workTitle},${u},medium,${fmtDate(7 + i * 3)},`);
-    });
+    works.slice(0, 3).forEach((w, i) => { const u = users[i]?.username || users[i]?.name || ''; lines.push(`Sample task ${i + 1},${w.workCode},${w.workTitle},${u},medium,${fmtDate(7 + i * 3)},`); });
   } else {
-    lines.push(`Sample task 1,USE-REAL-CODE,Use real work title,use.real.username,medium,${fmtDate(7)},Optional description`);
+    lines.push(`Sample task 1,,,use.real.username,medium,${fmtDate(7)},Optional description`);
   }
-
-  // Append reference comments
-  if (works.length > 0) {
-    lines.push('');
-    lines.push('# Valid workCode values (copy from below):');
-    works.forEach(w => lines.push(`# ${w.workCode},${w.workTitle}`));
-  }
-  if (users.length > 0) {
-    lines.push('');
-    lines.push('# Valid assignedTo values (username or full name):');
-    users.forEach(u => lines.push(`# ${u.username || u.name}`));
-  }
-
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'work_allocation_bulk_upload_template.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  if (works.length > 0) { lines.push('', '# Valid workCode values:'); works.forEach(w => lines.push(`# ${w.workCode},${w.workTitle}`)); }
+  if (users.length > 0) { lines.push('', '# Valid assignedTo values (username or full name):'); users.forEach(u => lines.push(`# ${u.username || u.name}`)); }
+  await downloadCSV(lines.join('\n'), 'work_allocation_bulk_upload_template.csv', 'Work Allocation Template');
 }
 
 const WorkAllocationPage: React.FC = () => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { downloadCSV } from '@/lib/downloadUtils';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -180,12 +181,9 @@ const ClientManagement: React.FC = () => {
 
   const activeClients = clients.filter((c) => c.isActive || c.status === 'active' || c.IsActive).length;
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     const csv = 'name,company,email,phone\nJohn Doe,Acme Corp,john@acme.com,9876543210\nJane Smith,Beta Ltd,jane@beta.com,9876543211';
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'clients_template.csv'; a.click();
-    URL.revokeObjectURL(url);
+    await downloadCSV(csv, 'clients_template.csv', 'Clients Upload Template');
   };
 
   const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

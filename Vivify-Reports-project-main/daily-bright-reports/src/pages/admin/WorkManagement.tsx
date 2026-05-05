@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
+import { downloadCSV } from '@/lib/downloadUtils';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -167,12 +168,9 @@ const WorkManagement: React.FC = () => {
     setIsEditDialogOpen(true);
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     const csv = 'workCode,workTitle,workType\nW001,Data Entry,Standard\nW002,Client Meeting,Special';
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'works_template.csv'; a.click();
-    URL.revokeObjectURL(url);
+    await downloadCSV(csv, 'works_template.csv', 'Work Types Upload Template');
   };
 
   const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
