@@ -125,17 +125,25 @@ const Login: React.FC = () => {
     const checkUserTerms = async () => {
       if (!username || username.length < 3) {
         setHideTerms(false);
+        setAcceptedTerms(false);
         return;
       }
       try {
         const res = await api.auth.checkTerms(username);
+        console.log('Terms check response:', res); // Debug log
         if (res.success && res.hasAcceptedTerms) {
-          setHideTerms(true);
+          console.log('User has accepted terms, auto-checking'); // Debug log
+          setAcceptedTerms(true); // Auto-check if user has already accepted
+          setHideTerms(false); // Keep visible
         } else {
+          console.log('User has not accepted terms'); // Debug log
+          setAcceptedTerms(false);
           setHideTerms(false);
         }
       } catch (err) {
+        console.error('Error checking terms:', err); // Debug log
         setHideTerms(false);
+        setAcceptedTerms(false);
       }
     };
 
