@@ -87,8 +87,7 @@ export default function TermsManagement() {
             <CardHeader className="bg-white dark:bg-slate-900 pb-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-lg dark:text-white">
-                    <FileText className="h-5 w-5 text-primary dark:text-white" />
+                  <CardTitle className="text-lg dark:text-white">
                     Edit Terms Content
                   </CardTitle>
                   <CardDescription className="dark:text-slate-400">
@@ -140,9 +139,6 @@ export default function TermsManagement() {
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">
                   Manage the terms that users must accept upon login
                 </p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl h-11 w-11 flex items-center justify-center shrink-0 border border-white/10">
-                <FileText className="h-5 w-5 text-white" />
               </div>
             </div>
             
