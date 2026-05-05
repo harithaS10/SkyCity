@@ -35,6 +35,14 @@ public class UpdateStatusDto
     public string? Duration { get; set; }
 }
 
+public class UpdateAllocationDto
+{
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public string? Priority { get; set; }
+    public DateTime? DueDate { get; set; }
+}
+
 public class ProgressDto
 {
     public string ProgressNote { get; set; } = string.Empty;

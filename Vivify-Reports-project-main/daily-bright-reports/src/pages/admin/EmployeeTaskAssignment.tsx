@@ -85,6 +85,11 @@ const EmployeeTaskAssignment: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'daily' | 'monthly'>('daily');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ taskName: '', description: '', priority: 'medium', dueDate: '' });
 
   const [dailyTaskForm, setDailyTaskForm] = useState<TaskFormData>({
     taskName: '',
@@ -229,20 +234,92 @@ const EmployeeTaskAssignment: React.FC = () => {
   };
 
   const handleDeleteTask = async (taskId: number) => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
+    const task = tasks.find(t => t.id === taskId);
+    setIsDeleting(true);
     try {
-      const task = tasks.find(t => t.id === taskId);
-      const response = task?._source === 'stafftask'
-        ? await api.tasks.delete(taskId).catch(() => api.allocations.delete(taskId))
-        : await api.allocations.delete(taskId).catch(() => api.tasks.delete(taskId));
-      if (response.success) {
-        toast.success("Task deleted successfully");
-        fetchEmployeeTasks();
+      let response;
+      if (task?._source === 'stafftask') {
+        response = await api.tasks.delete(taskId);
       } else {
-        toast.error(response.message || "Failed to delete task");
+        // Work allocation — use POST /workallocations/{id}/delete
+        response = await api.allocations.delete(taskId);
+      }
+      if (response?.success) {
+        toast.success("Task deleted successfully");
+        setTasks(prev => prev.filter(t => !(t.id === taskId && t._source === task?._source)));
+      } else {
+        toast.error(response?.message || "Failed to delete task");
       }
     } catch (error: any) {
-      toast.error(error.message || "An error occurred");
+      const msg = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Failed to delete";
+      toast.error(msg);
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmId(null);
+    }
+  };
+
+  const openEditDialog = (task: Task) => {
+    setEditingTask(task);
+    setEditForm({
+      taskName: task.taskName,
+      description: task.description,
+      priority: task.priority,
+      dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditTask = async () => {
+    if (!editingTask || !editForm.taskName.trim()) { toast.error('Task name is required'); return; }
+    setIsSubmitting(true);
+    try {
+      const dueDateIso = editForm.dueDate
+        ? new Date(editForm.dueDate + 'T23:59:59').toISOString()
+        : editingTask.dueDate;
+
+      if (editingTask._source === 'stafftask') {
+        const res = await api.tasks.update(editingTask.id, {
+          taskName: editForm.taskName,
+          description: editForm.description,
+          priority: editForm.priority,
+          dueDate: dueDateIso,
+        });
+        if (res.success) {
+          setTasks(prev => prev.map(t => t.id === editingTask.id && t._source === 'stafftask'
+            ? { ...t, taskName: editForm.taskName, description: editForm.description, priority: editForm.priority, dueDate: dueDateIso }
+            : t
+          ));
+          toast.success('Task updated successfully');
+          setIsEditDialogOpen(false);
+          setEditingTask(null);
+        } else {
+          toast.error(res.message || 'Failed to update task');
+        }
+      } else {
+        // Work allocation — use PUT /workallocations/{id}
+        const res = await api.allocations.update(editingTask.id, {
+          title: editForm.taskName,
+          description: editForm.description,
+          priority: editForm.priority,
+          dueDate: dueDateIso,
+        });
+        if (res.success) {
+          setTasks(prev => prev.map(t => t.id === editingTask.id && t._source === 'allocation'
+            ? { ...t, taskName: editForm.taskName, description: editForm.description, priority: editForm.priority, dueDate: dueDateIso }
+            : t
+          ));
+          toast.success('Task updated successfully');
+          setIsEditDialogOpen(false);
+          setEditingTask(null);
+        } else {
+          toast.error(res.message || 'Failed to update task');
+        }
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e.message || 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -543,13 +620,14 @@ const EmployeeTaskAssignment: React.FC = () => {
                                 </div>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteTask(task.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-rose-600" />
-                                </Button>
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)} className="text-blue-600 hover:bg-blue-50">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(task.id)} className="text-rose-600 hover:bg-rose-50">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -610,13 +688,14 @@ const EmployeeTaskAssignment: React.FC = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteTask(task.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-rose-600" />
-                                </Button>
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)} className="text-blue-600 hover:bg-blue-50">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(task.id)} className="text-rose-600 hover:bg-rose-50">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -895,6 +974,68 @@ const EmployeeTaskAssignment: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Delete Confirmation Dialog ─────────────────────────────── */}
+      <Dialog open={deleteConfirmId !== null} onOpenChange={(o) => { if (!o) setDeleteConfirmId(null); }}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Delete Task?</DialogTitle>
+            <DialogDescription>
+              This will permanently remove the task. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)} disabled={isDeleting}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirmId !== null && handleDeleteTask(deleteConfirmId)} disabled={isDeleting}>
+              {isDeleting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Deleting...</> : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Task Dialog ───────────────────────────────────────── */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(o) => { if (!o) { setIsEditDialogOpen(false); setEditingTask(null); } }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>Update the task details below.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Task Name *</Label>
+              <Input value={editForm.taskName} onChange={e => setEditForm(f => ({ ...f, taskName: e.target.value }))} placeholder="Task name" />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="Description" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Priority</Label>
+                <Select value={editForm.priority} onValueChange={v => setEditForm(f => ({ ...f, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input type="date" value={editForm.dueDate} onChange={e => setEditForm(f => ({ ...f, dueDate: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setEditingTask(null); }} disabled={isSubmitting}>Cancel</Button>
+            <Button onClick={handleEditTask} disabled={isSubmitting || !editForm.taskName.trim()}>
+              {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</> : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </DashboardLayout>
   );
 };

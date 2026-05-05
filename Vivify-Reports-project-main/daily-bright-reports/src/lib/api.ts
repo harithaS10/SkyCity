@@ -653,6 +653,8 @@ export const api = {
     updateStatus: async (id: number, status: string, duration?: string) => 
       (await apiClient.post(`/workallocations/${id}/status`, { status, duration })).data,
     delete: async (id: number) => (await apiClient.post(`/workallocations/${id}/delete`, {})).data,
+    update: async (id: number, data: { title?: string; description?: string; priority?: string; dueDate?: string }) =>
+      (await apiClient.put(`/workallocations/${id}`, data)).data,
     updateProgress: async (id: number, progressNote: string) => 
       (await apiClient.post(`/workallocations/${id}/progress`, { progressNote })).data,
     selfAssign: async (data: any) => (await apiClient.post('/workallocations/self-assign', data)).data,

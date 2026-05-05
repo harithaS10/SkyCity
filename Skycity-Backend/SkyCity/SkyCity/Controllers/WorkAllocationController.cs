@@ -185,6 +185,23 @@ public class WorkAllocationController : ControllerBase
         return Ok(new ApiResponse<dynamic> { Success = true, Data = allocations });
     }
 
+    // PUT /workallocations/{id} — update title, description, priority, dueDate
+    [HttpPut("{id}")]
+    public async Task<ActionResult> Update(int id, [FromBody] UpdateAllocationDto dto)
+    {
+        var alloc = await _context.WorkAllocations.FindAsync(id);
+        if (alloc == null)
+            return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        if (dto.Title != null) alloc.Title = dto.Title;
+        if (dto.Description != null) alloc.Description = dto.Description;
+        if (dto.Priority != null) alloc.Priority = dto.Priority;
+        if (dto.DueDate.HasValue) alloc.DueDate = dto.DueDate.Value;
+
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<WorkAllocation> { Success = true, Data = alloc });
+    }
+
     [HttpPost("{id}/status")]
     public async Task<ActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
     {
