@@ -47,7 +47,7 @@ function Avatar({ name, size = 'md', showDot = false, isGroup = false }: {
       <div className={cn(
         'rounded-full flex items-center justify-center font-bold text-white shrink-0',
         sizeClass,
-        isGroup ? 'bg-indigo-500' : avatarColor(name)
+        isGroup ? 'bg-primary' : avatarColor(name)
       )}>
         {isGroup ? <Users className="h-3.5 w-3.5" /> : getInitials(name)}
       </div>
@@ -93,7 +93,7 @@ function TaskCard({ payload, isMine, currentUserId, onStatusUpdate }: {
 
   const statusKey = (task.status ?? 'assigned').toLowerCase().replace(/\s+/g, '_');
   const statusConfig: Record<string, { cls: string; label: string; icon: string }> = {
-    assigned:    { cls: 'bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400', label: 'Assigned',    icon: '📋' },
+    assigned:    { cls: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary', label: 'Assigned',    icon: '📋' },
     pending:     { cls: 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',       label: 'Pending',     icon: '⏳' },
     in_progress: { cls: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',         label: 'In Progress', icon: '🔄' },
     completed:   { cls: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400', label: 'Completed', icon: '✅' },
@@ -364,8 +364,8 @@ function CreateGroupModal({ users, onClose, onCreate }: {
       <div className="bg-white dark:bg-[#1e2230] rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center">
-              <Users className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            <div className="h-7 w-7 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+              <Users className="h-3.5 w-3.5 text-primary dark:text-primary" />
             </div>
             <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Create Group</h3>
           </div>
@@ -381,7 +381,7 @@ function CreateGroupModal({ users, onClose, onCreate }: {
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Design Team"
               required
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
             />
           </div>
           <div>
@@ -402,14 +402,14 @@ function CreateGroupModal({ users, onClose, onCreate }: {
               ))}
             </div>
             {selected.length > 0 && (
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">{selected.length} member(s) selected</p>
+              <p className="text-xs text-primary dark:text-primary mt-1">{selected.length} member(s) selected</p>
             )}
           </div>
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-600 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
               Cancel
             </button>
-            <button type="submit" disabled={loading || !name.trim() || selected.length === 0} className="flex-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 py-2 text-sm font-medium text-white transition">
+            <button type="submit" disabled={loading || !name.trim() || selected.length === 0} className="flex-1 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 py-2 text-sm font-medium text-white transition">
               {loading ? 'Creating...' : 'Create Group'}
             </button>
           </div>
@@ -448,8 +448,8 @@ function GroupTaskModal({ groupId, groupName, onClose, onAssigned }: {
       <div className="bg-white dark:bg-[#1e2230] rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
-              <ClipboardList className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+            <div className="h-7 w-7 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+              <ClipboardList className="h-3.5 w-3.5 text-primary dark:text-primary" />
             </div>
             <div>
               <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Assign Task to Group</h3>
@@ -464,23 +464,23 @@ function GroupTaskModal({ groupId, groupName, onClose, onAssigned }: {
           <div>
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Task Title *</label>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" required
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition" />
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition" />
           </div>
           <div>
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Description</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Short description..." rows={2}
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500 transition" />
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Due Date *</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required
-                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition" />
+                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition" />
             </div>
             <div>
               <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Priority</label>
               <select value={priority} onChange={e => setPriority(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition">
+                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition">
                 <option value="low">🟢 Low</option>
                 <option value="medium">🟡 Medium</option>
                 <option value="high">🔴 High</option>
@@ -491,7 +491,7 @@ function GroupTaskModal({ groupId, groupName, onClose, onAssigned }: {
             <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-600 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
               Cancel
             </button>
-            <button type="submit" disabled={loading} className="flex-1 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 py-2 text-sm font-medium text-white transition">
+            <button type="submit" disabled={loading} className="flex-1 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 py-2 text-sm font-medium text-white transition">
               {loading ? 'Assigning...' : 'Assign to Group'}
             </button>
           </div>
@@ -542,8 +542,8 @@ function TaskModal({ users, currentUserId, role, onClose, onAllocate }: {
       <div className="bg-white dark:bg-[#1e2230] rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
-              <ClipboardList className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+            <div className="h-7 w-7 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+              <ClipboardList className="h-3.5 w-3.5 text-primary dark:text-primary" />
             </div>
             <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Allocate Task</h3>
           </div>
@@ -555,17 +555,17 @@ function TaskModal({ users, currentUserId, role, onClose, onAllocate }: {
           <div>
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Title *</label>
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" required
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 transition" />
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition" />
           </div>
           <div>
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Description</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Short description..." rows={2}
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-violet-500 transition" />
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 transition" />
           </div>
           <div>
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Assign To *</label>
             <select value={assignTo} onChange={e => setAssignTo(e.target.value)} required
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition">
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition">
               <option value="">Select user</option>
               {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
@@ -574,12 +574,12 @@ function TaskModal({ users, currentUserId, role, onClose, onAllocate }: {
             <div>
               <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Due Date *</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required
-                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition" />
+                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition" />
             </div>
             <div>
               <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Priority</label>
               <select value={priority} onChange={e => setPriority(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500 transition">
+                className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 transition">
                 <option value="low">🟢 Low</option>
                 <option value="medium">🟡 Medium</option>
                 <option value="high">🔴 High</option>
@@ -590,7 +590,7 @@ function TaskModal({ users, currentUserId, role, onClose, onAllocate }: {
             <button type="button" onClick={onClose} className="flex-1 rounded-lg border border-slate-200 dark:border-slate-600 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
               Cancel
             </button>
-            <button type="submit" disabled={loading} className="flex-1 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 py-2 text-sm font-medium text-white transition">
+            <button type="submit" disabled={loading} className="flex-1 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-50 py-2 text-sm font-medium text-white transition">
               {loading ? 'Allocating...' : 'Allocate Task'}
             </button>
           </div>
@@ -686,7 +686,7 @@ function MessageList({
                 {/* Sender name */}
                 <span className={cn(
                   'text-[11px] font-semibold mb-1 px-1',
-                  isMine ? 'text-violet-600 dark:text-violet-400' : 'text-slate-600 dark:text-slate-300'
+                  isMine ? 'text-primary dark:text-primary' : 'text-slate-600 dark:text-slate-300'
                 )}>
                   {isMine ? 'You' : senderName}
                 </span>
@@ -728,7 +728,7 @@ function MessageList({
               {(!isMine || isGroup) && (
                 <span className={cn(
                   'text-[11px] font-semibold mb-0.5 px-1',
-                  isMine ? 'text-violet-600 dark:text-violet-400' : 'text-slate-600 dark:text-slate-300'
+                  isMine ? 'text-primary dark:text-primary' : 'text-slate-600 dark:text-slate-300'
                 )}>
                   {isMine ? 'You' : senderName}
                 </span>
@@ -739,7 +739,7 @@ function MessageList({
                 'relative px-3 py-2 rounded-2xl text-sm leading-relaxed break-words transition-all',
                 'group-hover:shadow-sm',
                 isMine
-                  ? 'bg-violet-600 text-white rounded-tr-sm'
+                  ? 'bg-primary text-white rounded-tr-sm'
                   : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-700 rounded-tl-sm',
                 isOptimistic && 'opacity-60'
               )}>
@@ -755,7 +755,7 @@ function MessageList({
                   isOptimistic
                     ? <span className="text-[10px] text-slate-300 dark:text-slate-600">Sending…</span>
                     : msg.isRead
-                      ? <CheckCheck className="h-3 w-3 text-violet-400" />
+                      ? <CheckCheck className="h-3 w-3 text-primary" />
                       : <Check className="h-3 w-3 text-slate-300 dark:text-slate-600" />
                 )}
               </div>
@@ -1136,7 +1136,7 @@ export function ChatBox() {
         onClick={() => setOpen(v => !v)}
         className={cn(
           'fixed bottom-5 right-4 z-[200] flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-all duration-200',
-          'bg-violet-600 text-white hover:bg-violet-700 hover:scale-105 active:scale-95',
+          'bg-primary text-white hover:bg-primary/90 hover:scale-105 active:scale-95',
           open && 'hidden lg:flex bg-slate-700 hover:bg-slate-800'
         )}
         aria-label="Open chat"
@@ -1174,14 +1174,14 @@ export function ChatBox() {
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100 dark:border-slate-700/60">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-violet-600" />
+                  <MessageSquare className="h-4 w-4 text-primary" />
                   <span className="font-semibold text-slate-800 dark:text-white text-sm">Messages</span>
                   {connected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block" />}
                 </div>
                 <div className="flex items-center gap-1">
                   {['admin', 'super_admin', 'sub_admin', 'property_manager'].includes(user.role) && (
                     <button onClick={() => setShowCreateGroup(true)} title="Create Group"
-                      className="h-9 w-9 lg:h-7 lg:w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors">
+                      className="h-9 w-9 lg:h-7 lg:w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">
                       <Plus className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
                     </button>
                   )}
@@ -1195,7 +1195,7 @@ export function ChatBox() {
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
-                    className="w-full rounded-lg bg-slate-100 dark:bg-slate-800 pl-8 pr-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition" />
+                    className="w-full rounded-lg bg-slate-100 dark:bg-slate-800 pl-8 pr-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50/50 transition" />
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -1251,7 +1251,7 @@ export function ChatBox() {
                             {u.name}
                           </p>
                           {unread > 0 && (
-                            <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-violet-600 text-[10px] font-bold text-white px-1.5 shrink-0">
+                            <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white px-1.5 shrink-0">
                               {unread > 99 ? '99+' : unread}
                             </span>
                           )}
@@ -1283,7 +1283,7 @@ export function ChatBox() {
                 <div className="flex items-center gap-0.5 shrink-0">
                   {user.role === 'admin' && (
                     <button onClick={() => setShowTaskModal(true)} title="Allocate Task"
-                      className="h-9 w-9 lg:h-7 lg:w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors">
+                      className="h-9 w-9 lg:h-7 lg:w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-violet-900/30 transition-colors">
                       <ClipboardList className="h-4 w-4" />
                     </button>
                   )}
@@ -1304,7 +1304,7 @@ export function ChatBox() {
                 {user.role !== 'admin' && (
                   <div className="flex items-center gap-1 mb-2">
                     <button onClick={() => setShowTaskModal(true)}
-                      className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors">
+                      className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium text-primary dark:text-primary hover:bg-primary/10 dark:hover:bg-violet-900/30 transition-colors">
                       <ClipboardList className="h-3.5 w-3.5" />
                       <span>Allocate Task</span>
                     </button>
@@ -1317,14 +1317,14 @@ export function ChatBox() {
                   </button>
                   <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
                     placeholder={`Message ${selectedUser.name.split(' ')[0]}...`}
-                    className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition min-w-0" />
+                    className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50/50 transition min-w-0" />
                   <button title="Emoji (coming soon)"
                     className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 transition-colors shrink-0">
                     <Smile className="h-4 w-4" />
                   </button>
                   <button onClick={handleSendDm} disabled={!input.trim()}
                     className={cn('h-8 w-8 rounded-lg flex items-center justify-center transition-all shrink-0',
-                      input.trim() ? 'bg-violet-600 text-white hover:bg-violet-700 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed')}>
+                      input.trim() ? 'bg-primary text-white hover:bg-primary/90 shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed')}>
                     <Send className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -1350,7 +1350,7 @@ export function ChatBox() {
                 <div className="flex items-center gap-0.5 shrink-0">
                   {user.role === 'admin' && (
                     <button onClick={() => setShowGroupTaskModal(true)} title="Assign Task to Group"
-                      className="h-9 w-9 lg:h-7 lg:w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors">
+                      className="h-9 w-9 lg:h-7 lg:w-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 dark:hover:bg-violet-900/30 transition-colors">
                       <ClipboardList className="h-4 w-4" />
                     </button>
                   )}
@@ -1417,3 +1417,4 @@ export function ChatBox() {
     </>
   );
 }
+

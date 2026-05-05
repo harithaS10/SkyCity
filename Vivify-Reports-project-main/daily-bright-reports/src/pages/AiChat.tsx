@@ -29,7 +29,7 @@ const ALL_QUICK_COMMANDS = [
   { cmd: 'help',              roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'resident'] },
 ];
 
-const CHAT_STORAGE_KEY = 'skycity_ai_chat_history';
+// Storage key will be user-specific, set dynamically
 
 function serializeMessages(msgs: BotMessage[]): string {
   return JSON.stringify(msgs.map(m => ({ ...m, timestamp: m.timestamp.toISOString() })));
@@ -71,6 +71,9 @@ const WELCOME_MSG = (name: string): BotMessage => ({
 const AiChat: React.FC = () => {
   const { user, hasPermission } = useAuth();
   const firstName = user?.fullName?.split(' ')[0] || 'there';
+  
+  // User-specific storage key
+  const CHAT_STORAGE_KEY = `skycity_ai_chat_history_${user?.id || 'guest'}`;
 
   // Load persisted messages from sessionStorage, fall back to welcome message
   const [messages, setMessages] = useState<BotMessage[]>(() => {
@@ -97,7 +100,7 @@ const AiChat: React.FC = () => {
     try {
       sessionStorage.setItem(CHAT_STORAGE_KEY, serializeMessages(messages));
     } catch { /* ignore */ }
-  }, [messages]);
+  }, [messages, CHAT_STORAGE_KEY]);
 
   // Filter quick commands based on user role/permissions
   const quickCommands = ALL_QUICK_COMMANDS
@@ -228,7 +231,7 @@ const AiChat: React.FC = () => {
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b bg-gradient-to-r from-violet-600 to-indigo-600 text-white">
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-primary text-white">
         <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center">
           <Sparkles className="h-5 w-5" />
         </div>
@@ -248,7 +251,7 @@ const AiChat: React.FC = () => {
           <div key={msg.id} className={cn('flex gap-2.5 w-full', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
             <div className={cn(
               'h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold',
-              msg.role === 'bot' ? 'bg-gradient-to-br from-violet-500 to-indigo-600' : 'bg-primary'
+              msg.role === 'bot' ? 'bg-primary' : 'bg-primary'
             )}>
               {msg.role === 'bot' ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
             </div>
@@ -306,7 +309,7 @@ const AiChat: React.FC = () => {
                           isConfirm ? "bg-emerald-50 dark:bg-emerald-950 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900" :
                           isCancel ? "bg-rose-50 dark:bg-rose-950 border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900" :
                           isDateBtn ? "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900" :
-                          "bg-violet-50 dark:bg-violet-950 border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900"
+                          "bg-primary/10 dark:bg-primary/20 border-primary/30 dark:border-primary/40 text-primary dark:text-primary hover:bg-primary/20 dark:hover:bg-primary/30"
                         )}
                       >
                         {label}
@@ -320,7 +323,7 @@ const AiChat: React.FC = () => {
                       <Calendar className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
                       <input
                         type="date"
-                        className="flex-1 text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-violet-400 dark:focus:ring-violet-500"
+                        className="flex-1 text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary/50 dark:focus:ring-primary/60"
                         min={format(new Date(), 'yyyy-MM-dd')}
                         onChange={e => {
                           if (!e.target.value) return;
@@ -347,7 +350,7 @@ const AiChat: React.FC = () => {
 
         {isLoading && (
           <div className="flex gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0">
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shrink-0">
               <Bot className="h-4 w-4 text-white" />
             </div>
             <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
@@ -368,7 +371,7 @@ const AiChat: React.FC = () => {
           <button
             key={cmd}
             onClick={() => sendMessage(cmd)}
-            className="shrink-0 text-[11px] px-2.5 py-1 rounded-full border border-violet-200 dark:border-violet-700 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950 hover:bg-violet-100 dark:hover:bg-violet-900 transition-colors whitespace-nowrap"
+            className="shrink-0 text-[11px] px-2.5 py-1 rounded-full border border-primary/30 dark:border-primary/40 text-primary dark:text-primary bg-primary/10 dark:bg-primary/20 hover:bg-primary/20 dark:hover:bg-primary/30 transition-colors whitespace-nowrap"
           >
             {cmd}
           </button>
@@ -401,7 +404,7 @@ const AiChat: React.FC = () => {
         />
         <Button
           size="icon"
-          className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shrink-0"
+          className="rounded-full bg-primary hover:bg-primary/90 shrink-0"
           onClick={() => sendMessage(input)}
           disabled={!input.trim() || isLoading}
         >
@@ -413,3 +416,4 @@ const AiChat: React.FC = () => {
 };
 
 export default AiChat;
+

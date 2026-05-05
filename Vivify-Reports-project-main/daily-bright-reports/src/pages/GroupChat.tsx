@@ -23,7 +23,7 @@ function getInitials(name: string) {
 }
 
 function avatarColor(name: string) {
-  const colors = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500', 'bg-pink-500', 'bg-indigo-500'];
+  const colors = ['bg-primary', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500', 'bg-pink-500', 'bg-teal-500'];
   if (!name) return colors[0];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -250,7 +250,7 @@ const GroupChat: React.FC = () => {
         {/* ===== DESKTOP VIEW ===== */}
         <div className="hidden lg:flex flex-col h-[calc(100vh-5rem)] overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm animate-in fade-in duration-500">
           <div className="flex border-b border-gray-100 dark:border-slate-700 shrink-0">
-            <button onClick={() => setTab('ai')} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'ai' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400')}>
+            <button onClick={() => setTab('ai')} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'ai' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400')}>
               <Sparkles className="h-3.5 w-3.5 inline mr-1" />AI Bot
             </button>
             <button onClick={() => { setTab('dm'); setMobileView('list'); }} className={cn('flex-1 py-3 text-xs font-semibold transition-colors', tab === 'dm' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-400')}>
@@ -286,7 +286,7 @@ const GroupChat: React.FC = () => {
                     )}
                     {filteredGroups.length === 0 ? <p className="p-4 text-xs text-gray-400 dark:text-slate-500">No groups yet.</p> : filteredGroups.map(g => (
                       <button key={g.id} onClick={() => { setSelectedGroup(g); setSelectedUser(null); }} className={cn('w-full text-left px-3 py-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors', selectedGroup?.id === g.id ? 'bg-primary/5 dark:bg-primary/10 border-r-2 border-primary' : '')}>
-                        <div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-white" /></div>
+                        <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-white" /></div>
                         <div className="min-w-0"><p className="text-sm font-medium text-gray-800 dark:text-white truncate">{g.groupName}</p><p className="text-xs text-gray-400 dark:text-slate-500">{g.memberCount ?? 0} members</p></div>
                         {(g.unreadCount ?? 0) > 0 && <Badge className="ml-auto bg-primary text-white text-[10px] h-5 min-w-[20px] rounded-full">{g.unreadCount}</Badge>}
                       </button>
@@ -305,7 +305,7 @@ const GroupChat: React.FC = () => {
                     {selectedUser ? (
                       <><div className={cn('h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-bold', avatarColor(selectedUser.name))}>{getInitials(selectedUser.name)}</div><div><p className="text-sm font-semibold text-gray-800 dark:text-white">{selectedUser.name}</p><p className="text-xs text-gray-400 dark:text-slate-500 capitalize">{selectedUser.role}</p></div></>
                     ) : (
-                      <><div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-white" /></div><div><p className="text-sm font-semibold text-gray-800 dark:text-white">{selectedGroup?.groupName}</p><p className="text-xs text-gray-400 dark:text-slate-500">{selectedGroup?.memberCount ?? 0} members</p></div></>
+                      <><div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center shrink-0"><Users className="h-4 w-4 text-white" /></div><div><p className="text-sm font-semibold text-gray-800 dark:text-white">{selectedGroup?.groupName}</p><p className="text-xs text-gray-400 dark:text-slate-500">{selectedGroup?.memberCount ?? 0} members</p></div></>
                     )}
                   </div>
                   <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-slate-50/40 dark:bg-slate-950/40">
@@ -406,7 +406,7 @@ const GroupChat: React.FC = () => {
                   >
                     <div className={cn(
                       'h-14 w-14 rounded-2xl flex items-center justify-center text-white text-lg font-black shrink-0 shadow-lg',
-                      tab === 'dm' ? avatarColor(item.name) : 'bg-indigo-500'
+                      tab === 'dm' ? avatarColor(item.name) : 'bg-primary'
                     )}>
                       {tab === 'dm' ? getInitials(item.name) : <Users className="h-6 w-6" />}
                     </div>
@@ -453,7 +453,7 @@ const GroupChat: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <div className="h-10 w-10 rounded-xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-md shadow-indigo-100 dark:shadow-none">
+                    <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md shadow-primary/20 dark:shadow-none">
                       <Users className="h-5 w-5 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
