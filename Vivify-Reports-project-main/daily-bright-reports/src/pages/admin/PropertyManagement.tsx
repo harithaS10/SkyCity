@@ -631,7 +631,7 @@ const PropertyManagement: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-[calc(100vh-5rem)]">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-900 -mx-4 -mt-4 min-h-[calc(100vh-5rem)]">
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-6 gap-4">
               <div className="flex-1 min-w-0">
@@ -692,13 +692,13 @@ const PropertyManagement: React.FC = () => {
                   const bgColor = isApartment ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700';
                   
                   return (
-                    <div key={prop.id} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-black/5 flex flex-col gap-3">
+                    <div key={prop.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex flex-col gap-3">
                       <div className="flex items-start gap-4">
                         <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${bgColor}`}>
                           {isApartment ? <Home className="h-5 w-5" /> : <Layers className="h-5 w-5" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-black text-slate-800 truncate mb-0.5">{prop.propertyName}</h4>
+                          <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 truncate mb-0.5">{prop.propertyName}</h4>
                           <Badge className={`${bgColor} hover:${bgColor} border-0 text-[10px] px-2 py-0`}>
                             {isApartment ? 'Apartment' : 'Common Area'}
                           </Badge>
@@ -713,7 +713,7 @@ const PropertyManagement: React.FC = () => {
                         </Button>
                       </div>
                       
-                      <div className="text-xs text-slate-600 space-y-1 bg-slate-50 rounded-2xl p-3">
+                      <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1 bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-3">
                         {prop.towerName && (
                           <div className="flex items-center gap-2">
                             <span className="text-slate-400 font-bold min-w-[60px]">Tower:</span>

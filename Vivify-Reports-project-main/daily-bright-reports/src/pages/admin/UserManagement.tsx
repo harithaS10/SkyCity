@@ -549,7 +549,7 @@ const UserManagement: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-[calc(100vh-5rem)]">
+        <div className="block sm:hidden bg-slate-50 dark:bg-slate-900 -mx-4 -mt-4 min-h-[calc(100vh-5rem)]">
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-6 gap-4">
               <div className="flex-1 min-w-0">
@@ -609,13 +609,13 @@ const UserManagement: React.FC = () => {
                     'bg-slate-100 text-slate-700';
                   
                   return (
-                    <div key={user.id} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-black/5 flex flex-col gap-3">
+                    <div key={user.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/10 flex flex-col gap-3">
                       <div className="flex items-center gap-4">
                         <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-sm font-black shrink-0 shadow-sm ${roleColor}`}>
                           {initials}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-black text-slate-800 truncate mb-0.5">{user.name}</h4>
+                          <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 truncate mb-0.5">{user.name}</h4>
                           <p className="text-xs text-slate-400 font-medium truncate">{user.email}</p>
                         </div>
                         <DropdownMenu>
@@ -632,10 +632,10 @@ const UserManagement: React.FC = () => {
                         </DropdownMenu>
                       </div>
                       
-                      <div className="flex items-center gap-2 pt-2 border-t border-slate-50">
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-50 dark:border-slate-700">
                         <div className="flex-1 min-w-0">
                           <Select value={user.role} onValueChange={(value: string) => handleRoleChange(user.id, value)}>
-                            <SelectTrigger className="w-full h-9 bg-slate-50 border-none rounded-xl text-[11px] font-bold text-slate-700">
+                            <SelectTrigger className="w-full h-9 bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-300">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-card rounded-2xl shadow-xl border-slate-100">
@@ -652,8 +652,8 @@ const UserManagement: React.FC = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 h-9 rounded-xl shrink-0">
-                          <span className={cn("text-[9px] font-black uppercase tracking-widest", user.status === 'active' ? "text-emerald-600" : "text-slate-400")}>
+                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 px-3 h-9 rounded-xl shrink-0">
+                          <span className={cn("text-[9px] font-black uppercase tracking-widest", user.status === 'active' ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500")}>
                             {user.status === 'active' ? 'Active' : 'Disabled'}
                           </span>
                           <Switch checked={user.status === 'active'} onCheckedChange={() => handleToggleEnabled(user.id)} className="scale-75 origin-right" />
