@@ -432,66 +432,66 @@ const PropertyManagement: React.FC = () => {
   // ── Render ─────────────────────────────────────────────────────────────
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-in fade-in duration-500">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Property Management</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage apartments, towers, and common areas for your association.
-            </p>
+      <div className="animate-fade-in">
+        {/* ===== DESKTOP HEADER & STATS ===== */}
+        <div className="hidden sm:block space-y-6 mb-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">Property Management</h1>
+              <p className="text-muted-foreground">Manage apartments, towers, and common areas for your association</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="gap-2" onClick={() => setBulkOpen(true)}>
+                <Upload className="h-4 w-4" />
+                Bulk Upload
+              </Button>
+              <Button className="gap-2" onClick={() => setAddOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add Property
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" className="gap-2" onClick={() => setBulkOpen(true)}>
-              <Upload className="h-4 w-4" />
-              Bulk Upload
-            </Button>
-            <Button className="gap-2" onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Add Property
-            </Button>
+
+          {/* Stats */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <Building2 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{totalProperties}</p>
+                  <p className="text-sm text-muted-foreground">Total Properties</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100/50">
+                  <Home className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{apartments}</p>
+                  <p className="text-sm text-muted-foreground">Apartments</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100/50">
+                  <Layers className="h-5 w-5 text-violet-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{commonAreas}</p>
+                  <p className="text-sm text-muted-foreground">Common Areas</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="p-3 rounded-xl bg-blue-100">
-                <Building2 className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Properties</p>
-                <p className="text-2xl font-bold text-slate-900">{totalProperties}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="p-3 rounded-xl bg-emerald-100">
-                <Home className="h-6 w-6 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Apartments / Towers</p>
-                <p className="text-2xl font-bold text-slate-900">{apartments}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className="p-3 rounded-xl bg-violet-100">
-                <Layers className="h-6 w-6 text-violet-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Common Areas</p>
-                <p className="text-2xl font-bold text-slate-900">{commonAreas}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Desktop Table */}
-        <Card className="hidden md:block overflow-hidden border-none shadow-md">
+          {/* Desktop Table */}
+          <Card className="overflow-hidden border-none shadow-md">
           <CardHeader className="bg-white">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -628,69 +628,149 @@ const PropertyManagement: React.FC = () => {
             )}
           </CardContent>
         </Card>
+        </div>
 
-        {/* Mobile Card List */}
-        <div className="md:hidden space-y-3">
-          {isLoading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {/* ===== MOBILE VIEW ===== */}
+        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-[calc(100vh-5rem)]">
+          <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
+            <div className="flex justify-between items-start mb-6 gap-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-black text-white tracking-tight truncate">Property Management</h1>
+                <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Manage apartments, towers, and common areas</p>
+              </div>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setAddOpen(true)}>
+                <Plus className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setBulkOpen(true)}>
+                <Upload className="h-5 w-5" />
+              </Button>
             </div>
-          ) : properties.length === 0 ? (
-            <div className="text-center py-16 border-2 border-dashed rounded-lg bg-slate-50">
-              <Building2 className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-              <p className="text-slate-500 font-medium">No properties found</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {search ? 'Try a different search term.' : 'Add your first property to get started.'}
-              </p>
+            
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex flex-col items-center justify-center border border-white/10">
+                <Building2 className="h-4 w-4 text-white mb-1 opacity-80" />
+                <p className="text-xl font-black">{totalProperties}</p>
+                <p className="text-[9px] uppercase font-bold tracking-widest opacity-70">Total</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex flex-col items-center justify-center border border-white/10">
+                <Home className="h-4 w-4 text-emerald-300 mb-1 opacity-80" />
+                <p className="text-xl font-black">{apartments}</p>
+                <p className="text-[9px] uppercase font-bold tracking-widest opacity-70">Apartments</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex flex-col items-center justify-center border border-white/10">
+                <Layers className="h-4 w-4 text-violet-300 mb-1 opacity-80" />
+                <p className="text-xl font-black">{commonAreas}</p>
+                <p className="text-[9px] uppercase font-bold tracking-widest opacity-70">Areas</p>
+              </div>
             </div>
-          ) : (
-            properties.map((prop) => (
-              <Card key={prop.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-slate-900 truncate">{prop.propertyName}</span>
-                        {prop.propertyType === 'apartment' ? (
-                          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-0 shrink-0">
-                            <Home className="h-3 w-3 mr-1" />
-                            Apartment
+          </div>
+
+          <div className="px-5 -mt-6 relative z-20 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search properties..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-12 pl-12 pr-4 rounded-2xl bg-white border-none shadow-xl ring-1 ring-black/5 font-bold text-sm"
+              />
+            </div>
+
+            <div className="space-y-3 pb-6">
+              {isLoading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : properties.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 opacity-50">
+                  <Building2 className="h-12 w-12 mb-3 text-slate-300" />
+                  <p className="text-sm font-bold text-slate-500">No properties found</p>
+                </div>
+              ) : (
+                properties.map((prop) => {
+                  const isApartment = prop.propertyType === 'apartment';
+                  const bgColor = isApartment ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700';
+                  
+                  return (
+                    <div key={prop.id} className="bg-white rounded-3xl p-4 shadow-sm ring-1 ring-black/5 flex flex-col gap-3">
+                      <div className="flex items-start gap-4">
+                        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${bgColor}`}>
+                          {isApartment ? <Home className="h-5 w-5" /> : <Layers className="h-5 w-5" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-black text-slate-800 truncate mb-0.5">{prop.propertyName}</h4>
+                          <Badge className={`${bgColor} hover:${bgColor} border-0 text-[10px] px-2 py-0`}>
+                            {isApartment ? 'Apartment' : 'Common Area'}
                           </Badge>
-                        ) : (
-                          <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-100 border-0 shrink-0">
-                            <Layers className="h-3 w-3 mr-1" />
-                            Common Area
-                          </Badge>
-                        )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 shrink-0 rounded-xl bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                          onClick={() => setDeleteConfirmId(prop.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="mt-2 text-sm text-slate-600 space-y-1">
-                        {prop.towerName && <div><span className="text-slate-400">Tower:</span> {prop.towerName}</div>}
-                        {prop.floorNo && <div><span className="text-slate-400">Floor:</span> {prop.floorNo}</div>}
-                        {prop.doorNo && <div><span className="text-slate-400">Door:</span> {prop.doorNo}</div>}
-                        {prop.contactName && <div><span className="text-slate-400">Contact:</span> {prop.contactName}</div>}
-                        {prop.contactMobile && <div><span className="text-slate-400">Mobile:</span> {prop.contactMobile}</div>}
-                        {prop.commonAreas && <div><span className="text-slate-400">Areas:</span> {prop.commonAreas}</div>}
-                        {prop.address && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-slate-400" />
-                            {prop.address}
+                      
+                      <div className="text-xs text-slate-600 space-y-1 bg-slate-50 rounded-2xl p-3">
+                        {prop.towerName && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold min-w-[60px]">Tower:</span>
+                            <span className="font-medium">{prop.towerName}</span>
                           </div>
+                        )}
+                        {prop.floorNo && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold min-w-[60px]">Floor:</span>
+                            <span className="font-medium">{prop.floorNo}</span>
+                          </div>
+                        )}
+                        {prop.doorNo && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold min-w-[60px]">Door:</span>
+                            <span className="font-medium">{prop.doorNo}</span>
+                          </div>
+                        )}
+                        {prop.contactName && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold min-w-[60px]">Contact:</span>
+                            <span className="font-medium">{prop.contactName}</span>
+                          </div>
+                        )}
+                        {prop.contactMobile && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold min-w-[60px]">Mobile:</span>
+                            <span className="font-medium">{prop.contactMobile}</span>
+                          </div>
+                        )}
+                        {prop.commonAreas && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 font-bold min-w-[60px]">Areas:</span>
+                            <span className="font-medium">{prop.commonAreas}</span>
+                          </div>
+                        )}
+                        {prop.address && (
+                          <div className="flex items-start gap-2">
+                            <MapPin className="h-3 w-3 text-slate-400 mt-0.5 shrink-0" />
+                            <span className="font-medium text-slate-500">{prop.address}</span>
+                          </div>
+                        )}
+                        {!prop.towerName && !prop.floorNo && !prop.doorNo && !prop.contactName && !prop.contactMobile && !prop.commonAreas && !prop.address && (
+                          <span className="text-slate-400 italic">No additional details</span>
                         )}
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-rose-600 hover:bg-rose-50 hover:border-rose-200 shrink-0"
-                      onClick={() => setDeleteConfirmId(prop.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Card List - OLD (REMOVED) */}
+        <div className="hidden space-y-3">
+          {/* Old mobile cards removed - now using new mobile view above */}
         </div>
       </div>
 

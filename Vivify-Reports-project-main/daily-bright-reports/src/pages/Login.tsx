@@ -258,8 +258,8 @@ const Login: React.FC = () => {
                   <img src={logo} alt="SkyCity" className="h-full w-full object-contain" />
                 </div>
                 <div className="space-y-0">
-                  <h1 className="font-black text-xl tracking-tighter text-primary lowercase skycity-logo-text leading-none">SkyCity</h1>
-                  <p className="text-primary/50 text-[8px] tracking-[0.2em] uppercase reports-subtext font-bold">Reports Platform</p>
+                  <h1 className="font-black text-xl tracking-tighter lowercase leading-none" style={{ color: loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488' }}>SkyCity</h1>
+                  <p className="text-[8px] tracking-[0.2em] uppercase reports-subtext font-bold">Reports Platform</p>
                 </div>
               </div>
 
