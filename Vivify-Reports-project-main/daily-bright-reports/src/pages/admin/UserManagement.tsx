@@ -281,7 +281,7 @@ const UserManagement: React.FC = () => {
                 </DialogHeader>
                 <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
+                    <Label htmlFor="name">Full Name *</Label>
                     <Input
                       id="name"
                       placeholder="John Doe"
@@ -290,7 +290,7 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
+                    <Label htmlFor="username">Username *</Label>
                     <Input
                       id="username"
                       placeholder="johndoe"
@@ -299,7 +299,7 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -309,7 +309,7 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">Password *</Label>
                     <Input
                       id="password"
                       type="password"
@@ -319,7 +319,7 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
+                    <Label htmlFor="role">Role *</Label>
                     <Select
                       value={newUser.role}
                       onValueChange={(value: string) => setNewUser((prev) => ({ ...prev, role: value }))}
