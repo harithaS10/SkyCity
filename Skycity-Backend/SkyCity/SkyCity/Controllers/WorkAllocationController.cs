@@ -163,8 +163,30 @@ public class WorkAllocationController : ControllerBase
     public async Task<ActionResult> Create([FromBody] CreateAllocationDto dto)
     {
         var allocations = new List<WorkAllocation>();
+        var dupeSkipped = new List<int>();
+
+        // Load existing allocations for this association to check duplicates in memory
+        var dueDateDay = dto.DueDate.Date;
+        var existingTitles = await _context.WorkAllocations
+            .Where(a => a.AssociationId == CurrentAssocId
+                     && a.Title.ToLower() == dto.Title.ToLower().Trim()
+                     && dto.AssignedToIds.Contains(a.AssignedTo))
+            .Select(a => new { a.AssignedTo, DueDateDay = a.DueDate.Date })
+            .ToListAsync();
+
         foreach (var userId in dto.AssignedToIds)
         {
+            // Skip if same title + same user + same due date already exists
+            bool isDupe = existingTitles.Any(e =>
+                e.AssignedTo == userId &&
+                e.DueDateDay == dueDateDay);
+
+            if (isDupe)
+            {
+                dupeSkipped.Add(userId);
+                continue;
+            }
+
             var alloc = new WorkAllocation
             {
                 Title = dto.Title,
@@ -180,9 +202,26 @@ public class WorkAllocationController : ControllerBase
             };
             allocations.Add(alloc);
         }
-        _context.WorkAllocations.AddRange(allocations);
-        await _context.SaveChangesAsync();
-        return Ok(new ApiResponse<dynamic> { Success = true, Data = allocations });
+
+        if (allocations.Count > 0)
+        {
+            _context.WorkAllocations.AddRange(allocations);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new ApiResponse<dynamic>
+        {
+            Success = true,
+            Data = new
+            {
+                allocations,
+                created = allocations.Count,
+                skipped = dupeSkipped.Count,
+                message = dupeSkipped.Count > 0
+                    ? $"{dupeSkipped.Count} duplicate(s) skipped — same task already assigned to those users on that date."
+                    : null
+            }
+        });
     }
 
     // PUT /workallocations/{id} — update title, description, priority, dueDate
@@ -426,6 +465,15 @@ public class WorkAllocationController : ControllerBase
         var created = new List<WorkAllocation>();
         var errors = new List<string>();
 
+        // Load existing allocations once for duplicate checking
+        var existingAllocs = await _context.WorkAllocations
+            .Where(a => a.AssociationId == CurrentAssocId)
+            .Select(a => new { a.Title, a.AssignedTo, DueDateDay = a.DueDate.Date })
+            .ToListAsync();
+
+        // Track what we're about to insert this batch to catch intra-batch dupes
+        var batchKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         for (int i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
@@ -442,11 +490,8 @@ public class WorkAllocationController : ControllerBase
                 work = workCategories.FirstOrDefault(w => string.Equals(w.WorkCode, row.WorkCode.Trim(), StringComparison.OrdinalIgnoreCase));
             if (work == null && !string.IsNullOrWhiteSpace(row.WorkTitle))
                 work = workCategories.FirstOrDefault(w => string.Equals(w.WorkTitle, row.WorkTitle.Trim(), StringComparison.OrdinalIgnoreCase));
-            if (work == null)
-            {
-                errors.Add($"Row {rowNum}: Could not match workCode '{row.WorkCode}' or workTitle '{row.WorkTitle}'.");
-                continue;
-            }
+            // workCode/workTitle are optional — if not matched, WorkId defaults to 0 (no category)
+            int resolvedWorkId = work?.Id ?? 0;
 
             User? assignedUser = null;
             if (!string.IsNullOrWhiteSpace(row.AssignedTo))
@@ -473,11 +518,27 @@ public class WorkAllocationController : ControllerBase
             if (!string.IsNullOrWhiteSpace(row.Priority) && validPriorities.Contains(row.Priority.Trim()))
                 priority = row.Priority.Trim().ToLower();
 
+            // Duplicate check: same title + same user + same due date (existing DB or this batch)
+            var dupeKey = $"{row.Title.Trim().ToLower()}|{assignedUser.Id}|{dueDate.Date:yyyy-MM-dd}";
+            bool isDupe = batchKeys.Contains(dupeKey) ||
+                          existingAllocs.Any(e =>
+                              string.Equals(e.Title, row.Title.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                              e.AssignedTo == assignedUser.Id &&
+                              e.DueDateDay == dueDate.Date);
+
+            if (isDupe)
+            {
+                errors.Add($"Row {rowNum}: Duplicate — '{row.Title.Trim()}' is already assigned to '{assignedUser.FullName}' on {dueDate:yyyy-MM-dd}.");
+                continue;
+            }
+
+            batchKeys.Add(dupeKey);
+
             created.Add(new WorkAllocation
             {
                 Title = row.Title.Trim(),
                 Description = string.IsNullOrWhiteSpace(row.Description) ? null : row.Description.Trim(),
-                WorkId = work.Id,
+                WorkId = resolvedWorkId,
                 AssignedTo = assignedUser.Id,
                 AssignedBy = CurrentUserId,
                 AssociationId = CurrentAssocId,
