@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import { downloadExcel, downloadCSV } from '@/lib/downloadUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -175,33 +176,26 @@ function parseExcel(buffer: ArrayBuffer): BulkRow[] {
     .map(rowToBulkRow);
 }
 
-function downloadExcelTemplate() {
+async function downloadExcelTemplate() {
   const data = [
     ['propertyType', 'towerName', 'floorNo', 'doorNo', 'contactName', 'contactMobile', 'areaName', 'info'],
     ['Apartment', 'Tower A', '1', '101', 'John Doe', '9876543210', '', ''],
     ['Common Area', '', '', '', '', '', 'Swimming Pool', 'Main pool area'],
   ];
   const ws = XLSX.utils.aoa_to_sheet(data);
-  // Set column widths
   ws['!cols'] = [14, 12, 8, 8, 14, 16, 16, 20].map((w) => ({ wch: w }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'property_bulk_upload');
-  XLSX.writeFile(wb, 'property_bulk_upload_template.xlsx');
+  await downloadExcel(wb, 'property_bulk_upload_template.xlsx', 'Property Upload Template');
 }
 
-function downloadCSVTemplate() {
+async function downloadCSVTemplate() {
   const sample = [
     CSV_COLUMNS,
     'Apartment,Tower A,1,101,John Doe,9876543210,,',
     'Common Area,,,,,,Swimming Pool,Main pool area',
   ].join('\n');
-  const blob = new Blob([sample], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'property_bulk_upload_template.csv';
-  a.click();
-  URL.revokeObjectURL(url);
+  await downloadCSV(sample, 'property_bulk_upload_template.csv', 'Property Upload Template');
 }
 
 // ── Component ──────────────────────────────────────────────────────────────

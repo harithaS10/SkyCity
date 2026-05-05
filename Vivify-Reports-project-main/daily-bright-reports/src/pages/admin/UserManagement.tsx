@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
 import type { CustomRole } from '@/lib/api';
+import { downloadCSV } from '@/lib/downloadUtils';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -197,12 +198,9 @@ const UserManagement: React.FC = () => {
   const adminCount = users.filter((u) => u.role === 'admin').length;
   const activeCount = users.filter((u) => u.status === 'active').length;
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     const csv = 'fullName,username,password,role\nJohn Doe,johndoe,Pass@123,staff\nJane Smith,janesmith,Pass@123,staff';
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'users_template.csv'; a.click();
-    URL.revokeObjectURL(url);
+    await downloadCSV(csv, 'users_template.csv', 'Users Upload Template');
   };
 
   const handleBulkFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
