@@ -139,7 +139,7 @@ const EmployeeList: React.FC = () => {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Employee Task Management</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-primary dark:text-white">Employee Task Management</h1>
               <p className="text-sm text-muted-foreground max-w-[500px]">
                 Manage and assign tasks to your team members. View individual performance and task allocation.
               </p>
