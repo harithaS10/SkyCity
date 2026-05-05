@@ -387,10 +387,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden w-full max-h-screen xl:max-h-none overflow-y-auto xl:overflow-y-visible">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden w-full">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header
-        className="xl:sticky xl:top-0 fixed top-0 left-0 right-0 z-50 w-full border-b border-primary/20 bg-primary text-primary-foreground shadow-md safe-top"
+        className="fixed top-0 left-0 right-0 z-50 w-full border-b border-primary/20 bg-primary text-primary-foreground shadow-md safe-top"
       >
         <div className="flex h-16 sm:h-14 items-center justify-between px-3 sm:px-3 lg:px-4 xl:px-6 max-w-[1800px] mx-auto w-full gap-2">
 
@@ -810,7 +810,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       )}
 
       {/* ── Main Content ──────────────────────────────────────────────────── */}
-      <main className="px-3 sm:px-6 md:px-8 py-4 sm:py-8 max-w-[1800px] mx-auto w-full pb-20 xl:pb-8 overflow-x-hidden pt-20 xl:pt-4 flex-1">
+      <main className="px-3 sm:px-6 md:px-8 py-4 sm:py-8 max-w-[1800px] mx-auto w-full pb-20 xl:pb-8 overflow-x-hidden flex-1 pt-16 sm:pt-14">
         {children}
       </main>
 

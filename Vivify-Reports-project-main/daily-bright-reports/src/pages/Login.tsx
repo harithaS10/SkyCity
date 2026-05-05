@@ -5,11 +5,13 @@ import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Eye, EyeOff, AlertCircle, Building2, Shield, BarChart3, Users } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Building2, Shield, BarChart3, Users, Cookie } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import logo from '@/assets/skycity-logo.png';
+
+const COOKIE_CONSENT_KEY = 'skycity_cookie_consent';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -23,6 +25,9 @@ const Login: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsContent, setTermsContent] = useState('');
   const [hideTerms, setHideTerms] = useState(false);
+  const [cookieConsent, setCookieConsent] = useState<'accepted' | 'declined' | null>(() => {
+    try { return (localStorage.getItem(COOKIE_CONSENT_KEY) as 'accepted' | 'declined' | null); } catch { return null; }
+  });
   // Initialize from localStorage cache immediately — no flash
   const [loginBgColor, setLoginBgColor] = useState<string>(() => {
     try {
@@ -177,6 +182,17 @@ const Login: React.FC = () => {
     } else {
       setError(result.error || 'Login failed');
     }
+  };
+
+  const handleCookieAccept = () => {
+    try { localStorage.setItem(COOKIE_CONSENT_KEY, 'accepted'); } catch { /* ignore */ }
+    setCookieConsent('accepted');
+    toast.success('Cookie preferences saved');
+  };
+
+  const handleCookieDecline = () => {
+    try { localStorage.setItem(COOKIE_CONSENT_KEY, 'declined'); } catch { /* ignore */ }
+    setCookieConsent('declined');
   };
 
   const features = [
@@ -371,6 +387,60 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Cookie Consent Banner */}
+      {cookieConsent === null && (
+        <div className="fixed bottom-0 left-0 right-0 z-[999] p-3 sm:p-4">
+          <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div
+                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ backgroundColor: `${loginBgColor}20` }}
+              >
+                <Cookie className="h-4 w-4" style={{ color: loginBgColor || '#0d9488' }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">We use cookies</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                  We use essential cookies to keep you logged in and remember your preferences. By continuing, you agree to our use of cookies.{' '}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button type="button" className="underline font-semibold focus:outline-none" style={{ color: loginBgColor || '#0d9488' }}>
+                        Learn more
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg rounded-2xl">
+                      <DialogHeader><DialogTitle className="text-lg font-black">Cookie Policy</DialogTitle></DialogHeader>
+                      <div className="text-sm text-slate-500 space-y-3 mt-2 leading-relaxed">
+                        <p><strong className="text-slate-700">Essential Cookies</strong> — Required for authentication and session management. These cannot be disabled.</p>
+                        <p><strong className="text-slate-700">Preference Cookies</strong> — Store your theme color, language, and UI preferences so you don't have to set them every visit.</p>
+                        <p><strong className="text-slate-700">No Tracking</strong> — We do not use advertising or third-party tracking cookies. Your data stays within the SkyCity platform.</p>
+                        <p className="text-xs text-slate-400">By clicking "Accept", you consent to our use of cookies as described above. You can withdraw consent at any time by clearing your browser storage.</p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleCookieDecline}
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+              >
+                Decline
+              </button>
+              <button
+                type="button"
+                onClick={handleCookieAccept}
+                className="flex-1 sm:flex-none px-5 py-2 rounded-xl text-xs font-bold text-white transition-colors shadow-md"
+                style={{ backgroundColor: loginBgColor || '#0d9488' }}
+              >
+                Accept All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
