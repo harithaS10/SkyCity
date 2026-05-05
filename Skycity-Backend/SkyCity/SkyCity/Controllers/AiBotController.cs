@@ -70,28 +70,54 @@ public class AiBotController : ControllerBase
         // ── SHOW PENDING ─────────────────────────────────────────────────────
         if (msg.Contains("pending task") || msg.Contains("pending work"))
         {
-            var tasks = await _context.WorkAllocations
-                .Where(a => a.AssociationId == CurrentAssocId && a.Status == "pending")
-                .OrderBy(a => a.DueDate).Take(10).ToListAsync();
-            if (!tasks.Any()) return Ok(BotReply("No pending tasks. ✅"));
-            var uids = tasks.Select(t => t.AssignedTo).Distinct().ToList();
-            var umap = (await _context.Users.Where(u => uids.Contains(u.Id)).Select(u => new { u.Id, u.FullName }).ToListAsync()).ToDictionary(u => u.Id, u => u.FullName);
-            var lines = tasks.Select(t => $"• **{t.Title}** → {umap.GetValueOrDefault(t.AssignedTo, "?")} (Due: {t.DueDate:MMM dd})");
-            return Ok(BotReply($"⏳ Pending ({tasks.Count}):\n\n" + string.Join("\n", lines)));
+            if (IsAdmin)
+            {
+                // Admins see all pending tasks in the association
+                var tasks = await _context.WorkAllocations
+                    .Where(a => a.AssociationId == CurrentAssocId && a.Status == "pending")
+                    .OrderBy(a => a.DueDate).Take(10).ToListAsync();
+                if (!tasks.Any()) return Ok(BotReply("No pending tasks. ✅"));
+                var uids = tasks.Select(t => t.AssignedTo).Distinct().ToList();
+                var umap = (await _context.Users.Where(u => uids.Contains(u.Id)).Select(u => new { u.Id, u.FullName }).ToListAsync()).ToDictionary(u => u.Id, u => u.FullName);
+                var lines = tasks.Select(t => $"• **{t.Title}** → {umap.GetValueOrDefault(t.AssignedTo, "?")} (Due: {t.DueDate:MMM dd})");
+                return Ok(BotReply($"⏳ Pending ({tasks.Count}):\n\n" + string.Join("\n", lines)));
+            }
+            else
+            {
+                // Staff/non-admin users only see their own pending tasks
+                var tasks = await _context.WorkAllocations
+                    .Where(a => a.AssignedTo == CurrentUserId && a.Status == "pending")
+                    .OrderBy(a => a.DueDate).Take(10).ToListAsync();
+                if (!tasks.Any()) return Ok(BotReply("You have no pending tasks. ✅"));
+                var lines = tasks.Select(t => $"• **{t.Title}** (Due: {t.DueDate:MMM dd})");
+                return Ok(BotReply($"⏳ Your pending tasks ({tasks.Count}):\n\n" + string.Join("\n", lines)));
+            }
         }
 
         // ── SHOW ALL WORK ORDERS ─────────────────────────────────────────────
         if (msg.Contains("all work order") || msg.Contains("show work order") || msg.Contains("work order"))
         {
-            var tasks = await _context.WorkAllocations.Where(a => a.AssociationId == CurrentAssocId).OrderByDescending(a => a.CreatedAt).Take(10).ToListAsync();
-            if (!tasks.Any()) return Ok(BotReply("No work orders found."));
-            var lines = tasks.Select(t => $"• **{t.Title}** — {t.Status} (Due: {t.DueDate:MMM dd})");
-            return Ok(BotReply($"📋 Work orders ({tasks.Count}):\n\n" + string.Join("\n", lines)));
+            if (IsAdmin)
+            {
+                var tasks = await _context.WorkAllocations.Where(a => a.AssociationId == CurrentAssocId).OrderByDescending(a => a.CreatedAt).Take(10).ToListAsync();
+                if (!tasks.Any()) return Ok(BotReply("No work orders found."));
+                var lines = tasks.Select(t => $"• **{t.Title}** — {t.Status} (Due: {t.DueDate:MMM dd})");
+                return Ok(BotReply($"📋 Work orders ({tasks.Count}):\n\n" + string.Join("\n", lines)));
+            }
+            else
+            {
+                var tasks = await _context.WorkAllocations.Where(a => a.AssignedTo == CurrentUserId).OrderByDescending(a => a.CreatedAt).Take(10).ToListAsync();
+                if (!tasks.Any()) return Ok(BotReply("You have no work orders assigned."));
+                var lines = tasks.Select(t => $"• **{t.Title}** — {t.Status} (Due: {t.DueDate:MMM dd})");
+                return Ok(BotReply($"📋 Your work orders ({tasks.Count}):\n\n" + string.Join("\n", lines)));
+            }
         }
 
         // ── SHOW USERS ───────────────────────────────────────────────────────
         if (msg.Contains("all user") || msg.Contains("all employee") || msg.Contains("show user") || msg.Contains("show employee"))
         {
+            if (!IsAdmin)
+                return Ok(BotReply("⛔ You don't have permission to view all users."));
             var users = await _context.Users.Where(u => u.AssociationId == CurrentAssocId).Select(u => new { u.FullName, u.Role, u.IsActive }).ToListAsync();
             if (!users.Any()) return Ok(BotReply("No users found."));
             var lines = users.Select(u => $"• **{u.FullName}** — {u.Role} {(u.IsActive ? "✅" : "❌")}");
@@ -135,7 +161,15 @@ public class AiBotController : ControllerBase
         // ── SHOW COMPLAINTS ──────────────────────────────────────────────────
         if (msg.Contains("complaint"))
         {
-            var complaints = await _context.Complaints.OrderByDescending(c => c.CreatedAt).Take(5).Select(c => new { c.Title, c.Status, c.Priority }).ToListAsync();
+            if (!IsAdmin)
+                return Ok(BotReply("⛔ You don't have permission to view all complaints."));
+            var assocUserIds = await _context.Users
+                .Where(u => u.AssociationId == CurrentAssocId)
+                .Select(u => u.Id).ToListAsync();
+            var complaints = await _context.Complaints
+                .Where(c => assocUserIds.Contains(c.ResidentId))
+                .OrderByDescending(c => c.CreatedAt).Take(5)
+                .Select(c => new { c.Title, c.Status, c.Priority }).ToListAsync();
             if (!complaints.Any()) return Ok(BotReply("No complaints found."));
             var lines = complaints.Select(c => $"• **{c.Title}** — {c.Status} ({c.Priority})");
             return Ok(BotReply($"📝 Recent complaints:\n\n" + string.Join("\n", lines)));
@@ -144,12 +178,23 @@ public class AiBotController : ControllerBase
         // ── SUMMARY ──────────────────────────────────────────────────────────
         if (msg.Contains("stat") || msg.Contains("summary") || msg.Contains("overview") || msg.Contains("dashboard"))
         {
-            var totalUsers = await _context.Users.CountAsync(u => u.AssociationId == CurrentAssocId);
-            var totalTasks = await _context.WorkAllocations.CountAsync(a => a.AssociationId == CurrentAssocId);
-            var completed = await _context.WorkAllocations.CountAsync(a => a.AssociationId == CurrentAssocId && a.Status == "completed");
-            var pending = await _context.WorkAllocations.CountAsync(a => a.AssociationId == CurrentAssocId && a.Status == "pending");
-            var inProgress = await _context.WorkAllocations.CountAsync(a => a.AssociationId == CurrentAssocId && a.Status == "in-progress");
-            return Ok(BotReply($"📊 **System Overview**\n\n👥 Users: **{totalUsers}**\n📋 Work Orders: **{totalTasks}**\n✅ Completed: **{completed}**\n⏳ Pending: **{pending}**\n🔄 In Progress: **{inProgress}**\n📈 Rate: **{(totalTasks > 0 ? Math.Round((double)completed / totalTasks * 100) : 0)}%**"));
+            if (IsAdmin)
+            {
+                var totalUsers = await _context.Users.CountAsync(u => u.AssociationId == CurrentAssocId);
+                var totalTasks = await _context.WorkAllocations.CountAsync(a => a.AssociationId == CurrentAssocId);
+                var completed = await _context.WorkAllocations.CountAsync(a => a.AssociationId == CurrentAssocId && a.Status == "completed");
+                var pending = await _context.WorkAllocations.CountAsync(a => a.AssociationId == CurrentAssocId && a.Status == "pending");
+                var inProgress = await _context.WorkAllocations.CountAsync(a => a.AssociationId == CurrentAssocId && a.Status == "in-progress");
+                return Ok(BotReply($"📊 **System Overview**\n\n👥 Users: **{totalUsers}**\n📋 Work Orders: **{totalTasks}**\n✅ Completed: **{completed}**\n⏳ Pending: **{pending}**\n🔄 In Progress: **{inProgress}**\n📈 Rate: **{(totalTasks > 0 ? Math.Round((double)completed / totalTasks * 100) : 0)}%**"));
+            }
+            else
+            {
+                var myTotal = await _context.WorkAllocations.CountAsync(a => a.AssignedTo == CurrentUserId);
+                var myCompleted = await _context.WorkAllocations.CountAsync(a => a.AssignedTo == CurrentUserId && a.Status == "completed");
+                var myPending = await _context.WorkAllocations.CountAsync(a => a.AssignedTo == CurrentUserId && a.Status == "pending");
+                var myInProgress = await _context.WorkAllocations.CountAsync(a => a.AssignedTo == CurrentUserId && a.Status == "in-progress");
+                return Ok(BotReply($"📊 **Your Summary**\n\n📋 Total Tasks: **{myTotal}**\n✅ Completed: **{myCompleted}**\n⏳ Pending: **{myPending}**\n🔄 In Progress: **{myInProgress}**\n📈 Completion Rate: **{(myTotal > 0 ? Math.Round((double)myCompleted / myTotal * 100) : 0)}%**"));
+            }
         }
 
         // ── ADD WORK TYPE (admin) ─────────────────────────────────────────────

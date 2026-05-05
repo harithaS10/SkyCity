@@ -271,15 +271,15 @@ const UserManagement: React.FC = () => {
                   Create User
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-card max-h-[90vh] overflow-y-auto">
+              <DialogContent className="bg-card max-h-[90vh] flex flex-col">
                 {/* ... Dialog content remains same ... */}
-                <DialogHeader>
+                <DialogHeader className="shrink-0">
                   <DialogTitle>Create New User</DialogTitle>
                   <DialogDescription>
                     Add a new user to the system. They will be able to log in immediately.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
                     <Input
@@ -322,14 +322,12 @@ const UserManagement: React.FC = () => {
                     <Label htmlFor="role">Role</Label>
                     <Select
                       value={newUser.role}
-                      onValueChange={(value: string) =>
-                        setNewUser((prev) => ({ ...prev, role: value }))
-                      }
+                      onValueChange={(value: string) => setNewUser((prev) => ({ ...prev, role: value }))}
                     >
                       <SelectTrigger className="bg-background">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-card">
+                      <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="sub_admin">Sub Admin</SelectItem>
                         <SelectItem value="property_manager">Property Manager</SelectItem>
@@ -353,7 +351,7 @@ const UserManagement: React.FC = () => {
                         <SelectTrigger className="bg-background">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
-                        <SelectContent className="bg-card">
+                        <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
                           <SelectItem value="none">— No Department —</SelectItem>
                           {departments.map(d => (
                             <SelectItem key={d.id} value={d.id.toString()}>{d.departmentName}</SelectItem>
@@ -373,7 +371,7 @@ const UserManagement: React.FC = () => {
                         <SelectTrigger className="bg-background">
                           <SelectValue placeholder="Select custom role" />
                         </SelectTrigger>
-                        <SelectContent className="bg-card">
+                        <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
                           <SelectItem value="none">— No Custom Role —</SelectItem>
                           {customRoles.map(r => (
                             <SelectItem key={r.id} value={r.id.toString()}>{r.roleName}</SelectItem>
@@ -382,13 +380,15 @@ const UserManagement: React.FC = () => {
                       </Select>
                     </div>
                   )}
+
+                  {/* Footer inside scroll area so Custom Role is never at the very bottom */}
+                  <div className="flex justify-end gap-2 pt-2 border-t">
+                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateUser}>Create User</Button>
+                  </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleCreateUser}>Create User</Button>
-                </DialogFooter>
               </DialogContent>
             </Dialog>
             </div>
