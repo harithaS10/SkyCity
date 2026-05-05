@@ -549,7 +549,7 @@ const UserManagement: React.FC = () => {
         </div>
 
         {/* ===== MOBILE VIEW ===== */}
-        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-screen">
+        <div className="block sm:hidden bg-slate-50 -mx-4 -mt-4 min-h-[calc(100vh-5rem)]">
           <div className="bg-primary pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-6 gap-4">
               <div className="flex-1 min-w-0">
@@ -594,7 +594,7 @@ const UserManagement: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-3 pb-8">
+            <div className="space-y-3 pb-6">
               {filteredUsers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 opacity-50">
                   <p className="text-sm font-bold text-slate-500">No users found</p>
