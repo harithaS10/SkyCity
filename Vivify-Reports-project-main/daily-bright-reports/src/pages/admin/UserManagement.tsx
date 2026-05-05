@@ -431,16 +431,16 @@ const UserManagement: React.FC = () => {
           </div>
 
           <Card className="overflow-hidden border-none shadow-md">
-            <CardHeader className="bg-white">
+            <CardHeader className="bg-white dark:bg-slate-800">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <CardTitle className="text-lg">All Users</CardTitle>
+                <CardTitle className="text-lg dark:text-white">All Users</CardTitle>
                 <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground dark:text-slate-400" />
                   <Input
                     placeholder="Search users..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-400"
                   />
                 </div>
               </div>

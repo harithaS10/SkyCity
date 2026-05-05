@@ -300,7 +300,7 @@ const RoleManagement: React.FC = () => {
 
           {/* Table */}
           <Card className="overflow-hidden border-none shadow-md">
-            <CardHeader className="bg-white"><CardTitle className="text-lg">All Roles</CardTitle></CardHeader>
+            <CardHeader className="bg-white dark:bg-slate-800"><CardTitle className="text-lg dark:text-white">All Roles</CardTitle></CardHeader>
             <CardContent className="p-0">
               <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
                 <div className="overflow-x-auto">
