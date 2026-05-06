@@ -19,15 +19,18 @@ public class ComplaintsController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IAuditService _auditService;
     private readonly INotificationService _notificationService;
+    private readonly IWebHostEnvironment _env;
 
     public ComplaintsController(
         AppDbContext context, 
         IAuditService auditService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IWebHostEnvironment env)
     {
         _context = context;
         _auditService = auditService;
         _notificationService = notificationService;
+        _env = env;
     }
 
     [HttpGet]
@@ -44,7 +47,7 @@ public class ComplaintsController : ControllerBase
         var isAdmin = User.IsInRole("admin") || User.IsInRole("sub_admin") || User.IsInRole("property_manager") || User.IsInRole("helpdesk");
 
         // Use lightweight projection — no deep Include chains to avoid timeout
-        var query = _context.Complaints.AsNoTracking().AsQueryable();
+        var query = _context.Complaints.Where(c => c.IsDeleted == true).AsNoTracking().AsQueryable();
 
         if (!isSuperAdmin && assocId > 0)
             query = query.Where(c => c.Resident!.AssociationId == assocId);
@@ -57,33 +60,37 @@ public class ComplaintsController : ControllerBase
 
         var total = await query.CountAsync();
 
-        var items = await query
-            .OrderByDescending(c => c.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(c => new
-            {
-                c.Id,
-                c.ComplaintNumber,
-                c.Title,
-                c.Description,
-                c.Priority,
-                c.Status,
-                c.ResidentId,
-                c.AssignedTo,
-                c.AssignedBy,
-                c.AssignedAt,
-                c.Resolution,
-                c.Rating,
-                c.Feedback,
-                c.CreatedAt,
-                c.ResolvedAt,
-                c.ClosedAt,
-                ResidentName = c.Resident != null ? c.Resident.FullName : null,
-                CategoryName = c.Category != null ? c.Category.CategoryName : null,
-                UnitNumber = c.Unit != null ? c.Unit.UnitNumber : null,
-            })
-            .ToListAsync();
+        var items = await (from c in query
+                            join w in _context.WorkCategories on c.CategoryId equals w.Id into workJoin
+                            from w in workJoin.DefaultIfEmpty()
+                            select new
+                            {
+                                c.Id,
+                                c.ComplaintNumber,
+                                c.Title,
+                                c.Description,
+                                c.Priority,
+                                c.Status,
+                                c.ResidentId,
+                                c.CategoryId,
+                                c.AssignedTo,
+                                c.AssignedBy,
+                                c.AssignedAt,
+                                c.Resolution,
+                                c.Rating,
+                                c.Feedback,
+                                c.CreatedAt,
+                                c.ResolvedAt,
+                                c.ClosedAt,
+                                ResidentName = c.Resident != null ? c.Resident.FullName : null,
+                                CategoryName = c.Category != null ? c.Category.CategoryName : (w != null ? w.WorkTitle : null),
+                                UnitNumber = c.Unit != null ? c.Unit.UnitNumber : null,
+                                Attachments = _context.ComplaintAttachments.Where(a => a.ComplaintId == c.Id && a.IsDeleted == true).Select(a => new { a.Id, a.FileName, a.FilePath }).ToList()
+                            })
+                            .OrderByDescending(c => c.CreatedAt)
+                            .Skip((page - 1) * pageSize)
+                            .Take(pageSize)
+                            .ToListAsync();
 
         return Ok(new ApiResponse<dynamic>
         {
@@ -128,7 +135,7 @@ public class ComplaintsController : ControllerBase
         {
             ResidentId = dto.ResidentId,
             UnitId = dto.UnitId > 0 ? dto.UnitId : null,
-            CategoryId = null, // FK to ComplaintCategories — set null since we use work types now
+            CategoryId = dto.CategoryId > 0 ? dto.CategoryId : null,
             Title = dto.Title,
             Description = dto.Description,
             Priority = dto.Priority,
@@ -138,14 +145,8 @@ public class ComplaintsController : ControllerBase
             IsDeleted = true,
         };
 
-        // Store work type reference in description prefix if provided
-        if (dto.CategoryId > 0)
-        {
-            var workType = await _context.WorkCategories.FindAsync(dto.CategoryId);
-            if (workType != null && !complaint.Title.Contains(workType.WorkTitle))
-                complaint.Description = $"[{workType.WorkTitle}] {complaint.Description}".Trim();
-        }
-
+        // Logic to store work type reference in description prefix removed as per user request
+        
         _context.Complaints.Add(complaint);
         await _context.SaveChangesAsync();
         
@@ -266,4 +267,140 @@ public class ComplaintsController : ControllerBase
         
         return Ok(new ApiResponse { Message = "Feedback submitted successfully" });
     }
+
+    [Authorize(Roles = "helpdesk,property_manager,admin,sub_admin")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateComplaint(int id, [FromBody] UpdateComplaintDto dto)
+    {
+        var complaint = await _context.Complaints.FindAsync(id);
+        if (complaint == null)
+            return NotFound(new ApiResponse { Success = false, Message = "Complaint not found" });
+
+        complaint.Title = dto.Title;
+        complaint.Description = dto.Description;
+        complaint.Priority = dto.Priority;
+        complaint.CategoryId = dto.CategoryId;
+        
+        if (!string.IsNullOrEmpty(dto.Status))
+            complaint.Status = dto.Status;
+            
+        if (dto.AssignedTo.HasValue)
+            complaint.AssignedTo = dto.AssignedTo == 0 ? null : dto.AssignedTo;
+            
+        if (dto.UnitId.HasValue)
+            complaint.UnitId = dto.UnitId == 0 ? null : dto.UnitId;
+
+        await _context.SaveChangesAsync();
+        await _auditService.LogChangeAsync<Complaint>("Update", "Complaint", complaint);
+
+        return Ok(new ApiResponse<Complaint> { Success = true, Data = complaint });
+    }
+
+    [Authorize(Roles = "helpdesk,property_manager,admin,sub_admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteComplaint(int id)
+    {
+        var complaint = await _context.Complaints.FindAsync(id);
+        if (complaint == null)
+            return NotFound(new ApiResponse { Success = false, Message = "Complaint not found" });
+
+        complaint.IsDeleted = false; // Soft delete
+        await _context.SaveChangesAsync();
+        await _auditService.LogChangeAsync<Complaint>("Delete", "Complaint", complaint);
+
+        return Ok(new ApiResponse { Success = true, Message = "Complaint deleted successfully" });
+    }
+
+    [HttpPost("{id}/attachments")]
+    public async Task<ActionResult> UploadAttachment(int id, [FromForm] IFormFile file)
+    {
+        var complaint = await _context.Complaints.FindAsync(id);
+        if (complaint == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        if (file == null || file.Length == 0) return BadRequest(new ApiResponse { Success = false, Message = "No file" });
+
+        var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var uploadDir = Path.Combine(webRoot, "uploads", "complaints");
+        Directory.CreateDirectory(uploadDir);
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var fileName = $"{Guid.NewGuid()}{ext}";
+        var filePath = Path.Combine(uploadDir, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var attachment = new ComplaintAttachment
+        {
+            ComplaintId = id,
+            FileName = file.FileName,
+            FilePath = $"/uploads/complaints/{fileName}",
+            FileType = file.ContentType,
+            UploadedBy = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"),
+            UploadedAt = DateTime.UtcNow,
+            IsDeleted = true
+        };
+
+        _context.ComplaintAttachments.Add(attachment);
+        await _context.SaveChangesAsync();
+
+        return Ok(new ApiResponse<ComplaintAttachment> { Success = true, Data = attachment });
+    }
+
+    [HttpPost("{id}/attachments-base64")]
+    public async Task<ActionResult> UploadAttachmentBase64(int id, [FromBody] Base64AttachmentDto dto)
+    {
+        var complaint = await _context.Complaints.FindAsync(id);
+        if (complaint == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        if (string.IsNullOrEmpty(dto.Data)) return BadRequest(new ApiResponse { Success = false, Message = "No data" });
+
+        var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var uploadDir = Path.Combine(webRoot, "uploads", "complaints");
+        Directory.CreateDirectory(uploadDir);
+
+        var fileName = dto.FileName ?? $"{Guid.NewGuid()}.jpg";
+        var filePath = Path.Combine(uploadDir, fileName);
+
+        var base64Data = dto.Data.Contains(",") ? dto.Data.Split(',')[1] : dto.Data;
+        var bytes = Convert.FromBase64String(base64Data);
+        await System.IO.File.WriteAllBytesAsync(filePath, bytes);
+
+        var attachment = new ComplaintAttachment
+        {
+            ComplaintId = id,
+            FileName = fileName,
+            FilePath = $"/uploads/complaints/{fileName}",
+            FileType = dto.FileType ?? "image/jpeg",
+            UploadedBy = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"),
+            UploadedAt = DateTime.UtcNow,
+            IsDeleted = true
+        };
+
+        _context.ComplaintAttachments.Add(attachment);
+        await _context.SaveChangesAsync();
+
+        return Ok(new ApiResponse<ComplaintAttachment> { Success = true, Data = attachment });
+    }
+
+    [HttpDelete("attachments/{attachmentId}")]
+    public async Task<ActionResult> DeleteAttachment(int attachmentId)
+    {
+        var attachment = await _context.ComplaintAttachments.FindAsync(attachmentId);
+        if (attachment == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        attachment.IsDeleted = false;
+        await _context.SaveChangesAsync();
+
+        return Ok(new ApiResponse { Success = true, Message = "Attachment deleted" });
+    }
+}
+
+public class Base64AttachmentDto
+{
+    public string? FileName { get; set; }
+    public string? FileType { get; set; }
+    public string Data { get; set; } = string.Empty;
 }

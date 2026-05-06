@@ -20,8 +20,14 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
   MessageSquareWarning, Search, Clock, CheckCircle2, AlertCircle,
-  User, Building2, Calendar, Loader2, Plus, Hash,
+  User, Building2, Calendar, Loader2, Plus, Hash, Pencil, Trash2, MoreVertical, Settings,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { Complaint, ComplaintCategory, Unit } from '@/types';
 
@@ -66,6 +72,13 @@ const Complaints: React.FC = () => {
   const [selected, setSelected] = useState<Complaint | null>(null);
   const [staffList, setStaffList] = useState<any[]>([]);
   const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [createFile, setCreateFile] = useState<File | null>(null);
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [editForm, setEditForm] = useState({
+    id: 0, title: '', description: '', priority: 'Medium',
+    categoryId: '', unitId: '', status: '', assignedTo: '',
+  });
 
   const [form, setForm] = useState({
     title: '', description: '', priority: 'Medium',
@@ -91,12 +104,13 @@ const Complaints: React.FC = () => {
 
   useEffect(() => {
     api.works.getAll().then(res => {
-      if (res.success && res.data) setCategories(res.data as any);
+      const data = Array.isArray(res) ? res : res?.data || res?.items || [];
+      setCategories(data);
     }).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (isCreateOpen && canManage && staffList.length === 0) {
+    if ((isCreateOpen || isEditOpen) && canManage && staffList.length === 0) {
       setIsLoadingStaff(true);
       api.users.getAll().then(res => {
         if (res.success && res.data) {
@@ -105,7 +119,7 @@ const Complaints: React.FC = () => {
         }
       }).catch(() => {}).finally(() => setIsLoadingStaff(false));
     }
-  }, [isCreateOpen, canManage, staffList.length]);
+  }, [isCreateOpen, isEditOpen, canManage, staffList.length]);
 
   const filtered = complaints.filter(c => {
     const q = searchQuery.toLowerCase();
@@ -132,12 +146,15 @@ const Complaints: React.FC = () => {
       const res = await api.complaints.create({
         residentId: user!.id,
         unitId: parseInt(form.unitId) || user?.unitId || 0,
-        categoryId: 0,
+        categoryId: parseInt(form.categoryId),
         title: form.title,
         description: form.description,
         priority: form.priority as any,
       });
       if (res.success !== false) {
+        if (createFile) {
+          await api.complaints.uploadAttachment(res.data?.id || (res as any).id, createFile);
+        }
         toast.success('Complaint created');
         
         if (form.assignTo && form.assignTo !== 'none') {
@@ -155,6 +172,7 @@ const Complaints: React.FC = () => {
         }
 
         setIsCreateOpen(false);
+        setCreateFile(null);
         setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', assignTo: '' });
         load();
       } else {
@@ -197,6 +215,61 @@ const Complaints: React.FC = () => {
       }
     } catch (e: any) {
       toast.error(e?.response?.data?.message || e?.message || 'Failed to assign complaint');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this complaint?')) return;
+    try {
+      const res = await api.complaints.delete(id);
+      if (res.success !== false) {
+        toast.success('Complaint deleted');
+        load();
+      } else {
+        toast.error(res.message || 'Failed to delete');
+      }
+    } catch {
+      toast.error('Failed to delete complaint');
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!editForm.title || !editForm.categoryId) {
+      toast.error('Title and category are required');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const payload: any = {
+        title: editForm.title,
+        description: editForm.description,
+        priority: editForm.priority as any,
+        categoryId: parseInt(editForm.categoryId),
+        status: editForm.status,
+      };
+      if (editForm.unitId) payload.unitId = parseInt(editForm.unitId);
+      if (editForm.assignedTo && editForm.assignedTo !== 'none') {
+        payload.assignedTo = parseInt(editForm.assignedTo);
+      } else if (editForm.assignedTo === 'none') {
+        payload.assignedTo = null;
+      }
+
+      const res = await api.complaints.update(editForm.id, payload);
+      if (res.success !== false) {
+        if (editFile) {
+          await api.complaints.uploadAttachment(editForm.id, editFile);
+        }
+        toast.success('Complaint updated');
+        setIsEditOpen(false);
+        setEditFile(null);
+        load();
+      } else {
+        toast.error(res.message || 'Failed to update');
+      }
+    } catch {
+      toast.error('Failed to update complaint');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -285,7 +358,51 @@ const Complaints: React.FC = () => {
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{c.title}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm truncate">{c.title}</p>
+                        {canManage && (
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => {
+                                 const getCatId = () => {
+                                   const potentialIds = [c.categoryId, (c as any).category_id, (c as any).workId, (c as any).work_id, c.category?.id, (c as any).categoryID];
+                                   for (const id of potentialIds) {
+                                     if (id !== undefined && id !== null && id !== '') return id.toString();
+                                   }
+                                   if (c.category?.categoryName || (c as any).categoryName) {
+                                     const name = c.category?.categoryName || (c as any).categoryName;
+                                     const match = categories.find(cat => (cat.categoryName === name || (cat as any).workTitle === name));
+                                     if (match) return (match.id !== undefined && match.id !== null ? match.id : (match as any).workId)?.toString();
+                                   }
+                                   return '';
+                                 };
+                                 const finalCatId = getCatId();
+                                setEditForm({
+                                  id: c.id,
+                                  title: c.title,
+                                  description: c.description || '',
+                                  priority: c.priority,
+                                  categoryId: finalCatId,
+                                  unitId: c.unitId?.toString() || '',
+                                  status: c.status,
+                                  assignedTo: c.assignedTo?.toString() || 'none',
+                                });
+                                setIsEditOpen(true);
+                              }}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                       <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Hash className="h-2.5 w-2.5" />{c.complaintNumber}
                         <span className="mx-1">·</span>
@@ -324,7 +441,7 @@ const Complaints: React.FC = () => {
                       )}
                       <Button size="sm" variant="outline" className="flex-1 h-7 text-xs gap-1 border-emerald-200 text-emerald-600 hover:bg-emerald-50"
                         onClick={() => handleStatusUpdate(c.id, 'Resolved')}>
-                        <CheckCircle2 className="h-3 w-3" /> Resolve
+                          <CheckCircle2 className="h-3 w-3" /> Resolve
                       </Button>
                     </div>
                   )}
@@ -455,7 +572,52 @@ const Complaints: React.FC = () => {
                                 <Badge className={cn("text-[9px] px-2 py-0.5 mb-2 font-black uppercase tracking-widest bg-opacity-20", statusColors[c.status])} variant="outline">{c.status}</Badge>
                                 <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 leading-snug tracking-tight">{c.title}</h3>
                              </div>
-                             <Badge className={cn("text-[8px] px-2 py-1 shrink-0 uppercase font-black border-0 bg-slate-50 shadow-sm", priorityColors[c.priority])} variant="outline">{c.priority}</Badge>
+                             <div className="flex items-center gap-1">
+                               <Badge className={cn("text-[8px] px-2 py-1 shrink-0 uppercase font-black border-0 bg-slate-50 shadow-sm", priorityColors[c.priority])} variant="outline">{c.priority}</Badge>
+                               {canManage && (
+                                 <DropdownMenu modal={false}>
+                                   <DropdownMenuTrigger asChild>
+                                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                       <MoreVertical className="h-4 w-4" />
+                                     </Button>
+                                   </DropdownMenuTrigger>
+                                   <DropdownMenuContent align="end">
+                                     <DropdownMenuItem onClick={() => {
+                                       const getCatId = () => {
+                                         const potentialIds = [c.categoryId, (c as any).category_id, (c as any).workId, (c as any).work_id, c.category?.id, (c as any).categoryID];
+                                         for (const id of potentialIds) {
+                                           if (id !== undefined && id !== null && id !== '') return id.toString();
+                                         }
+                                         if (c.category?.categoryName || (c as any).categoryName) {
+                                           const name = c.category?.categoryName || (c as any).categoryName;
+                                           const match = categories.find(cat => (cat.categoryName === name || (cat as any).workTitle === name));
+                                           if (match) return (match.id !== undefined && match.id !== null ? match.id : (match as any).workId)?.toString();
+                                         }
+                                         return '';
+                                       };
+                                       const finalCatId = getCatId();
+
+                                        setEditForm({
+                                          id: c.id,
+                                          title: c.title,
+                                          description: c.description || '',
+                                          priority: c.priority,
+                                          categoryId: finalCatId,
+                                          unitId: c.unitId?.toString() || '',
+                                          status: c.status,
+                                          assignedTo: c.assignedTo?.toString() || 'none',
+                                        });
+                                        setIsEditOpen(true);
+                                      }}>
+                                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                                      </DropdownMenuItem>
+                                     <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(c.id)}>
+                                       <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                     </DropdownMenuItem>
+                                   </DropdownMenuContent>
+                                 </DropdownMenu>
+                               )}
+                             </div>
                           </div>
                           
                           {c.description && (
@@ -527,7 +689,10 @@ const Complaints: React.FC = () => {
         {/* Create Dialog */}
         <Dialog open={isCreateOpen} onOpenChange={(open) => {
           setIsCreateOpen(open);
-          if (!open) setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', assignTo: '' });
+          if (!open) {
+            setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', assignTo: '' });
+            setCreateFile(null);
+          }
         }}>
           <DialogContent>
             <DialogHeader>
@@ -554,7 +719,12 @@ const Complaints: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>{c.workTitle || c.categoryName}</SelectItem>
+                      <SelectItem 
+                        key={c.id !== undefined && c.id !== null ? c.id : (c as any).workId} 
+                        value={(c.id !== undefined && c.id !== null ? c.id : (c as any).workId)?.toString()}
+                      >
+                        {c.workTitle || c.categoryName}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -587,6 +757,13 @@ const Complaints: React.FC = () => {
                   </Select>
                 </div>
               )}
+              <div className="space-y-1">
+                <Label>Attachment</Label>
+                <div className="flex items-center gap-2">
+                  <Input type="file" onChange={e => setCreateFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+                  {createFile && <Badge variant="secondary" className="whitespace-nowrap">Selected</Badge>}
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Cancel</Button>
@@ -620,6 +797,125 @@ const Complaints: React.FC = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAssignOpen(false)}>Cancel</Button>
               <Button onClick={handleAssign} disabled={!assignForm.staffId}>Assign</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Complaint</DialogTitle>
+              <DialogDescription>Update complaint details</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1">
+                <Label>Title *</Label>
+                <Input value={editForm.title} onChange={e => setEditForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="Brief title of the issue" />
+              </div>
+              <div className="space-y-1">
+                <Label>Description</Label>
+                <Textarea value={editForm.description} rows={3}
+                  onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Describe the issue in detail..." />
+              </div>
+              <div className="space-y-1">
+                <Label>Category *</Label>
+                <Select key={`cat-${editForm.id}-${editForm.categoryId}`} value={editForm.categoryId} onValueChange={v => setEditForm(p => ({ ...p, categoryId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={categories.length === 0 ? 'No categories available' : 'Select category'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c: any) => (
+                      <SelectItem 
+                        key={c.id !== undefined && c.id !== null ? c.id : (c as any).workId} 
+                        value={(c.id !== undefined && c.id !== null ? c.id : (c as any).workId)?.toString()}
+                      >
+                        {c.workTitle || c.categoryName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Priority</Label>
+                <Select value={editForm.priority} onValueChange={v => setEditForm(p => ({ ...p, priority: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Status</Label>
+                  <Select value={editForm.status} onValueChange={v => setEditForm(p => ({ ...p, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Open">Open</SelectItem>
+                      <SelectItem value="Assigned">Assigned</SelectItem>
+                      <SelectItem value="In Progress">In Progress</SelectItem>
+                      <SelectItem value="Resolved">Resolved</SelectItem>
+                      <SelectItem value="Closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Assign To</Label>
+                  <Select value={editForm.assignedTo} onValueChange={v => setEditForm(p => ({ ...p, assignedTo: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingStaff ? "Loading staff..." : "Unassigned"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {staffList.map((s: any) => (
+                        <SelectItem key={s.id} value={s.id.toString()}>{s.fullName || s.username}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Attachments</Label>
+                {(complaints.find(c => c.id === editForm.id)?.attachments || []).length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {(complaints.find(c => c.id === editForm.id)?.attachments || []).map((a: any) => (
+                      <div key={a.id} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 border rounded-md group">
+                        <Paperclip className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs truncate max-w-[100px]">{a.fileName}</span>
+                        <a href={`${api.baseUrl}${a.filePath}`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline ml-1">View</a>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-4 w-4 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={async () => {
+                            if (confirm('Delete this attachment?')) {
+                              await api.complaints.deleteAttachment(a.id);
+                              load();
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input type="file" onChange={e => setEditFile(e.target.files?.[0] || null)} className="cursor-pointer" />
+                  {editFile && <Badge variant="secondary" className="whitespace-nowrap">New File</Badge>}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Cancel</Button>
+              <Button onClick={handleUpdate} disabled={isSubmitting}>
+                {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Updating...</> : 'Save Changes'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

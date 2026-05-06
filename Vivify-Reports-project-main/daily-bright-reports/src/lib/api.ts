@@ -280,6 +280,37 @@ export const api = {
       const response = await apiClient.post(`/complaints/${id}/feedback`, data);
       return response.data;
     },
+    update: async (id: number, data: any): Promise<ApiResponse<Complaint>> => {
+      const response = await apiClient.put(`/complaints/${id}`, data);
+      return response.data;
+    },
+    delete: async (id: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete(`/complaints/${id}`);
+      return response.data;
+    },
+    uploadAttachment: async (id: number, file: File): Promise<ApiResponse<any>> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+          try {
+            const response = await apiClient.post(`/complaints/${id}/attachments-base64`, {
+              fileName: file.name,
+              fileType: file.type,
+              data: reader.result
+            });
+            resolve(response.data);
+          } catch(e) {
+            reject(e);
+          }
+        };
+        reader.onerror = error => reject(error);
+      });
+    },
+    deleteAttachment: async (attachmentId: number): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete(`/complaints/attachments/${attachmentId}`);
+      return response.data;
+    }
   },
 
   // Work Orders

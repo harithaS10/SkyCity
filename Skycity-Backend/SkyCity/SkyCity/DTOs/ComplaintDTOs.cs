@@ -34,3 +34,14 @@ public class UpdateComplaintStatusDto
 {
     [Required] public string Status { get; set; } = string.Empty;
 }
+
+public class UpdateComplaintDto
+{
+    [Required] [StringLength(255)] public string Title { get; set; } = string.Empty;
+    [StringLength(5000)] public string? Description { get; set; }
+    [RegularExpression("^(Low|Medium|High|Urgent)$")] public string Priority { get; set; } = "Medium";
+    public int? CategoryId { get; set; }
+    public string? Status { get; set; }
+    public int? AssignedTo { get; set; }
+    public int? UnitId { get; set; }
+}
