@@ -471,6 +471,11 @@ public class WorkAllocationController : ControllerBase
             .Select(a => new { a.Title, a.AssignedTo, DueDateDay = a.DueDate.Date })
             .ToListAsync();
 
+        // Create a lookup using GroupBy to handle existing duplicates in the database
+        var existingMap = existingAllocs
+            .GroupBy(a => $"{a.Title.ToLower()}|{a.AssignedTo}|{a.DueDateDay:yyyy-MM-dd}")
+            .ToDictionary(g => g.Key, g => g.First());
+
         // Track what we're about to insert this batch to catch intra-batch dupes
         var batchKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -520,11 +525,7 @@ public class WorkAllocationController : ControllerBase
 
             // Duplicate check: same title + same user + same due date (existing DB or this batch)
             var dupeKey = $"{row.Title.Trim().ToLower()}|{assignedUser.Id}|{dueDate.Date:yyyy-MM-dd}";
-            bool isDupe = batchKeys.Contains(dupeKey) ||
-                          existingAllocs.Any(e =>
-                              string.Equals(e.Title, row.Title.Trim(), StringComparison.OrdinalIgnoreCase) &&
-                              e.AssignedTo == assignedUser.Id &&
-                              e.DueDateDay == dueDate.Date);
+            bool isDupe = batchKeys.Contains(dupeKey) || existingMap.ContainsKey(dupeKey);
 
             if (isDupe)
             {
