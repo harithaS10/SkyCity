@@ -37,6 +37,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Pencil,
   Upload,
   Download,
   FileSpreadsheet,
@@ -207,8 +208,10 @@ const PropertyManagement: React.FC = () => {
   // ── State ──────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [form, setForm] = useState<AddPropertyForm>(EMPTY_FORM);
+  const [editingProperty, setEditingProperty] = useState<PropertyItem | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   // Bulk upload state
@@ -266,6 +269,19 @@ const PropertyManagement: React.FC = () => {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<PropertyItem> }) => api.properties.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['properties', user?.associationId] });
+      toast.success('Property updated successfully');
+      setEditOpen(false);
+      setEditingProperty(null);
+    },
+    onError: (e: any) => {
+      toast.error(e?.message || 'Failed to update property');
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.properties.delete(id),
     onSuccess: () => {
@@ -284,10 +300,11 @@ const PropertyManagement: React.FC = () => {
       toast.error('Property name is required');
       return;
     }
-    const payload: Partial<PropertyItem> & { associationId?: number } = {
+    const payload: any = {
       propertyType: form.propertyType,
       propertyName: form.propertyName.trim(),
       associationId: Number(user?.associationId),
+      totalUnits: 0,
     };
     if (form.propertyType === 'apartment') {
       if (form.towerName) payload.towerName = form.towerName.trim();
@@ -296,11 +313,62 @@ const PropertyManagement: React.FC = () => {
       if (form.contactName) payload.contactName = form.contactName.trim();
       if (form.contactMobile) payload.contactMobile = form.contactMobile.trim();
       if (form.address) payload.address = form.address.trim();
+      payload.commonAreas = [];
     } else {
-      if (form.commonAreas) payload.commonAreas = form.commonAreas.trim().split(',').map((s: string) => s.trim()).filter(Boolean) as any;
+      payload.commonAreas = form.commonAreas.trim() 
+        ? form.commonAreas.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : [];
       if (form.address) payload.address = form.address.trim();
     }
     createMutation.mutate(payload);
+  };
+
+  const handleEditClick = (property: PropertyItem) => {
+    setEditingProperty(property);
+    setForm({
+      propertyType: property.propertyType,
+      propertyName: property.propertyName,
+      towerName: property.towerName || '',
+      floorNo: property.floorNo || '',
+      doorNo: property.doorNo || '',
+      contactName: property.contactName || '',
+      contactMobile: property.contactMobile || '',
+      commonAreas: property.commonAreas || '',
+      address: property.address || '',
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = () => {
+    if (!editingProperty || !form.propertyName.trim()) {
+      toast.error('Property name is required');
+      return;
+    }
+    const payload: any = {
+      PropertyType: form.propertyType,
+      PropertyName: form.propertyName.trim(),
+      TotalUnits: 0,
+    };
+    if (form.propertyType === 'apartment') {
+      payload.TowerName = form.towerName.trim() || null;
+      payload.FloorNo = form.floorNo.trim() || null;
+      payload.DoorNo = form.doorNo.trim() || null;
+      payload.ContactName = form.contactName.trim() || null;
+      payload.ContactMobile = form.contactMobile.trim() || null;
+      payload.Address = form.address.trim() || null;
+      payload.CommonAreas = [];
+    } else {
+      payload.CommonAreas = form.commonAreas.trim() 
+        ? form.commonAreas.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : [];
+      payload.Address = form.address.trim() || null;
+      payload.TowerName = null;
+      payload.FloorNo = null;
+      payload.DoorNo = null;
+      payload.ContactName = null;
+      payload.ContactMobile = null;
+    }
+    updateMutation.mutate({ id: editingProperty.id, data: payload });
   };
 
   const handleBulkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -603,14 +671,24 @@ const PropertyManagement: React.FC = () => {
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => setDeleteConfirmId(prop.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hover:text-primary hover:bg-primary/10"
+                                  onClick={() => handleEditClick(prop)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeleteConfirmId(prop.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -697,14 +775,24 @@ const PropertyManagement: React.FC = () => {
                             {isApartment ? 'Apartment' : 'Common Area'}
                           </Badge>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 shrink-0 rounded-xl bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
-                          onClick={() => setDeleteConfirmId(prop.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+                            onClick={() => handleEditClick(prop)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                            onClick={() => setDeleteConfirmId(prop.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       
                       <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1 bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-3">
@@ -937,6 +1025,147 @@ const PropertyManagement: React.FC = () => {
             <Button onClick={handleAddSubmit} disabled={!form.propertyName.trim() || createMutation.isPending}>
               {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Add Property
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Property Dialog ─────────────────────────────────────────── */}
+      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) { setEditingProperty(null); setForm(EMPTY_FORM); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Property</DialogTitle>
+            <DialogDescription>Update the property details.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Property Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-propertyName">
+                {form.propertyType === 'apartment' ? 'Apartment Name' : 'Area Name'} *
+              </Label>
+              <Input
+                id="edit-propertyName"
+                placeholder={form.propertyType === 'apartment' ? 'e.g. A-101' : 'e.g. Swimming Pool'}
+                value={form.propertyName}
+                onChange={(e) => setForm((f) => ({ ...f, propertyName: e.target.value }))}
+              />
+            </div>
+
+            {form.propertyType === 'apartment' ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-towerName">Tower Name</Label>
+                    <Input
+                      id="edit-towerName"
+                      placeholder="e.g. Tower A"
+                      value={form.towerName}
+                      onChange={(e) => setForm((f) => ({ ...f, towerName: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-floorNo">Floor No.</Label>
+                    <Input
+                      id="edit-floorNo"
+                      placeholder="e.g. 3"
+                      value={form.floorNo}
+                      onChange={(e) => setForm((f) => ({ ...f, floorNo: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-doorNo">Door No.</Label>
+                  <Input
+                    id="edit-doorNo"
+                    placeholder="e.g. 301"
+                    value={form.doorNo}
+                    onChange={(e) => setForm((f) => ({ ...f, doorNo: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-contactName">Contact Name</Label>
+                    <Input
+                      id="edit-contactName"
+                      placeholder="Owner / Tenant"
+                      value={form.contactName}
+                      onChange={(e) => setForm((f) => ({ ...f, contactName: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-contactMobile">Contact Mobile</Label>
+                    <Input
+                      id="edit-contactMobile"
+                      placeholder="10-digit number"
+                      value={form.contactMobile}
+                      onChange={(e) => setForm((f) => ({ ...f, contactMobile: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-address">Address</Label>
+                  <Textarea
+                    id="edit-address"
+                    placeholder="Full address (optional)"
+                    value={form.address}
+                    onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                    rows={2}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label>Common Area Presets</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {COMMON_AREA_PRESETS.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => handlePresetToggle(preset)}
+                        className={cn(
+                          'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
+                          isPresetActive(preset)
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-primary hover:text-primary'
+                        )}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-commonAreas">Common Areas (comma-separated)</Label>
+                  <Input
+                    id="edit-commonAreas"
+                    placeholder="e.g. Swimming Pool, Gym"
+                    value={form.commonAreas}
+                    onChange={(e) => setForm((f) => ({ ...f, commonAreas: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-areaAddress">Address / Info</Label>
+                  <Textarea
+                    id="edit-areaAddress"
+                    placeholder="Location or additional info (optional)"
+                    value={form.address}
+                    onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                    rows={2}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditOpen(false); setEditingProperty(null); setForm(EMPTY_FORM); }} disabled={updateMutation.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditSubmit} disabled={!form.propertyName.trim() || updateMutation.isPending}>
+              {updateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Update Property
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -63,7 +63,7 @@ public class UserController : ControllerBase
 
         user.FullName = dto.FullName ?? user.FullName;
         user.Username = dto.Username ?? user.Username;
-        user.Email = dto.Email ?? user.Email;
+        // user.Email = dto.Email ?? user.Email; // TODO: Add Email column to database first
         user.Phone = dto.Phone ?? user.Phone;
         user.Address = dto.Address ?? user.Address;
         user.IsActive = dto.IsActive ?? user.IsActive;
