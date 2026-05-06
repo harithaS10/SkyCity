@@ -24,28 +24,17 @@ public class PropertyController : ControllerBase
     }
 
     [HttpGet("association/{associationId}")]
-    public async Task<ActionResult> GetProperties(int associationId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<ActionResult> GetProperties(int associationId)
     {
-        var query = _context.Properties
+        var properties = await _context.Properties
             .Where(p => p.AssociationId == associationId)
-            .AsQueryable();
-
-        var total = await query.CountAsync();
-        var items = await query
             .OrderBy(p => p.PropertyName)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
             .ToListAsync();
 
-        return Ok(new ApiResponse<dynamic>
+        return Ok(new ApiResponse<IEnumerable<Property>>
         {
-            Data = new
-            {
-                Total = total,
-                Page = page,
-                PageSize = pageSize,
-                Items = items
-            }
+            Success = true,
+            Data = properties
         });
     }
 
@@ -70,27 +59,64 @@ public class PropertyController : ControllerBase
 
         var userAssocId = int.Parse(User.FindFirst("AssociationId")?.Value ?? "0");
 
-        var properties = dto.Properties.Select(p => new Property
-        {
-            AssociationId = userAssocId,
-            PropertyName  = p.PropertyName,
-            Address       = p.Address,
-            TotalUnits    = 0,
-            PropertyType  = p.PropertyType ?? "apartment",
-            TowerName     = p.TowerName,
-            FloorNo       = p.FloorNo,
-            DoorNo        = p.DoorNo,
-            ContactName   = p.ContactName,
-            ContactMobile = p.ContactMobile,
-            CommonAreas   = p.CommonAreas != null && p.CommonAreas.Count > 0
-                                ? string.Join(",", p.CommonAreas) : null,
-            CreatedAt     = DateTime.UtcNow
-        }).ToList();
+        var created = new List<object>();
+        var errors = new List<string>();
 
-        _context.Properties.AddRange(properties);
+        // Load all existing properties for this association
+        var existingProperties = await _context.Properties
+            .Where(p => p.AssociationId == userAssocId)
+            .ToListAsync();
+
+        // Create a lookup for duplicate detection using GroupBy to handle existing duplicates
+        // Key format: "propertyType|propertyName|towerName|floorNo|doorNo" (normalized to lowercase)
+        var existingMap = existingProperties
+            .GroupBy(p => $"{p.PropertyType?.ToLower()}|{p.PropertyName?.ToLower()}|{p.TowerName?.ToLower()}|{p.FloorNo?.ToLower()}|{p.DoorNo?.ToLower()}")
+            .ToDictionary(g => g.Key, g => g.First());
+
+        foreach (var p in dto.Properties)
+        {
+            var propertyType = p.PropertyType ?? "apartment";
+            var key = $"{propertyType.ToLower()}|{p.PropertyName?.ToLower()}|{p.TowerName?.ToLower()}|{p.FloorNo?.ToLower()}|{p.DoorNo?.ToLower()}";
+
+            if (existingMap.ContainsKey(key))
+            {
+                errors.Add($"Property '{p.PropertyName}' already exists");
+                continue;
+            }
+
+            var property = new Property
+            {
+                AssociationId = userAssocId,
+                PropertyName  = p.PropertyName,
+                Address       = p.Address,
+                TotalUnits    = 0,
+                PropertyType  = propertyType,
+                TowerName     = p.TowerName,
+                FloorNo       = p.FloorNo,
+                DoorNo        = p.DoorNo,
+                ContactName   = p.ContactName,
+                ContactMobile = p.ContactMobile,
+                CommonAreas   = p.CommonAreas != null && p.CommonAreas.Count > 0
+                                    ? string.Join(",", p.CommonAreas) : null,
+                CreatedAt     = DateTime.UtcNow
+            };
+
+            _context.Properties.Add(property);
+            
+            // Add to existing map to prevent duplicates within the same batch
+            existingMap[key] = property;
+            
+            created.Add(new { property.PropertyName, property.PropertyType, property.TowerName });
+        }
+
         await _context.SaveChangesAsync();
 
-        return Ok(new ApiResponse<dynamic> { Success = true, Data = new { Created = properties.Count }, Message = $"{properties.Count} properties created" });
+        return Ok(new ApiResponse<object> 
+        { 
+            Success = true, 
+            Data = new { created, errors }, 
+            Message = $"{created.Count} properties created. {(errors.Any() ? $"{errors.Count} skipped." : "")}"
+        });
     }
 
     [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]

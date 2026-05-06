@@ -231,9 +231,9 @@ const PropertyManagement: React.FC = () => {
 
   const rawProperties: PropertyItem[] = React.useMemo(() => {
     if (!propertiesData?.data) return [];
-    const d = propertiesData.data as unknown as PropertyItem[] | { items: PropertyItem[] };
+    const d = propertiesData.data;
+    // Handle direct array response
     if (Array.isArray(d)) return d;
-    if ('items' in d && Array.isArray(d.items)) return d.items;
     return [];
   }, [propertiesData]);
 
@@ -408,7 +408,7 @@ const PropertyManagement: React.FC = () => {
     }
     setIsBulkUploading(true);
     setBulkResult(null);
-    const errors: string[] = [];
+    const localErrors: string[] = [];
 
     // Build the properties array for the bulk endpoint
     const properties: any[] = [];
@@ -421,7 +421,7 @@ const PropertyManagement: React.FC = () => {
         ? (row.towerName || `Floor${row.floorNo}-Door${row.doorNo}`.replace(/Floor-Door/g, ''))
         : row.areaName;
       if (!propertyName) {
-        errors.push(`Row ${rowNum}: Missing property name`);
+        localErrors.push(`Row ${rowNum}: Missing property name`);
         continue;
       }
       properties.push({
@@ -440,22 +440,28 @@ const PropertyManagement: React.FC = () => {
 
     if (properties.length === 0) {
       setIsBulkUploading(false);
-      setBulkResult({ success: 0, failed: bulkRows.length, errors });
+      setBulkResult({ success: 0, failed: bulkRows.length, errors: localErrors });
       return;
     }
 
     try {
       const res = await api.properties.bulkCreate({ properties });
-      const created = res?.data?.Created ?? properties.length;
-      setBulkResult({ success: created, failed: errors.length, errors });
-      if (created > 0) {
+      const created = res?.data?.created ?? [];
+      const serverErrors = res?.data?.errors ?? [];
+      const allErrors = [...localErrors, ...serverErrors];
+      
+      setBulkResult({ success: created.length, failed: allErrors.length, errors: allErrors });
+      
+      if (created.length > 0) {
         queryClient.invalidateQueries({ queryKey: ['properties', user?.associationId] });
-        toast.success(`${created} propert${created === 1 ? 'y' : 'ies'} uploaded`);
+        toast.success(`${created.length} propert${created.length === 1 ? 'y' : 'ies'} uploaded${allErrors.length > 0 ? `, ${allErrors.length} skipped` : ''}`);
+      } else if (allErrors.length > 0) {
+        toast.error(`All properties skipped. ${allErrors.length} duplicate${allErrors.length !== 1 ? 's' : ''} found.`);
       }
     } catch (e: any) {
       const msg = e?.response?.data?.message || e?.message || 'Upload failed';
-      errors.push(msg);
-      setBulkResult({ success: 0, failed: properties.length, errors });
+      localErrors.push(msg);
+      setBulkResult({ success: 0, failed: properties.length, errors: localErrors });
       toast.error(msg);
     } finally {
       setIsBulkUploading(false);
@@ -1173,50 +1179,35 @@ const PropertyManagement: React.FC = () => {
 
       {/* ── Bulk Upload Dialog ──────────────────────────────────────────── */}
       <Dialog open={bulkOpen} onOpenChange={(o) => { if (!o) handleBulkClose(); else setBulkOpen(true); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-card sm:max-w-lg rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5" />
+              <FileSpreadsheet className="h-5 w-5 text-primary" />
               Bulk Upload Properties
             </DialogTitle>
             <DialogDescription>
-              Upload a CSV file or paste CSV data to add multiple properties at once.
+              Upload an Excel or CSV file to create multiple properties at once.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-2">
-            {/* Template Download */}
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
-              <div>
-                <p className="text-sm font-medium text-slate-700">Download Template</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Columns: {CSV_COLUMNS}
-                </p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <Button variant="outline" size="sm" className="gap-2" onClick={downloadExcelTemplate}>
-                  <Download className="h-4 w-4" />
-                  Excel
-                </Button>
-                <Button variant="outline" size="sm" className="gap-2" onClick={downloadCSVTemplate}>
-                  <Download className="h-4 w-4" />
-                  CSV
+          {!bulkResult ? (
+            <div className="space-y-4 py-2">
+              {/* Template download */}
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-700">Download Template</p>
+                  <p className="text-xs text-slate-500">Excel file with property details</p>
+                </div>
+                <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={downloadExcelTemplate}>
+                  <Download className="h-3.5 w-3.5" /> Excel
                 </Button>
               </div>
-            </div>
 
-            {/* File Upload */}
-            <div className="space-y-2">
-              <Label>Upload Excel or CSV File</Label>
+              {/* File upload area */}
               <div
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                <p className="text-sm text-slate-600">
-                  {bulkFile ? bulkFile.name : 'Click to select an Excel (.xlsx) or CSV file'}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">or drag and drop</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1224,111 +1215,52 @@ const PropertyManagement: React.FC = () => {
                   className="hidden"
                   onChange={handleBulkFileChange}
                 />
+                <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+                <p className="text-sm font-semibold text-slate-600">
+                  {bulkFile ? bulkFile.name : 'Click to upload Excel or CSV file'}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">or paste CSV data below</p>
               </div>
+
+              {/* Manual CSV paste */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-600">Or paste CSV data</Label>
+                <textarea
+                  className="w-full h-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  placeholder="propertyType,towerName,floorNo,doorNo,contactName,contactMobile,areaName,info"
+                  value={bulkText}
+                  onChange={(e) => handleBulkTextChange(e.target.value)}
+                />
+              </div>
+
+              {bulkRows.length > 0 && (
+                <p className="text-xs text-slate-500">
+                  <span className="font-semibold text-primary">{bulkRows.length}</span> row{bulkRows.length !== 1 ? 's' : ''} ready to upload
+                </p>
+              )}
             </div>
-
-            {/* Paste Area */}
-            <div className="space-y-2">
-              <Label htmlFor="bulkPaste">Or Paste CSV Data</Label>
-              <Textarea
-                id="bulkPaste"
-                placeholder={`${CSV_COLUMNS}\napartment,Tower A,1,101,John Doe,9876543210,,\nothers,,,,,,Swimming Pool,Main pool`}
-                value={bulkText}
-                onChange={(e) => handleBulkTextChange(e.target.value)}
-                rows={6}
-                className="font-mono text-xs"
-              />
+          ) : (
+            <div className="space-y-3 py-2">
+              {bulkResult.success > 0 && (
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <p className="text-sm font-semibold text-emerald-700">{bulkResult.success} propert{bulkResult.success === 1 ? 'y' : 'ies'} created successfully</p>
+                </div>
+              )}
+              {bulkResult.errors.length > 0 && (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <p className="text-xs font-semibold text-amber-700">{bulkResult.errors.length} error{bulkResult.errors.length !== 1 ? 's' : ''}:</p>
+                  </div>
+                  {bulkResult.errors.map((e, i) => <p key={i} className="text-xs text-amber-600 pl-6">{e}</p>)}
+                </div>
+              )}
             </div>
-
-            {/* Row Count Preview */}
-            {bulkRows.length > 0 && !bulkResult && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                  <span>{bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} ready to upload</span>
-                </div>
-                {/* Preview table */}
-                <div className="rounded-md border overflow-hidden">
-                  <div className="overflow-x-auto max-h-48 overflow-y-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-slate-100 sticky top-0">
-                        <tr>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">#</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Type</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Tower</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Floor</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Door</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Contact</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Mobile</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600 border-r">Area Name</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-slate-600">Info</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {bulkRows.map((row, i) => (
-                          <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                            <td className="px-2 py-1 text-slate-400 border-r">{i + 1}</td>
-                            <td className="px-2 py-1 border-r">
-                              <span className={cn(
-                                'px-1.5 py-0.5 rounded text-xs font-medium',
-                                ['apartment'].includes(row.propertyType?.toLowerCase() ?? '')
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : 'bg-violet-100 text-violet-700'
-                              )}>
-                                {['apartment'].includes(row.propertyType?.toLowerCase() ?? '') ? 'Apartment' : (row.propertyType ? 'Common Area' : '—')}
-                              </span>
-                            </td>
-                            <td className="px-2 py-1 border-r text-slate-700">{row.towerName || <span className="text-slate-300">—</span>}</td>
-                            <td className="px-2 py-1 border-r text-slate-700">{row.floorNo || <span className="text-slate-300">—</span>}</td>
-                            <td className="px-2 py-1 border-r text-slate-700">{row.doorNo || <span className="text-slate-300">—</span>}</td>
-                            <td className="px-2 py-1 border-r text-slate-700">{row.contactName || <span className="text-slate-300">—</span>}</td>
-                            <td className="px-2 py-1 border-r text-slate-700">{row.contactMobile || <span className="text-slate-300">—</span>}</td>
-                            <td className="px-2 py-1 border-r text-slate-700">{row.areaName || <span className="text-slate-300">—</span>}</td>
-                            <td className="px-2 py-1 text-slate-700">{row.info || <span className="text-slate-300">—</span>}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Result */}
-            {bulkResult && (
-              <div className="space-y-2">
-                <div className="flex gap-3">
-                  {bulkResult.success > 0 && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
-                      <CheckCircle2 className="h-4 w-4" />
-                      {bulkResult.success} uploaded
-                    </div>
-                  )}
-                  {bulkResult.failed > 0 && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-800">
-                      <AlertCircle className="h-4 w-4" />
-                      {bulkResult.failed} failed
-                    </div>
-                  )}
-                </div>
-                {bulkResult.errors.length > 0 && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
-                    <p className="text-xs font-medium text-rose-800 mb-1">Errors:</p>
-                    <ul className="text-xs text-rose-700 space-y-0.5 list-disc list-inside">
-                      {bulkResult.errors.map((err, i) => (
-                        <li key={i}>{err}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={handleBulkClose} disabled={isBulkUploading}>
-              {bulkResult ? 'Close' : 'Cancel'}
-            </Button>
+            <Button variant="outline" onClick={handleBulkClose}>Close</Button>
             {!bulkResult && (
               <Button
                 onClick={handleBulkUpload}
@@ -1336,11 +1268,16 @@ const PropertyManagement: React.FC = () => {
                 className="gap-2"
               >
                 {isBulkUploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <>
+                    <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Uploading...
+                  </>
                 ) : (
-                  <Upload className="h-4 w-4" />
+                  <>
+                    <Upload className="h-4 w-4" />
+                    Upload {bulkRows.length > 0 ? `${bulkRows.length} Row${bulkRows.length !== 1 ? 's' : ''}` : 'Properties'}
+                  </>
                 )}
-                Upload {bulkRows.length > 0 ? `${bulkRows.length} Row${bulkRows.length !== 1 ? 's' : ''}` : ''}
               </Button>
             )}
           </DialogFooter>
