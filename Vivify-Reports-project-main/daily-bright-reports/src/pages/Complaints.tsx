@@ -69,7 +69,7 @@ const Complaints: React.FC = () => {
 
   const [form, setForm] = useState({
     title: '', description: '', priority: 'Medium',
-    categoryId: '', unitId: '',
+    categoryId: '', unitId: '', assignTo: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,6 +94,18 @@ const Complaints: React.FC = () => {
       if (res.success && res.data) setCategories(res.data as any);
     }).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (isCreateOpen && canManage && staffList.length === 0) {
+      setIsLoadingStaff(true);
+      api.users.getAll().then(res => {
+        if (res.success && res.data) {
+          const excluded = ['admin', 'super_admin'];
+          setStaffList(res.data.filter((u: any) => !excluded.includes(u.role)));
+        }
+      }).catch(() => {}).finally(() => setIsLoadingStaff(false));
+    }
+  }, [isCreateOpen, canManage, staffList.length]);
 
   const filtered = complaints.filter(c => {
     const q = searchQuery.toLowerCase();
@@ -127,8 +139,23 @@ const Complaints: React.FC = () => {
       });
       if (res.success !== false) {
         toast.success('Complaint created');
+        
+        if (form.assignTo && form.assignTo !== 'none') {
+          const complaintId = res.data?.id || (res as any).id || (res.data as any)?.item?.id;
+          if (complaintId) {
+            try {
+              await api.complaints.assign(complaintId, {
+                staffId: parseInt(form.assignTo),
+                managerId: user?.id ?? 0,
+              });
+            } catch (e) {
+              console.error('Failed to assign immediately', e);
+            }
+          }
+        }
+
         setIsCreateOpen(false);
-        setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '' });
+        setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', assignTo: '' });
         load();
       } else {
         toast.error(res.message || 'Failed to create');
@@ -500,7 +527,7 @@ const Complaints: React.FC = () => {
         {/* Create Dialog */}
         <Dialog open={isCreateOpen} onOpenChange={(open) => {
           setIsCreateOpen(open);
-          if (!open) setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '' });
+          if (!open) setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', assignTo: '' });
         }}>
           <DialogContent>
             <DialogHeader>
@@ -544,6 +571,22 @@ const Complaints: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
+              {canManage && (
+                <div className="space-y-1">
+                  <Label>Assign To</Label>
+                  <Select value={form.assignTo} onValueChange={v => setForm(p => ({ ...p, assignTo: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingStaff ? "Loading staff..." : "Unassigned"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {staffList.map((s: any) => (
+                        <SelectItem key={s.id} value={s.id.toString()}>{s.fullName || s.username}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Cancel</Button>
@@ -561,24 +604,18 @@ const Complaints: React.FC = () => {
               <DialogTitle>Assign Complaint</DialogTitle>
               <DialogDescription>{selected?.complaintNumber} — {selected?.title}</DialogDescription>
             </DialogHeader>
-            <div className="space-y-3 py-2">
+            <div className="space-y-1 py-2">
               <Label>Assign To *</Label>
-              {isLoadingStaff ? (
-                <p className="text-sm text-muted-foreground">Loading staff...</p>
-              ) : (
-                <div className="border rounded-md max-h-56 overflow-y-auto divide-y">
+              <Select value={assignForm.staffId} onValueChange={v => setAssignForm(p => ({ ...p, staffId: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder={isLoadingStaff ? "Loading staff..." : "Select staff"} />
+                </SelectTrigger>
+                <SelectContent>
                   {staffList.map((s: any) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setAssignForm(p => ({ ...p, staffId: s.id.toString() }))}
-                      className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-accent ${assignForm.staffId === s.id.toString() ? 'bg-primary text-primary-foreground hover:bg-primary' : ''}`}
-                    >
-                      {s.fullName || s.username}
-                    </button>
+                    <SelectItem key={s.id} value={s.id.toString()}>{s.fullName || s.username}</SelectItem>
                   ))}
-                </div>
-              )}
+                </SelectContent>
+              </Select>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAssignOpen(false)}>Cancel</Button>
