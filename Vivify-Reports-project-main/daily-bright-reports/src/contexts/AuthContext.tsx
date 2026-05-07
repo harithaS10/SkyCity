@@ -56,6 +56,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
     if (storedUser && token) {
+      // Check if JWT token is expired
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expiry = payload.exp * 1000; // convert to ms
+        if (Date.now() >= expiry) {
+          // Token expired — clear storage and stay on login
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('authToken');
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        // Invalid token format — clear it
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsLoading(false);
+        return;
+      }
       const u = JSON.parse(storedUser);
       setUser(u);
       loadRolePermissions(u.role, u.associationId);
