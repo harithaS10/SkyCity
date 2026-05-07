@@ -881,11 +881,17 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                   className={cn(
                     "shrink-0 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95",
                     taskTypeFilter === type
-                      ? type === 'daily' ? 'bg-blue-500 text-white shadow-md' : type === 'monthly' ? 'bg-purple-500 text-white shadow-md' : 'bg-primary text-white shadow-md'
-                      : 'bg-white dark:bg-slate-800 text-slate-500 ring-1 ring-slate-100'
+                      ? type === 'daily' 
+                        ? 'bg-blue-500 text-white shadow-md' 
+                        : type === 'monthly' 
+                          ? 'bg-purple-500 text-white shadow-md' 
+                          : 'bg-primary text-white shadow-md'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 ring-1 ring-slate-100 dark:ring-slate-700'
                   )}
                 >
-                  {type === 'all' ? 'All Tasks' : type === 'daily' ? 'Daily' : 'Monthly'}
+                  <span className={cn(taskTypeFilter === type && "text-white")}>
+                    {type === 'all' ? 'All Tasks' : type === 'daily' ? 'Daily' : 'Monthly'}
+                  </span>
                 </button>
               ))}
             </div>

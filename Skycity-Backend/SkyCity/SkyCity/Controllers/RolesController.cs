@@ -118,7 +118,7 @@ public class RolesController : ControllerBase
                 CanApproveWorkOrders = r.Permissions?.ContainsKey("work_orders") == true,
                 CanViewFinancials = r.Permissions?.ContainsKey("analytics") == true,
                 PermissionsJson = System.Text.Json.JsonSerializer.Serialize(r.Permissions ?? new()),
-                IsDeleted = true
+                IsDeleted = false
             });
             existingNames.Add(r.RoleName.ToLower());
         }
