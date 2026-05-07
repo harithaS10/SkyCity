@@ -609,60 +609,33 @@ const WorkAllocationPage: React.FC = () => {
         <div className="space-y-4 py-4 overflow-y-auto flex-1 min-h-0 no-scrollbar">
           <div className="space-y-2">
             <Label htmlFor="workId">Work Category *</Label>
-            <Popover open={isWorkPopoverOpen} onOpenChange={setIsWorkPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={isWorkPopoverOpen}
-                  className="w-full justify-between rounded-xl"
-                >
-                  {newAllocation.workId
-                    ? availableWorks.find((work) => work.id.toString() === newAllocation.workId)?.workTitle
-                    : "Select Work Category"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                <Command>
-                  <CommandInput placeholder="Search work categories..." />
-                  <CommandList>
-                    <CommandEmpty>No work category found.</CommandEmpty>
-                    <CommandGroup>
-                      {availableWorks.map((work) => (
-                        <CommandItem
-                          key={work.id}
-                          value={`${work.workTitle} ${work.workCode} ${work.workType || ''}`}
-                          onSelect={() => {
-                            setNewAllocation((prev) => ({
-                              ...prev,
-                              workId: work.id.toString(),
-                              title: work.workTitle
-                            }));
-                            setIsWorkPopoverOpen(false);
-                          }}
-                        >
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                              <Check
-                                className={cn(
-                                  "h-4 w-4",
-                                  newAllocation.workId === work.id.toString() ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <span className="font-semibold">{work.workTitle}</span>
-                            </div>
-                            {work.workType && (
-                              <span className="text-[9px] text-muted-foreground ml-6 italic">{work.workType}</span>
-                            )}
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <Select
+              value={newAllocation.workId}
+              onValueChange={(value) => {
+                const work = availableWorks.find(w => w.id.toString() === value);
+                setNewAllocation((prev) => ({
+                  ...prev,
+                  workId: value,
+                  title: work?.workTitle || ''
+                }));
+              }}
+            >
+              <SelectTrigger className="w-full rounded-xl bg-background">
+                <SelectValue placeholder="Select Work Category" />
+              </SelectTrigger>
+              <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200] max-h-[300px] overflow-y-auto">
+                {availableWorks.map((work) => (
+                  <SelectItem key={work.id} value={work.id.toString()}>
+                    <div className="flex flex-col">
+                      <span className="font-semibold">{work.workTitle}</span>
+                      {work.workType && (
+                        <span className="text-[9px] text-muted-foreground italic">{work.workType}</span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {newAllocation.workId && (
             <div className="space-y-2">
@@ -761,15 +734,28 @@ const WorkAllocationPage: React.FC = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                  <Command>
+                  <Command shouldFilter={false}>
                     <CommandInput placeholder="Search employees..." />
-                    <CommandList className="max-h-48 overflow-y-auto">
+                    <CommandList 
+                      style={{ maxHeight: '192px', overflowY: 'auto' }}
+                      onWheel={(e) => {
+                        e.stopPropagation();
+                        const target = e.currentTarget;
+                        target.scrollTop += e.deltaY;
+                      }}
+                    >
                       <CommandEmpty>No employee found.</CommandEmpty>
                       <CommandGroup>
-                        {users.map((user) => (
+                        {users
+                          .filter(user => {
+                            const searchValue = (document.querySelector('[cmdk-input]') as HTMLInputElement)?.value?.toLowerCase() || '';
+                            if (!searchValue) return true;
+                            return user.name.toLowerCase().includes(searchValue);
+                          })
+                          .map((user) => (
                           <CommandItem
                             key={user.id}
-                            value={user.name}
+                            value={user.id.toString()}
                             onSelect={() => {
                               setNewAllocation((prev) => {
                                 const isSelected = prev.assignedToIds.includes(user.id);
@@ -781,6 +767,7 @@ const WorkAllocationPage: React.FC = () => {
                                 };
                               });
                             }}
+                            className="cursor-pointer"
                           >
                             <div className={cn(
                               "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
@@ -840,10 +827,10 @@ const WorkAllocationPage: React.FC = () => {
                 setNewAllocation((prev) => ({ ...prev, priority: value }))
               }
             >
-              <SelectTrigger className="rounded-xl">
+              <SelectTrigger className="rounded-xl bg-background">
                 <SelectValue placeholder="Select priority" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
                 <SelectItem value="low">Low</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="high">High</SelectItem>
@@ -898,151 +885,114 @@ const WorkAllocationPage: React.FC = () => {
 
   const renderBulkUploadDialog = () => (
     <Dialog open={isBulkOpen} onOpenChange={open => { if (!open) handleBulkClose(); else setIsBulkOpen(true); }}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col rounded-[2rem] sm:rounded-lg">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="bg-card sm:max-w-lg rounded-2xl">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
             Bulk Upload Work Allocations
           </DialogTitle>
           <DialogDescription>
-            Upload a CSV or Excel file to create multiple allocations at once.
+            Upload an Excel or CSV file to create multiple allocations at once.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 py-2 min-h-0">
-          {/* Template download */}
-          <div className="flex flex-wrap gap-2 p-3 bg-muted/40 rounded-xl border border-dashed">
-            <span className="text-xs text-muted-foreground self-center mr-1">Download template:</span>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => downloadBulkExcelTemplate(availableWorks, users)}>
-              <Download className="h-3.5 w-3.5" /> Excel (.xlsx)
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => downloadBulkCSVTemplate(availableWorks, users)}>
-              <Download className="h-3.5 w-3.5" /> CSV
-            </Button>
-          </div>
+        {!bulkResult ? (
+          <div className="space-y-4 py-2">
+            {/* Template download */}
+            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-700">Download Template</p>
+                <p className="text-xs text-slate-500">Excel file with allocation details</p>
+              </div>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => downloadBulkExcelTemplate(availableWorks, users)}>
+                <Download className="h-3.5 w-3.5" /> Excel
+              </Button>
+            </div>
 
-
-
-          {/* File picker */}
-          {!bulkFile ? (
+            {/* File upload area */}
             <div
-              className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+              className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
               onClick={() => bulkFileRef.current?.click()}
             >
-              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-sm font-medium text-slate-600">Click to select a file</p>
-              <p className="text-xs text-muted-foreground mt-1">Supports .csv, .xlsx, .xls</p>
               <input
                 ref={bulkFileRef}
                 type="file"
-                accept=".csv,.xlsx,.xls"
+                accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                 className="hidden"
                 onChange={handleBulkFileChange}
               />
-            </div>
-          ) : (
-            <div className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20">
-              <div className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm font-semibold text-slate-700">{bulkFile.name}</p>
-                  <p className="text-xs text-muted-foreground">{bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} parsed</p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                onClick={() => { setBulkFile(null); setBulkRows([]); setBulkResult(null); if (bulkFileRef.current) bulkFileRef.current.value = ''; }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* Preview table */}
-          {bulkRows.length > 0 && !bulkResult && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                {bulkRows.length} row{bulkRows.length !== 1 ? 's' : ''} ready to upload
+              <Upload className="h-8 w-8 mx-auto mb-2 text-slate-400" />
+              <p className="text-sm font-semibold text-slate-600">
+                {bulkFile ? bulkFile.name : 'Click to upload Excel or CSV file'}
               </p>
-              <div className="rounded-lg border overflow-hidden">
-                <div className="overflow-x-auto max-h-56 overflow-y-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-primary text-white sticky top-0">
-                      <tr>
-                        {['#', 'Title', 'Work Code', 'Work Title', 'Assigned To', 'Priority', 'Due Date', 'Description'].map(h => (
-                          <th key={h} className="px-3 py-2 text-left font-semibold whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bulkRows.map((row, i) => (
-                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                          <td className="px-3 py-1.5 text-muted-foreground">{i + 1}</td>
-                          <td className="px-3 py-1.5 font-medium max-w-[120px] truncate">{row.title || <span className="text-destructive italic">missing</span>}</td>
-                          <td className="px-3 py-1.5">{row.workCode}</td>
-                          <td className="px-3 py-1.5">{row.workTitle}</td>
-                          <td className="px-3 py-1.5">{row.assignedTo || <span className="text-destructive italic">missing</span>}</td>
-                          <td className="px-3 py-1.5 capitalize">{row.priority || 'medium'}</td>
-                          <td className="px-3 py-1.5 whitespace-nowrap">{row.dueDate || <span className="text-destructive italic">missing</span>}</td>
-                          <td className="px-3 py-1.5 max-w-[140px] truncate text-muted-foreground">{row.description}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <p className="text-xs text-slate-400 mt-1">or paste CSV data below</p>
             </div>
-          )}
 
-          {/* Result summary */}
-          {bulkResult && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                  <div>
-                    <p className="text-xs text-emerald-700 font-semibold">Created</p>
-                    <p className="text-2xl font-black text-emerald-700">{bulkResult.created}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-rose-50 rounded-xl border border-rose-200">
-                  <AlertCircle className="h-5 w-5 text-rose-600 shrink-0" />
-                  <div>
-                    <p className="text-xs text-rose-700 font-semibold">Failed</p>
-                    <p className="text-2xl font-black text-rose-700">{bulkResult.failed}</p>
-                  </div>
-                </div>
-              </div>
-              {bulkResult.errors.length > 0 && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 space-y-1 max-h-36 overflow-y-auto">
-                  {bulkResult.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-rose-700 flex items-start gap-1.5">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      {err}
-                    </p>
-                  ))}
-                </div>
-              )}
+            {/* Manual CSV paste */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-600">Or paste CSV data</Label>
+              <textarea
+                className="w-full h-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="title,workCode,workTitle,assignedTo,priority,dueDate,description"
+                value={bulkFile ? '' : ''}
+                onChange={(e) => {
+                  const text = e.target.value;
+                  if (text.trim()) {
+                    const rows = parseBulkCSV(text);
+                    setBulkRows(rows);
+                    setBulkFile(null);
+                  } else {
+                    setBulkRows([]);
+                  }
+                }}
+              />
             </div>
-          )}
-        </div>
 
-        <DialogFooter className="flex-shrink-0 pt-2 border-t mt-2 gap-2">
-          <Button variant="outline" className="rounded-xl" onClick={handleBulkClose} disabled={isBulkUploading}>
-            {bulkResult ? 'Close' : 'Cancel'}
-          </Button>
+            {bulkRows.length > 0 && (
+              <p className="text-xs text-slate-500">
+                <span className="font-semibold text-primary">{bulkRows.length}</span> row{bulkRows.length !== 1 ? 's' : ''} ready to upload
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3 py-2">
+            {bulkResult.created > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                <p className="text-sm font-semibold text-emerald-700">{bulkResult.created} allocation{bulkResult.created === 1 ? '' : 's'} created successfully</p>
+              </div>
+            )}
+            {bulkResult.errors.length > 0 && (
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <p className="text-xs font-semibold text-amber-700">{bulkResult.errors.length} error{bulkResult.errors.length !== 1 ? 's' : ''}:</p>
+                </div>
+                {bulkResult.errors.map((e, i) => <p key={i} className="text-xs text-amber-600 pl-6">{e}</p>)}
+              </div>
+            )}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleBulkClose}>Close</Button>
           {!bulkResult && (
             <Button
-              className="rounded-xl gap-2"
               onClick={handleBulkUpload}
               disabled={bulkRows.length === 0 || isBulkUploading}
+              className="gap-2"
             >
-              {isBulkUploading
-                ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</>
-                : <><Upload className="h-4 w-4" /> Upload {bulkRows.length > 0 ? `${bulkRows.length} Row${bulkRows.length !== 1 ? 's' : ''}` : ''}</>
-              }
+              {isBulkUploading ? (
+                <>
+                  <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Upload {bulkRows.length > 0 ? `${bulkRows.length} Row${bulkRows.length !== 1 ? 's' : ''}` : 'Allocations'}
+                </>
+              )}
             </Button>
           )}
         </DialogFooter>

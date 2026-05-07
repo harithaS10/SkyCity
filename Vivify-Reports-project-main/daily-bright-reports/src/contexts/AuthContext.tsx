@@ -157,7 +157,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Check if current user has a specific permission
   const hasPermission = (module: string, action: 'view' | 'create' | 'edit' | 'delete' = 'view'): boolean => {
-    if (isSuperAdmin || isAdmin) return true; // full access
+    // Admin-level roles have full access to everything
+    if (isSuperAdmin || isAdmin || isManager || isHelpdesk) return true;
+    
     const mod = (permissions as any)[module];
     if (!mod) return false;
     if (typeof mod === 'boolean') return mod;
