@@ -381,6 +381,58 @@ public class ComplaintsController : ControllerBase
 
         return Ok(new ApiResponse { Success = true, Message = "Attachment deleted" });
     }
+
+    [HttpPost("{id}/delete-attachments")]
+    public async Task<ActionResult> DeleteAttachments(int id, [FromBody] DeleteAttachmentsDto? dto = null)
+    {
+        var complaint = await _context.Complaints.FindAsync(id);
+        if (complaint == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+
+        if (string.IsNullOrEmpty(complaint.AttachmentUrls))
+            return Ok(new ApiResponse { Success = true, Message = "No attachments to delete" });
+
+        if (dto?.AttachmentName != null)
+        {
+            try
+            {
+                var attachments = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(complaint.AttachmentUrls);
+                if (attachments != null)
+                {
+                    var filtered = attachments.Where(a =>
+                    {
+                        if (a.TryGetProperty("name", out var nameEl) || a.TryGetProperty("Name", out nameEl))
+                            return nameEl.GetString() != dto.AttachmentName;
+                        return true;
+                    }).ToList();
+                    complaint.AttachmentUrls = filtered.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(filtered) : null;
+                }
+                else
+                {
+                    var paths = complaint.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Where(p => !p.Contains(dto.AttachmentName)).ToList();
+                    complaint.AttachmentUrls = paths.Count > 0 ? string.Join(",", paths) : null;
+                }
+            }
+            catch
+            {
+                var paths = complaint.AttachmentUrls.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Where(p => !p.Contains(dto.AttachmentName)).ToList();
+                complaint.AttachmentUrls = paths.Count > 0 ? string.Join(",", paths) : null;
+            }
+        }
+        else
+        {
+            complaint.AttachmentUrls = null;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new ApiResponse<dynamic> { Success = true, Message = "Attachments deleted successfully", Data = new { attachmentUrls = complaint.AttachmentUrls } });
+    }
+}
+
+public class DeleteAttachmentsDto
+{
+    public string? AttachmentName { get; set; }
 }
 
 public class Base64AttachmentDto

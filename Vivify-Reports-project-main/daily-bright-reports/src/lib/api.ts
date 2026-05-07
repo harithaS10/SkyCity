@@ -314,6 +314,10 @@ export const api = {
       const response = await apiClient.post(`/complaints/${id}/attachments-base64`, { files });
       return response.data;
     },
+    deleteAttachments: async (id: number, attachmentName?: string): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post(`/complaints/${id}/delete-attachments`, { attachmentName });
+      return response.data;
+    },
     deleteAttachment: async (attachmentId: number): Promise<ApiResponse<any>> => {
       const response = await apiClient.delete(`/complaints/attachments/${attachmentId}`);
       return response.data;

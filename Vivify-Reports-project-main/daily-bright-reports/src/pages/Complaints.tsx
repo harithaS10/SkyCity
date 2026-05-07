@@ -20,7 +20,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
   MessageSquareWarning, Search, Clock, CheckCircle2, AlertCircle,
-  User, Building2, Calendar, Loader2, Plus, Hash, Pencil, Trash2, MoreVertical, Settings, Paperclip,
+  User, Building2, Calendar, Loader2, Plus, Hash, Pencil, Trash2, MoreVertical, Settings, Paperclip, X,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -75,6 +75,8 @@ const Complaints: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [createFile, setCreateFile] = useState<File | null>(null);
   const [editFile, setEditFile] = useState<File | null>(null);
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const [editFiles, setEditFiles] = useState<File[]>([]);
   const [editForm, setEditForm] = useState({
     id: 0, title: '', description: '', priority: 'Medium',
     categoryId: '', unitId: '', status: '', assignedTo: '',
@@ -157,21 +159,29 @@ const Complaints: React.FC = () => {
       if (res.success !== false) {
         const complaintId = res.data?.id || (res as any).id || (res.data as any)?.item?.id;
         
-        // Upload attachment as base64 if provided
-        if (createFile && complaintId) {
+        // Upload attachments as base64 if provided
+        if (createFiles.length > 0 && complaintId) {
           try {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              const base64Data = e.target?.result as string;
-              await api.complaints.uploadAttachmentsBase64(complaintId, [{
-                Name: createFile.name,
-                Type: createFile.type,
-                Data: base64Data
-              }]);
-            };
-            reader.readAsDataURL(createFile);
+            const filePromises = createFiles.map(file => {
+              return new Promise<{ Name: string; Type: string; Data: string }>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  resolve({
+                    Name: file.name,
+                    Type: file.type,
+                    Data: e.target?.result as string
+                  });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
+            });
+            
+            const base64Files = await Promise.all(filePromises);
+            await api.complaints.uploadAttachmentsBase64(complaintId, base64Files);
           } catch (uploadErr) {
-            console.error('Failed to upload attachment:', uploadErr);
+            console.error('Failed to upload attachments:', uploadErr);
+            toast.error('Complaint created but some attachments failed to upload');
           }
         }
         
@@ -191,7 +201,7 @@ const Complaints: React.FC = () => {
         }
 
         setIsCreateOpen(false);
-        setCreateFile(null);
+        setCreateFiles([]);
         setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', assignTo: '' });
         load();
       } else {
@@ -275,28 +285,35 @@ const Complaints: React.FC = () => {
 
       const res = await api.complaints.update(editForm.id, payload);
       if (res.success !== false) {
-        // Upload attachment as base64 if provided
-        if (editFile) {
+        // Upload attachments as base64 if provided
+        if (editFiles.length > 0) {
           try {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              const base64Data = e.target?.result as string;
-              await api.complaints.uploadAttachmentsBase64(editForm.id, [{
-                Name: editFile.name,
-                Type: editFile.type,
-                Data: base64Data
-              }]);
-              load();
-            };
-            reader.readAsDataURL(editFile);
+            const filePromises = editFiles.map(file => {
+              return new Promise<{ Name: string; Type: string; Data: string }>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  resolve({
+                    Name: file.name,
+                    Type: file.type,
+                    Data: e.target?.result as string
+                  });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
+            });
+            
+            const base64Files = await Promise.all(filePromises);
+            await api.complaints.uploadAttachmentsBase64(editForm.id, base64Files);
           } catch (uploadErr) {
-            console.error('Failed to upload attachment:', uploadErr);
+            console.error('Failed to upload attachments:', uploadErr);
+            toast.error('Complaint updated but some attachments failed to upload');
           }
         }
         
         toast.success('Complaint updated');
         setIsEditOpen(false);
-        setEditFile(null);
+        setEditFiles([]);
         load();
       } else {
         toast.error(res.message || 'Failed to update');
@@ -395,7 +412,7 @@ const Complaints: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-sm truncate">{c.title}</p>
-                        {canManage && (
+                        {(canManage || c.residentId === user?.id) && (
                           <DropdownMenu modal={false}>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -459,21 +476,47 @@ const Complaints: React.FC = () => {
                       if (Array.isArray(parsed)) files = parsed;
                     } catch { /* not JSON */ }
                     if (files.length === 0) return null;
+                    const canDeleteAttachment = canManage || c.residentId === user?.id;
                     return (
                       <div className="flex gap-1.5 mb-2" onClick={e => e.stopPropagation()}>
                         {files.slice(0, 3).map((f, i) => {
                           const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
                           const fileExt = f.Name.split('.').pop()?.toUpperCase() || 'FILE';
-                          return isImage ? (
-                            <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })} title={f.Name}>
-                              <img src={f.Data} alt={f.Name} className="h-8 w-8 rounded object-cover border hover:opacity-80 cursor-zoom-in" />
-                            </button>
-                          ) : (
-                            <a key={i} href={f.Data} download={f.Name} title={f.Name}
-                              className="text-[10px] bg-slate-100 rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-200 flex items-center gap-1">
-                              <Paperclip className="h-2.5 w-2.5" />
-                              {f.Name?.substring(0, 8)}...
-                            </a>
+                          return (
+                            <div key={i} className="relative group">
+                              {isImage ? (
+                                <button type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })} title={f.Name}>
+                                  <img src={f.Data} alt={f.Name} className="h-8 w-8 rounded object-cover border hover:opacity-80 cursor-zoom-in" />
+                                </button>
+                              ) : (
+                                <a href={f.Data} download={f.Name} title={f.Name}
+                                  className="text-[10px] bg-slate-100 rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-200 flex items-center gap-1">
+                                  <Paperclip className="h-2.5 w-2.5" />
+                                  {f.Name?.substring(0, 8)}...
+                                </a>
+                              )}
+                              {canDeleteAttachment && (
+                                <button
+                                  type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (confirm(`Delete ${f.Name}?`)) {
+                                      try {
+                                        await api.complaints.deleteAttachments(c.id, f.Name);
+                                        toast.success('Attachment deleted');
+                                        load();
+                                      } catch {
+                                        toast.error('Failed to delete attachment');
+                                      }
+                                    }
+                                  }}
+                                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive/90"
+                                  title="Delete attachment"
+                                >
+                                  <Trash2 className="h-2.5 w-2.5" />
+                                </button>
+                              )}
+                            </div>
                           );
                         })}
                         {files.length > 3 && (
@@ -639,7 +682,7 @@ const Complaints: React.FC = () => {
                              </div>
                              <div className="flex items-center gap-1">
                                <Badge className={cn("text-[8px] px-2 py-1 shrink-0 uppercase font-black border-0 bg-slate-50 shadow-sm", priorityColors[c.priority])} variant="outline">{c.priority}</Badge>
-                               {canManage && (
+                               {(canManage || c.residentId === user?.id) && (
                                  <DropdownMenu modal={false}>
                                    <DropdownMenuTrigger asChild>
                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -698,23 +741,49 @@ const Complaints: React.FC = () => {
                               if (Array.isArray(parsed)) files = parsed;
                             } catch { /* not JSON */ }
                             if (files.length === 0) return null;
+                            const canDeleteAttachment = canManage || c.residentId === user?.id;
                             return (
                               <div className="flex gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
                                 {files.slice(0, 4).map((f, i) => {
                                   const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
-                                  return isImage ? (
-                                    <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })}>
-                                      <img 
-                                        src={f.Data} 
-                                        alt={f.Name} 
-                                        className="h-16 w-16 rounded-xl object-cover border-2 border-slate-100 dark:border-slate-700 hover:opacity-80 cursor-zoom-in shadow-sm"
-                                      />
-                                    </button>
-                                  ) : (
-                                    <a key={i} href={f.Data} download={f.Name} className="h-16 w-16 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm">
-                                      <Paperclip className="h-5 w-5 text-slate-400" />
-                                      <span className="text-[8px] text-slate-500 mt-1 truncate max-w-[50px]">{f.Name?.substring(0, 6)}</span>
-                                    </a>
+                                  return (
+                                    <div key={i} className="relative group">
+                                      {isImage ? (
+                                        <button type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })}>
+                                          <img 
+                                            src={f.Data} 
+                                            alt={f.Name} 
+                                            className="h-16 w-16 rounded-xl object-cover border-2 border-slate-100 dark:border-slate-700 hover:opacity-80 cursor-zoom-in shadow-sm"
+                                          />
+                                        </button>
+                                      ) : (
+                                        <a href={f.Data} download={f.Name} className="h-16 w-16 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm">
+                                          <Paperclip className="h-5 w-5 text-slate-400" />
+                                          <span className="text-[8px] text-slate-500 mt-1 truncate max-w-[50px]">{f.Name?.substring(0, 6)}</span>
+                                        </a>
+                                      )}
+                                      {canDeleteAttachment && (
+                                        <button
+                                          type="button"
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            if (confirm(`Delete ${f.Name}?`)) {
+                                              try {
+                                                await api.complaints.deleteAttachments(c.id, f.Name);
+                                                toast.success('Attachment deleted');
+                                                load();
+                                              } catch {
+                                                toast.error('Failed to delete attachment');
+                                              }
+                                            }
+                                          }}
+                                          className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-destructive text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-destructive/90 shadow-md"
+                                          title="Delete attachment"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
                                   );
                                 })}
                                 {files.length > 4 && (
@@ -791,7 +860,7 @@ const Complaints: React.FC = () => {
           setIsCreateOpen(open);
           if (!open) {
             setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', assignTo: '' });
-            setCreateFile(null);
+            setCreateFiles([]);
           }
         }}>
           <DialogContent>
@@ -858,10 +927,33 @@ const Complaints: React.FC = () => {
                 </div>
               )}
               <div className="space-y-1">
-                <Label>Attachment</Label>
-                <div className="flex items-center gap-2">
-                  <Input type="file" onChange={e => setCreateFile(e.target.files?.[0] || null)} className="cursor-pointer" />
-                  {createFile && <Badge variant="secondary" className="whitespace-nowrap">Selected</Badge>}
+                <Label>Attachments</Label>
+                <div className="space-y-2">
+                  <Input 
+                    type="file" 
+                    multiple
+                    onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      setCreateFiles(files);
+                    }} 
+                    className="cursor-pointer" 
+                  />
+                  {createFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {createFiles.map((file, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {file.name}
+                          <button
+                            type="button"
+                            onClick={() => setCreateFiles(prev => prev.filter((_, idx) => idx !== i))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -950,35 +1042,42 @@ const Complaints: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label>Status</Label>
-                  <Select value={editForm.status} onValueChange={v => setEditForm(p => ({ ...p, status: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Open">Open</SelectItem>
-                      <SelectItem value="Assigned">Assigned</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                      <SelectItem value="Resolved">Resolved</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Assign To</Label>
-                  <Select value={editForm.assignedTo} onValueChange={v => setEditForm(p => ({ ...p, assignedTo: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={isLoadingStaff ? "Loading staff..." : "Unassigned"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Unassigned</SelectItem>
-                      {staffList.map((s: any) => (
-                        <SelectItem key={s.id} value={s.id.toString()}>{s.fullName || s.username}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              {canManage && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label>Status</Label>
+                      <Select value={editForm.status} onValueChange={v => setEditForm(p => ({ ...p, status: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Open">Open</SelectItem>
+                          <SelectItem value="Assigned">Assigned</SelectItem>
+                          <SelectItem value="In Progress">In Progress</SelectItem>
+                          <SelectItem value="Resolved">Resolved</SelectItem>
+                          <SelectItem value="Closed">Closed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Assign To</Label>
+                      <Select value={editForm.assignedTo} onValueChange={v => setEditForm(p => ({ ...p, assignedTo: v }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isLoadingStaff ? "Loading staff..." : "Unassigned"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Unassigned</SelectItem>
+                          {staffList.map((s: any) => (
+                            <SelectItem key={s.id} value={s.id.toString()}>{s.fullName || s.username}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground italic">
+                    Note: Regular users cannot modify status or assignment
+                  </p>
+                </>
+              )}
               <div className="space-y-2">
                 <Label>Attachments</Label>
                 {(() => {
@@ -1002,7 +1101,7 @@ const Complaints: React.FC = () => {
                         const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
                         
                         return (
-                          <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 border rounded-md group">
+                          <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 border rounded-md group relative">
                             {isImage ? (
                               <button type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })}>
                                 <img 
@@ -1015,16 +1114,58 @@ const Complaints: React.FC = () => {
                               <Paperclip className="h-3 w-3 text-muted-foreground" />
                             )}
                             <span className="text-xs truncate max-w-[100px]">{f.Name}</span>
-                            <a href={f.Data} download={f.Name} className="text-xs text-blue-500 hover:underline ml-1">Download</a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive hover:bg-destructive/10 ml-auto"
+                              onClick={async () => {
+                                if (confirm(`Delete ${f.Name}?`)) {
+                                  try {
+                                    await api.complaints.deleteAttachments(editForm.id, f.Name);
+                                    toast.success('Attachment deleted');
+                                    load();
+                                  } catch {
+                                    toast.error('Failed to delete attachment');
+                                  }
+                                }
+                              }}
+                              title="Delete attachment"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         );
                       })}
                     </div>
                   );
                 })()}
-                <div className="flex items-center gap-2">
-                  <Input type="file" onChange={e => setEditFile(e.target.files?.[0] || null)} className="cursor-pointer" />
-                  {editFile && <Badge variant="secondary" className="whitespace-nowrap">New File</Badge>}
+                <div className="space-y-2">
+                  <Input 
+                    type="file" 
+                    multiple
+                    onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      setEditFiles(files);
+                    }} 
+                    className="cursor-pointer" 
+                  />
+                  {editFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {editFiles.map((file, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs">
+                          {file.name}
+                          <button
+                            type="button"
+                            onClick={() => setEditFiles(prev => prev.filter((_, idx) => idx !== i))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1041,6 +1182,13 @@ const Complaints: React.FC = () => {
         {previewImage && (
           <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
             <DialogContent className="max-w-4xl p-2 bg-black/95 border-none">
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="absolute top-4 right-4 z-50 h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-110"
+                aria-label="Close"
+              >
+                <X className="h-6 w-6" />
+              </button>
               <div className="relative">
                 <img 
                   src={previewImage.src} 
