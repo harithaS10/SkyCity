@@ -817,12 +817,17 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       <nav className="xl:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-white/10 shadow-2xl safe-bottom">
         <div className="flex items-center justify-around px-2 py-3">
           {(() => {
-            const mobileNavItems = filteredNavItems.slice(0, 5).map(item => ({
-              ...item,
-              isActive: location.pathname === item.href,
-            }));
-            // Always show at most 5 items
-            return mobileNavItems.map((item) => {
+            // For admin roles: always show Dashboard + Complaints in bottom nav
+            // For other roles: use filteredNavItems (up to 5)
+            const bottomItems: { label: string; href: string; icon: React.ReactNode }[] = isAdminRole
+              ? [
+                  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+                  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-5 w-5" /> },
+                ]
+              : filteredNavItems.slice(0, 5);
+
+            return bottomItems.map((item) => {
+              const isActive = location.pathname === item.href;
               const unseenCount = item.href === '/my-tasks' ? unseenTasksCount : 0;
               return (
                 <button
@@ -830,16 +835,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   onClick={() => navigate(item.href)}
                   className={cn(
                     'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors min-w-0 flex-1',
-                    item.isActive
-                      ? 'text-primary'
-                      : 'text-muted-foreground'
+                    isActive ? 'text-primary' : 'text-muted-foreground'
                   )}
                 >
                   <div className="relative">
-                    <span className={cn(
-                      'flex h-6 w-6 items-center justify-center',
-                      item.isActive && 'text-primary'
-                    )}>
+                    <span className={cn('flex h-6 w-6 items-center justify-center', isActive && 'text-primary')}>
                       {item.icon}
                     </span>
                     {unseenCount > 0 && (
@@ -850,11 +850,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   </div>
                   <span className={cn(
                     'text-[9px] font-medium truncate max-w-[52px] text-center leading-tight',
-                    item.isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
+                    isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
                   )}>
                     {item.label}
                   </span>
-                  {item.isActive && (
+                  {isActive && (
                     <div className="h-1 w-1 rounded-full bg-primary mt-1 shadow-glow shadow-primary/50" />
                   )}
                 </button>
