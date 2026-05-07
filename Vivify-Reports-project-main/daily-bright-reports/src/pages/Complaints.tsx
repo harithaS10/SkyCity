@@ -20,7 +20,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
   MessageSquareWarning, Search, Clock, CheckCircle2, AlertCircle,
-  User, Building2, Calendar, Loader2, Plus, Hash, Pencil, Trash2, MoreVertical, Settings,
+  User, Building2, Calendar, Loader2, Plus, Hash, Pencil, Trash2, MoreVertical, Settings, Paperclip,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -79,6 +79,7 @@ const Complaints: React.FC = () => {
     id: 0, title: '', description: '', priority: 'Medium',
     categoryId: '', unitId: '', status: '', assignedTo: '',
   });
+  const [previewImage, setPreviewImage] = useState<{ src: string; name: string } | null>(null);
 
   const [form, setForm] = useState({
     title: '', description: '', priority: 'Medium',
@@ -95,7 +96,9 @@ const Complaints: React.FC = () => {
       // Always fetch all — filter client-side for accurate counts
       const res = await api.complaints.getAll({});
       const items = (res.data as any)?.items ?? res.data ?? [];
-      setComplaints(Array.isArray(items) ? items : []);
+      const complaints = Array.isArray(items) ? items : [];
+      
+      setComplaints(complaints);
     } catch { toast.error('Failed to load complaints'); }
     finally { setIsLoading(false); }
   };
@@ -152,13 +155,29 @@ const Complaints: React.FC = () => {
         priority: form.priority as any,
       });
       if (res.success !== false) {
-        if (createFile) {
-          await api.complaints.uploadAttachment(res.data?.id || (res as any).id, createFile);
+        const complaintId = res.data?.id || (res as any).id || (res.data as any)?.item?.id;
+        
+        // Upload attachment as base64 if provided
+        if (createFile && complaintId) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              const base64Data = e.target?.result as string;
+              await api.complaints.uploadAttachmentsBase64(complaintId, [{
+                Name: createFile.name,
+                Type: createFile.type,
+                Data: base64Data
+              }]);
+            };
+            reader.readAsDataURL(createFile);
+          } catch (uploadErr) {
+            console.error('Failed to upload attachment:', uploadErr);
+          }
         }
+        
         toast.success('Complaint created');
         
         if (form.assignTo && form.assignTo !== 'none') {
-          const complaintId = res.data?.id || (res as any).id || (res.data as any)?.item?.id;
           if (complaintId) {
             try {
               await api.complaints.assign(complaintId, {
@@ -256,9 +275,25 @@ const Complaints: React.FC = () => {
 
       const res = await api.complaints.update(editForm.id, payload);
       if (res.success !== false) {
+        // Upload attachment as base64 if provided
         if (editFile) {
-          await api.complaints.uploadAttachment(editForm.id, editFile);
+          try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              const base64Data = e.target?.result as string;
+              await api.complaints.uploadAttachmentsBase64(editForm.id, [{
+                Name: editFile.name,
+                Type: editFile.type,
+                Data: base64Data
+              }]);
+              load();
+            };
+            reader.readAsDataURL(editFile);
+          } catch (uploadErr) {
+            console.error('Failed to upload attachment:', uploadErr);
+          }
         }
+        
         toast.success('Complaint updated');
         setIsEditOpen(false);
         setEditFile(null);
@@ -417,6 +452,36 @@ const Complaints: React.FC = () => {
                   {c.description && (
                     <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{c.description}</p>
                   )}
+                  {((c as any).attachmentUrls || (c as any).AttachmentUrls) && (() => {
+                    let files: { Name: string; Type: string; Data: string }[] = [];
+                    try {
+                      const parsed = JSON.parse((c as any).attachmentUrls || (c as any).AttachmentUrls);
+                      if (Array.isArray(parsed)) files = parsed;
+                    } catch { /* not JSON */ }
+                    if (files.length === 0) return null;
+                    return (
+                      <div className="flex gap-1.5 mb-2" onClick={e => e.stopPropagation()}>
+                        {files.slice(0, 3).map((f, i) => {
+                          const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
+                          const fileExt = f.Name.split('.').pop()?.toUpperCase() || 'FILE';
+                          return isImage ? (
+                            <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })} title={f.Name}>
+                              <img src={f.Data} alt={f.Name} className="h-8 w-8 rounded object-cover border hover:opacity-80 cursor-zoom-in" />
+                            </button>
+                          ) : (
+                            <a key={i} href={f.Data} download={f.Name} title={f.Name}
+                              className="text-[10px] bg-slate-100 rounded px-1.5 py-0.5 text-slate-600 hover:bg-slate-200 flex items-center gap-1">
+                              <Paperclip className="h-2.5 w-2.5" />
+                              {f.Name?.substring(0, 8)}...
+                            </a>
+                          );
+                        })}
+                        {files.length > 3 && (
+                          <span className="text-[10px] bg-slate-100 rounded px-1.5 py-0.5 text-slate-600">+{files.length - 3}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {canManage && c.status === 'Open' && (
                     <Button size="sm" className="w-full h-7 text-xs gap-1.5" onClick={() => {
                       setSelected(c); setIsAssignOpen(true);
@@ -625,6 +690,41 @@ const Complaints: React.FC = () => {
                                 {c.description}
                              </p>
                           )}
+                          
+                          {((c as any).attachmentUrls || (c as any).AttachmentUrls) && (() => {
+                            let files: { Name: string; Type: string; Data: string }[] = [];
+                            try {
+                              const parsed = JSON.parse((c as any).attachmentUrls || (c as any).AttachmentUrls);
+                              if (Array.isArray(parsed)) files = parsed;
+                            } catch { /* not JSON */ }
+                            if (files.length === 0) return null;
+                            return (
+                              <div className="flex gap-2 flex-wrap" onClick={e => e.stopPropagation()}>
+                                {files.slice(0, 4).map((f, i) => {
+                                  const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
+                                  return isImage ? (
+                                    <button key={i} type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })}>
+                                      <img 
+                                        src={f.Data} 
+                                        alt={f.Name} 
+                                        className="h-16 w-16 rounded-xl object-cover border-2 border-slate-100 dark:border-slate-700 hover:opacity-80 cursor-zoom-in shadow-sm"
+                                      />
+                                    </button>
+                                  ) : (
+                                    <a key={i} href={f.Data} download={f.Name} className="h-16 w-16 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm">
+                                      <Paperclip className="h-5 w-5 text-slate-400" />
+                                      <span className="text-[8px] text-slate-500 mt-1 truncate max-w-[50px]">{f.Name?.substring(0, 6)}</span>
+                                    </a>
+                                  );
+                                })}
+                                {files.length > 4 && (
+                                  <div className="h-16 w-16 rounded-xl bg-slate-100 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 flex items-center justify-center shadow-sm">
+                                    <span className="text-xs font-black text-slate-500">+{files.length - 4}</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                           
                           <div className="flex items-center justify-between pt-1">
                              <div className="flex items-center gap-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">
@@ -881,30 +981,47 @@ const Complaints: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Attachments</Label>
-                {(complaints.find(c => c.id === editForm.id)?.attachments || []).length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {(complaints.find(c => c.id === editForm.id)?.attachments || []).map((a: any) => (
-                      <div key={a.id} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 border rounded-md group">
-                        <Paperclip className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-xs truncate max-w-[100px]">{a.fileName}</span>
-                        <a href={`${api.baseUrl}${a.filePath}`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline ml-1">View</a>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-4 w-4 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={async () => {
-                            if (confirm('Delete this attachment?')) {
-                              await api.complaints.deleteAttachment(a.id);
-                              load();
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {(() => {
+                  const complaint = complaints.find(c => c.id === editForm.id);
+                  if (!complaint) return null;
+                  
+                  let files: { Name: string; Type: string; Data: string }[] = [];
+                  try {
+                    const attachmentUrls = (complaint as any).attachmentUrls || (complaint as any).AttachmentUrls;
+                    if (attachmentUrls) {
+                      const parsed = JSON.parse(attachmentUrls);
+                      if (Array.isArray(parsed)) files = parsed;
+                    }
+                  } catch { /* not JSON */ }
+                  
+                  if (files.length === 0) return null;
+                  
+                  return (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {files.map((f, i) => {
+                        const isImage = f.Type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.Name);
+                        
+                        return (
+                          <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 border rounded-md group">
+                            {isImage ? (
+                              <button type="button" onClick={() => setPreviewImage({ src: f.Data, name: f.Name })}>
+                                <img 
+                                  src={f.Data} 
+                                  alt={f.Name} 
+                                  className="h-12 w-12 rounded object-cover cursor-zoom-in hover:opacity-80"
+                                />
+                              </button>
+                            ) : (
+                              <Paperclip className="h-3 w-3 text-muted-foreground" />
+                            )}
+                            <span className="text-xs truncate max-w-[100px]">{f.Name}</span>
+                            <a href={f.Data} download={f.Name} className="text-xs text-blue-500 hover:underline ml-1">Download</a>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
                 <div className="flex items-center gap-2">
                   <Input type="file" onChange={e => setEditFile(e.target.files?.[0] || null)} className="cursor-pointer" />
                   {editFile && <Badge variant="secondary" className="whitespace-nowrap">New File</Badge>}
@@ -919,6 +1036,24 @@ const Complaints: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Image Preview Lightbox */}
+        {previewImage && (
+          <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+            <DialogContent className="max-w-4xl p-2 bg-black/95 border-none">
+              <div className="relative">
+                <img 
+                  src={previewImage.src} 
+                  alt={previewImage.name} 
+                  className="w-full rounded-lg object-contain max-h-[85vh]" 
+                />
+                <div className="absolute bottom-4 left-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg px-4 py-2">
+                  <p className="text-white text-sm font-medium truncate">{previewImage.name}</p>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </DashboardLayout>
   );

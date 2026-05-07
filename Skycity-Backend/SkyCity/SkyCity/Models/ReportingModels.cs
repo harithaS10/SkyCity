@@ -105,6 +105,7 @@ public class Complaint : ISoftDelete
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ResolvedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
+    public string? AttachmentUrls { get; set; }
     public bool IsDeleted { get; set; } = true;
 
     [ForeignKey("ResidentId")]

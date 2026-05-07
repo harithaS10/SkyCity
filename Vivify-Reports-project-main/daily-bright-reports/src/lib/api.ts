@@ -1,4 +1,5 @@
 // File: src/lib/api.ts
+// Updated: Added uploadAttachmentsBase64 method for complaints
 import axios from 'axios';
 import { 
   Complaint, WorkOrder, Bill, User, Association, Property, Building, Unit,
@@ -295,9 +296,11 @@ export const api = {
         reader.onload = async () => {
           try {
             const response = await apiClient.post(`/complaints/${id}/attachments-base64`, {
-              fileName: file.name,
-              fileType: file.type,
-              data: reader.result
+              files: [{
+                Name: file.name,
+                Type: file.type,
+                Data: reader.result
+              }]
             });
             resolve(response.data);
           } catch(e) {
@@ -306,6 +309,10 @@ export const api = {
         };
         reader.onerror = error => reject(error);
       });
+    },
+    uploadAttachmentsBase64: async (id: number, files: Array<{ Name: string; Type: string; Data: string }>): Promise<ApiResponse<any>> => {
+      const response = await apiClient.post(`/complaints/${id}/attachments-base64`, { files });
+      return response.data;
     },
     deleteAttachment: async (attachmentId: number): Promise<ApiResponse<any>> => {
       const response = await apiClient.delete(`/complaints/attachments/${attachmentId}`);

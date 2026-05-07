@@ -82,10 +82,10 @@ public class ComplaintsController : ControllerBase
                                 c.CreatedAt,
                                 c.ResolvedAt,
                                 c.ClosedAt,
+                                c.AttachmentUrls,
                                 ResidentName = c.Resident != null ? c.Resident.FullName : null,
                                 CategoryName = c.Category != null ? c.Category.CategoryName : (w != null ? w.WorkTitle : null),
-                                UnitNumber = c.Unit != null ? c.Unit.UnitNumber : null,
-                                Attachments = _context.ComplaintAttachments.Where(a => a.ComplaintId == c.Id && a.IsDeleted == true).Select(a => new { a.Id, a.FileName, a.FilePath }).ToList()
+                                UnitNumber = c.Unit != null ? c.Unit.UnitNumber : null
                             })
                             .OrderByDescending(c => c.CreatedAt)
                             .Skip((page - 1) * pageSize)
@@ -350,39 +350,24 @@ public class ComplaintsController : ControllerBase
     }
 
     [HttpPost("{id}/attachments-base64")]
-    public async Task<ActionResult> UploadAttachmentBase64(int id, [FromBody] Base64AttachmentDto dto)
+    public async Task<ActionResult> UploadAttachmentBase64(int id, [FromBody] Base64AttachmentsDto dto)
     {
         var complaint = await _context.Complaints.FindAsync(id);
         if (complaint == null) return NotFound(new ApiResponse { Success = false, Message = "Not found" });
+        if (dto.Files == null || dto.Files.Count == 0)
+            return BadRequest(new ApiResponse { Success = false, Message = "No files provided" });
 
-        if (string.IsNullOrEmpty(dto.Data)) return BadRequest(new ApiResponse { Success = false, Message = "No data" });
+        var existing = string.IsNullOrEmpty(complaint.AttachmentUrls) ? "[]" : complaint.AttachmentUrls;
+        if (!existing.TrimStart().StartsWith("["))
+            existing = "[]";
 
-        var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        var uploadDir = Path.Combine(webRoot, "uploads", "complaints");
-        Directory.CreateDirectory(uploadDir);
+        var existingList = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(existing) ?? new();
+        var newItems = dto.Files.Select(f => new { f.Name, f.Type, f.Data }).ToList();
+        var combined = existingList.Select(e => (object)e).Concat(newItems.Select(n => (object)n)).ToList();
+        complaint.AttachmentUrls = System.Text.Json.JsonSerializer.Serialize(combined);
 
-        var fileName = dto.FileName ?? $"{Guid.NewGuid()}.jpg";
-        var filePath = Path.Combine(uploadDir, fileName);
-
-        var base64Data = dto.Data.Contains(",") ? dto.Data.Split(',')[1] : dto.Data;
-        var bytes = Convert.FromBase64String(base64Data);
-        await System.IO.File.WriteAllBytesAsync(filePath, bytes);
-
-        var attachment = new ComplaintAttachment
-        {
-            ComplaintId = id,
-            FileName = fileName,
-            FilePath = $"/uploads/complaints/{fileName}",
-            FileType = dto.FileType ?? "image/jpeg",
-            UploadedBy = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"),
-            UploadedAt = DateTime.UtcNow,
-            IsDeleted = true
-        };
-
-        _context.ComplaintAttachments.Add(attachment);
         await _context.SaveChangesAsync();
-
-        return Ok(new ApiResponse<ComplaintAttachment> { Success = true, Data = attachment });
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = new { count = dto.Files.Count, attachmentUrls = complaint.AttachmentUrls } });
     }
 
     [HttpDelete("attachments/{attachmentId}")]
@@ -402,5 +387,17 @@ public class Base64AttachmentDto
 {
     public string? FileName { get; set; }
     public string? FileType { get; set; }
+    public string Data { get; set; } = string.Empty;
+}
+
+public class Base64AttachmentsDto
+{
+    public List<Base64FileDto> Files { get; set; } = new();
+}
+
+public class Base64FileDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
     public string Data { get; set; } = string.Empty;
 }

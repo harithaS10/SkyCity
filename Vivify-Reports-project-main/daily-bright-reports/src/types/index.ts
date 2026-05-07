@@ -112,6 +112,11 @@ export interface Complaint {
   unit?: Unit;
   category?: ComplaintCategory;
   assignedStaff?: User;
+  attachments?: Array<{
+    id: number;
+    fileName: string;
+    filePath: string;
+  }>;
 }
 
 // Complaint DTOs
