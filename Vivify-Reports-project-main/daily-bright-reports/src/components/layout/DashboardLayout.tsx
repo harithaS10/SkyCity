@@ -108,14 +108,13 @@ const navItems: NavItem[] = [
   { label: 'My Home', href: '/resident/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['resident'] },
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
 
-  // Staff order: Dashboard → Community Chat → My Tasks → Daily Reports → Complaints → My Reports
+  // Staff order: Dashboard → Community Chat → My Tasks → Daily Reports → My Reports
   { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: ['resident', 'staff', 'property_manager'] },
   { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['staff'] },
   { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
-  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: ['resident', 'admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
   { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
 
-  // Admin order: Dashboard → [Management dropdown] → [Employee Tasks button] → Work Allocation → Community Chat → Complaints → Analytics
+  // Admin order: Dashboard → [Management dropdown] → [Employee Tasks button] → Work Allocation → Community Chat → Analytics
   // (These are rendered inline in JSX after Management/Employee Tasks, not via navItems for admin)
   { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['property_manager', 'facility_manager'] },
   { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" />, roles: ['property_manager'] },
@@ -481,7 +480,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               {isAdminRole && ([
                 { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" /> },
                 { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" /> },
-                { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" /> },
                 { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" /> },
               ].map(item => (
                 <Button
@@ -781,7 +779,6 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   {[
                     { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-4 w-4" /> },
                     { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-4 w-4" /> },
-                    { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-4 w-4" /> },
                     { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-4 w-4" /> },
                   ].map((item) => (
                     <Button key={item.href} variant="ghost"

@@ -15,7 +15,17 @@ const COOKIE_CONSENT_KEY = 'skycity_cookie_consent';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, logout, isLoading } = useAuth();
+  const { login, logout, isLoading, user } = useAuth();
+
+  // Auto-redirect if already logged in with a valid token
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (token && storedUser && user) {
+      if (user.role === 'super_admin') navigate('/super-admin/overview', { replace: true });
+      else navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
