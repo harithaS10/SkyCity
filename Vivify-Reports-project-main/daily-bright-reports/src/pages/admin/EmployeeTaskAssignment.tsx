@@ -751,9 +751,9 @@ const EmployeeTaskAssignment: React.FC = () => {
             {/* Create Task Tab/Forms */}
             <Tabs defaultValue="assign" className="w-full">
               <TabsList className="w-full bg-white dark:bg-slate-800 shadow-sm ring-1 ring-black/5 dark:ring-white/5 rounded-2xl h-12 p-1 border-0">
-                <TabsTrigger value="assign" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white dark:text-slate-300">Assign Task</TabsTrigger>
-                <TabsTrigger value="daily" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white dark:text-slate-300">Daily ({dailyTasks.length})</TabsTrigger>
-                <TabsTrigger value="monthly" className="flex-1 rounded-xl text-xs font-bold data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white dark:text-slate-300">Monthly ({monthlyTasks.length})</TabsTrigger>
+                <TabsTrigger value="assign" className="flex-1 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white">Assign Task</TabsTrigger>
+                <TabsTrigger value="daily" className="flex-1 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white">Daily ({dailyTasks.length})</TabsTrigger>
+                <TabsTrigger value="monthly" className="flex-1 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 data-[state=active]:bg-slate-900 dark:data-[state=active]:bg-slate-700 data-[state=active]:text-white">Monthly ({monthlyTasks.length})</TabsTrigger>
               </TabsList>
 
               <TabsContent value="assign" className="mt-4 space-y-4">
@@ -769,9 +769,9 @@ const EmployeeTaskAssignment: React.FC = () => {
                   </div>
 
                   <Tabs defaultValue="daily-form" className="w-full">
-                    <TabsList className="w-full grid grid-cols-2 bg-slate-50 dark:bg-slate-900 rounded-xl h-10 p-1 mb-4">
-                      <TabsTrigger value="daily-form" className="rounded-lg text-[10px] uppercase tracking-wider font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm dark:text-slate-400">Daily</TabsTrigger>
-                      <TabsTrigger value="monthly-form" className="rounded-lg text-[10px] uppercase tracking-wider font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm dark:text-slate-400">Monthly</TabsTrigger>
+                    <TabsList className="w-full grid grid-cols-2 bg-slate-100 dark:bg-slate-900 rounded-xl h-10 p-1 mb-4">
+                      <TabsTrigger value="daily-form" className="rounded-lg text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm">Daily</TabsTrigger>
+                      <TabsTrigger value="monthly-form" className="rounded-lg text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm">Monthly</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="daily-form" className="space-y-4 outline-none">
@@ -899,9 +899,14 @@ const EmployeeTaskAssignment: React.FC = () => {
                             {task.groupId && <Badge variant="outline" className="text-[9px] uppercase tracking-wider font-bold h-5 bg-indigo-50 text-indigo-700 border-indigo-200">Group</Badge>}
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)} className="h-8 w-8 text-rose-400 hover:text-rose-600 hover:bg-rose-50 -mr-2 -mt-2">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1 -mr-2 -mt-2">
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(task)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(task.id)} className="h-8 w-8 text-rose-400 hover:text-rose-600 hover:bg-rose-50">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between border-t border-slate-50 pt-3">
                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
@@ -946,9 +951,14 @@ const EmployeeTaskAssignment: React.FC = () => {
                             </Badge>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)} className="h-8 w-8 text-rose-400 hover:text-rose-600 hover:bg-rose-50 -mr-2 -mt-2">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1 -mr-2 -mt-2">
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(task)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(task.id)} className="h-8 w-8 text-rose-400 hover:text-rose-600 hover:bg-rose-50">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between border-t border-slate-50 pt-3">
                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">

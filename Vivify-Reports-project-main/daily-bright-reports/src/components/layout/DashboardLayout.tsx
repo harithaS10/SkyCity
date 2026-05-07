@@ -480,6 +480,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               {isAdminRole && ([
                 { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" /> },
                 { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" /> },
+                { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" /> },
                 { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" /> },
               ].map(item => (
                 <Button
@@ -779,6 +780,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   {[
                     { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-4 w-4" /> },
                     { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-4 w-4" /> },
+                    { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-4 w-4" /> },
                     { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-4 w-4" /> },
                   ].map((item) => (
                     <Button key={item.href} variant="ghost"
