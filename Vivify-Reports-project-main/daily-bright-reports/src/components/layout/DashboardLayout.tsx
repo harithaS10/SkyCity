@@ -108,11 +108,12 @@ const navItems: NavItem[] = [
   { label: 'My Home', href: '/resident/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['resident'] },
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
 
-  // Staff order: Dashboard → Community Chat → My Tasks → Daily Reports → My Reports
+  // Staff order: Dashboard → Community Chat → My Tasks → Daily Reports → My Reports → Complaints
   { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: ['resident', 'staff', 'property_manager'] },
   { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['staff'] },
   { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
   { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
+  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: ['resident', 'staff'] },
 
   // Admin order: Dashboard → [Management dropdown] → [Employee Tasks button] → Work Allocation → Community Chat → Analytics
   // (These are rendered inline in JSX after Management/Employee Tasks, not via navItems for admin)
