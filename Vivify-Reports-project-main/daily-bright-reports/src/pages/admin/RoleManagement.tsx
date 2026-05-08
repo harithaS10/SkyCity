@@ -350,37 +350,20 @@ const RoleManagement: React.FC = () => {
                           <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">No custom roles yet. Create your first role.</TableCell></TableRow>
                         ) : roles.map((r, index) => {
                           const p = r.permissions ?? {};
-                          
-                          // Check if this is an admin-level role that bypasses permissions
-                          const isAdminRole = ['super admin', 'admin', 'sub admin', 'property manager', 'facility manager', 'helpdesk']
-                            .some(adminName => r.roleName.toLowerCase().includes(adminName.toLowerCase()));
-                          
-                          const hasAny = (mod: any) => {
-                            if (isAdminRole) return true; // Admin roles always have access
-                            return mod && Object.values(mod).some(Boolean);
-                          };
-                          
+                          const hasAny = (mod: any) => mod && Object.values(mod).some(Boolean);
                           const tick = (v?: boolean) => v
                             ? <Check className="h-5 w-5 text-emerald-500 mx-auto stroke-[3]" />
                             : <X className="h-5 w-5 text-slate-300 mx-auto stroke-[3]" />;
-                          
                           return (
                             <TableRow key={r.id} className="hover:bg-slate-50/50">
                               <TableCell className="border-r border-slate-200 text-center text-slate-500 text-sm font-medium">{index + 1}</TableCell>
-                              <TableCell className="font-medium border-r border-slate-200">
-                                {r.roleName}
-                                {isAdminRole && (
-                                  <Badge className="ml-2 bg-blue-50 text-blue-700 border-blue-200 text-[9px] px-1.5 py-0" variant="outline">
-                                    Full Access
-                                  </Badge>
-                                )}
-                              </TableCell>
+                              <TableCell className="font-medium border-r border-slate-200">{r.roleName}</TableCell>
                               <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.complaints))}</TableCell>
                               <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.work_orders))}</TableCell>
                               <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.daily_reports))}</TableCell>
                               <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.analytics))}</TableCell>
                               <TableCell className="text-center border-r border-slate-200">{tick(hasAny(p.chat))}</TableCell>
-                              <TableCell className="text-center border-r border-slate-200">{tick(isAdminRole || p.export)}</TableCell>
+                              <TableCell className="text-center border-r border-slate-200">{tick(p.export)}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-1">
                                   <Button
@@ -453,15 +436,7 @@ const RoleManagement: React.FC = () => {
               ) : (
                 roles.map((r) => {
                   const p = r.permissions ?? {};
-                  
-                  // Check if this is an admin-level role that bypasses permissions
-                  const isAdminRole = ['super admin', 'admin', 'sub admin', 'property manager', 'facility manager', 'helpdesk']
-                    .some(adminName => r.roleName.toLowerCase().includes(adminName.toLowerCase()));
-                  
-                  const hasAny = (mod: any) => {
-                    if (isAdminRole) return true; // Admin roles always have access
-                    return mod && Object.values(mod).some(Boolean);
-                  };
+                  const hasAny = (mod: any) => mod && Object.values(mod).some(Boolean);
                   
                   // Helper for rendering tick boxes
                   const TickPerm = ({ label, active }: { label: string, active: boolean }) => (
@@ -478,18 +453,11 @@ const RoleManagement: React.FC = () => {
                   return (
                     <div key={r.id} className="bg-white dark:bg-slate-800 rounded-3xl p-4 shadow-sm ring-1 ring-black/5 dark:ring-white/5 flex flex-col gap-3">
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/5 dark:bg-primary/10 text-primary dark:text-primary shadow-sm shrink-0">
                             <Shield className="h-5 w-5" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{r.roleName}</h4>
-                            {isAdminRole && (
-                              <Badge className="mt-1 bg-blue-50 text-blue-700 border-blue-200 text-[8px] px-1.5 py-0 h-4" variant="outline">
-                                Full Access
-                              </Badge>
-                            )}
-                          </div>
+                          <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{r.roleName}</h4>
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -516,7 +484,7 @@ const RoleManagement: React.FC = () => {
                           <TickPerm label="Reports" active={hasAny(p.daily_reports)} />
                           <TickPerm label="Analytics" active={hasAny(p.analytics)} />
                           <TickPerm label="Chat" active={hasAny(p.chat)} />
-                          <TickPerm label="Export" active={isAdminRole || !!p.export} />
+                          <TickPerm label="Export" active={!!p.export} />
                         </div>
                       </div>
                     </div>

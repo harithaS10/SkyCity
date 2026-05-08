@@ -121,6 +121,19 @@ const UserManagement: React.FC = () => {
     api.roles.getAll().then(r => { if (r.success && r.data) setCustomRoles(r.data); }).catch(() => {});
   }, []);
 
+  // Helper function to format role display name
+  const formatRoleName = (roleValue: string): string => {
+    // Check if it's a custom role
+    const customRole = customRoles.find(r => r.roleName.toLowerCase().replace(/\s+/g, '_') === roleValue);
+    if (customRole) return customRole.roleName;
+    
+    // Format system roles
+    return roleValue
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const filteredUsers = users.filter(
     (user) =>
       (user.fullName || user.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -380,15 +393,15 @@ const UserManagement: React.FC = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="sub_admin">Sub Admin</SelectItem>
-                        <SelectItem value="property_manager">Property Manager</SelectItem>
-                        <SelectItem value="facility_manager">Facility Manager</SelectItem>
-                        <SelectItem value="staff">Staff</SelectItem>
-                        <SelectItem value="vendor">Vendor</SelectItem>
-                        <SelectItem value="resident">Resident</SelectItem>
-                        <SelectItem value="accountant">Accountant</SelectItem>
-                        <SelectItem value="helpdesk">Helpdesk</SelectItem>
+                        {customRoles.length > 0 ? (
+                          customRoles.map(r => (
+                            <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
+                              {r.roleName}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-2 text-xs text-slate-500">No roles available. Create roles in Role Management.</div>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -522,15 +535,15 @@ const UserManagement: React.FC = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="sub_admin">Sub Admin</SelectItem>
-                            <SelectItem value="property_manager">Property Manager</SelectItem>
-                            <SelectItem value="facility_manager">Facility Manager</SelectItem>
-                            <SelectItem value="staff">Staff</SelectItem>
-                            <SelectItem value="vendor">Vendor</SelectItem>
-                            <SelectItem value="resident">Resident</SelectItem>
-                            <SelectItem value="accountant">Accountant</SelectItem>
-                            <SelectItem value="helpdesk">Helpdesk</SelectItem>
+                            {customRoles.length > 0 ? (
+                              customRoles.map(r => (
+                                <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
+                                  {r.roleName}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <div className="px-2 py-2 text-xs text-slate-500">No roles available. Create roles in Role Management.</div>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -654,16 +667,15 @@ const UserManagement: React.FC = () => {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-card">
-                                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                  <SelectItem value="sub_admin">Sub Admin</SelectItem>
-                                  <SelectItem value="property_manager">Property Manager</SelectItem>
-                                  <SelectItem value="facility_manager">Facility Manager</SelectItem>
-                                  <SelectItem value="staff">Staff</SelectItem>
-                                  <SelectItem value="vendor">Vendor</SelectItem>
-                                  <SelectItem value="resident">Resident</SelectItem>
-                                  <SelectItem value="accountant">Accountant</SelectItem>
-                                  <SelectItem value="helpdesk">Helpdesk</SelectItem>
+                                  {customRoles.length > 0 ? (
+                                    customRoles.map(r => (
+                                      <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
+                                        {r.roleName}
+                                      </SelectItem>
+                                    ))
+                                  ) : (
+                                    <div className="px-2 py-2 text-xs text-slate-500">No roles available</div>
+                                  )}
                                 </SelectContent>
                               </Select>
                             </TableCell>
@@ -803,16 +815,15 @@ const UserManagement: React.FC = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-card rounded-2xl shadow-xl border-slate-100">
-                              <SelectItem value="super_admin">Super Admin</SelectItem>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="sub_admin">Sub Admin</SelectItem>
-                              <SelectItem value="property_manager">Property Manager</SelectItem>
-                              <SelectItem value="facility_manager">Facility Manager</SelectItem>
-                              <SelectItem value="staff">Staff</SelectItem>
-                              <SelectItem value="vendor">Vendor</SelectItem>
-                              <SelectItem value="resident">Resident</SelectItem>
-                              <SelectItem value="accountant">Accountant</SelectItem>
-                              <SelectItem value="helpdesk">Helpdesk</SelectItem>
+                              {customRoles.length > 0 ? (
+                                customRoles.map(r => (
+                                  <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
+                                    {r.roleName}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="px-2 py-2 text-xs text-slate-500">No roles available</div>
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
