@@ -1079,7 +1079,21 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
       </Dialog>
 
       {/* Start New Work Dialog */}
-      <Dialog open={isSelfAssignDialogOpen} onOpenChange={setIsSelfAssignDialogOpen}>
+      <Dialog open={isSelfAssignDialogOpen} onOpenChange={(open) => {
+        setIsSelfAssignDialogOpen(open);
+        if (!open) {
+          // Reset form when dialog closes
+          setSelfAssignData({
+            title: '',
+            description: '',
+            workId: '',
+            clientId: '',
+            priority: 'medium',
+            dueDate: format(new Date(), 'yyyy-MM-dd')
+          });
+          setAttachments([]);
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px] max-h-[85vh] flex flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle>Start New Work</DialogTitle>
