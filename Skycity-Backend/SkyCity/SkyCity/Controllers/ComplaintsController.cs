@@ -124,8 +124,8 @@ public class ComplaintsController : ControllerBase
         return Ok(new ApiResponse<Complaint> { Data = complaint });
     }
 
-    [Authorize(Roles = "resident,staff,helpdesk,property_manager,admin,sub_admin")]
     [HttpPost]
+    [RequirePermission("complaints", "create")]
     public async Task<ActionResult> CreateComplaint([FromBody] CreateComplaintDto dto)
     {
         if (!ModelState.IsValid)
@@ -155,8 +155,8 @@ public class ComplaintsController : ControllerBase
         return Ok(new ApiResponse<Complaint> { Success = true, Data = complaint });
     }
 
-    [Authorize(Roles = "helpdesk,property_manager,admin,sub_admin,facility_manager,staff")]
     [HttpPatch("{id}/status")]
+    [RequirePermission("complaints", "edit")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateComplaintStatusDto dto)
     {
         var complaint = await _context.Complaints.FindAsync(id);
@@ -169,8 +169,8 @@ public class ComplaintsController : ControllerBase
         return Ok(new ApiResponse { Success = true, Message = $"Status updated to {dto.Status}" });
     }
 
-    [Authorize(Roles = "helpdesk,property_manager,admin,sub_admin,facility_manager")]
     [HttpPost("{id}/assign")]
+    [RequirePermission("complaints", "edit")]
     public async Task<IActionResult> AssignComplaint(int id, [FromBody] AssignmentDto dto)
     {
         var complaint = await _context.Complaints
@@ -203,8 +203,8 @@ public class ComplaintsController : ControllerBase
         return Ok(new ApiResponse { Message = "Assigned successfully" });
     }
 
-    [Authorize(Roles = "staff,vendor,property_manager,admin")]
     [HttpPost("{id}/resolve")]
+    [RequirePermission("complaints", "edit")]
     public async Task<IActionResult> ResolveComplaint(int id, [FromBody] ResolutionDto dto)
     {
         var complaint = await _context.Complaints.FindAsync(id);
@@ -234,8 +234,8 @@ public class ComplaintsController : ControllerBase
         return Ok(new ApiResponse { Message = "Resolved successfully" });
     }
 
-    [Authorize(Roles = "resident")]
     [HttpPost("{id}/feedback")]
+    [RequirePermission("complaints", "view")]
     public async Task<IActionResult> SubmitFeedback(int id, [FromBody] FeedbackDto dto)
     {
         var complaint = await _context.Complaints.FindAsync(id);
@@ -268,8 +268,8 @@ public class ComplaintsController : ControllerBase
         return Ok(new ApiResponse { Message = "Feedback submitted successfully" });
     }
 
-    [Authorize(Roles = "helpdesk,property_manager,admin,sub_admin")]
     [HttpPut("{id}")]
+    [RequirePermission("complaints", "edit")]
     public async Task<IActionResult> UpdateComplaint(int id, [FromBody] UpdateComplaintDto dto)
     {
         var complaint = await _context.Complaints.FindAsync(id);
@@ -296,8 +296,8 @@ public class ComplaintsController : ControllerBase
         return Ok(new ApiResponse<Complaint> { Success = true, Data = complaint });
     }
 
-    [Authorize(Roles = "helpdesk,property_manager,admin,sub_admin")]
     [HttpDelete("{id}")]
+    [RequirePermission("complaints", "delete")]
     public async Task<IActionResult> DeleteComplaint(int id)
     {
         var complaint = await _context.Complaints.FindAsync(id);

@@ -67,7 +67,8 @@ import {
   CalendarDays,
   Timer,
   Award,
-  Bell
+  Bell,
+  X
 } from 'lucide-react';
 
 const UserDashboard: React.FC = () => {
@@ -961,9 +962,15 @@ const UserDashboard: React.FC = () => {
 
       {/* Login Popup — pending tasks reminder on first visit per session */}
       <Dialog open={showLoginPopup} onOpenChange={setShowLoginPopup}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden">
+        <DialogContent className="max-w-lg p-0 overflow-hidden [&>button]:hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5 text-white">
+          <div className="bg-gradient-to-r from-primary to-primary/80 px-6 py-5 text-white relative">
+            <button
+              onClick={() => setShowLoginPopup(false)}
+              className="absolute top-3 right-3 h-8 w-8 flex items-center justify-center text-slate-700 hover:opacity-80 bg-transparent rounded-none z-50"
+            >
+              <X className="h-6 w-6" />
+            </button>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
                 <Bell className="h-5 w-5 text-white" />

@@ -5,6 +5,7 @@ using SkycityBackend.Data;
 using SkycityBackend.DTOs;
 using SkycityBackend.Models;
 using SkycityBackend.Services;
+using SkycityBackend.Attributes;
 using System.Security.Claims;
 
 namespace SkycityBackend.Controllers;
@@ -50,7 +51,7 @@ public class PropertyController : ControllerBase
         return Ok(new { database = db, tables });
     }
 
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("properties", "create")]
     [HttpPost("bulk")]
     public async Task<ActionResult> CreatePropertiesBulk([FromBody] BulkCreatePropertyDto dto)
     {
@@ -119,7 +120,7 @@ public class PropertyController : ControllerBase
         });
     }
 
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("properties", "create")]
     [HttpPost]
     public async Task<ActionResult> CreateProperty([FromBody] CreatePropertyDto dto)
     {
@@ -166,7 +167,7 @@ public class PropertyController : ControllerBase
         return CreatedAtAction(nameof(GetProperties), new { associationId = property.AssociationId }, new ApiResponse<Property> { Data = property });
     }
 
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("properties", "edit")]
     [HttpPut("{id}")]
     public async Task<ActionResult> UpdateProperty(int id, [FromBody] CreatePropertyDto dto)
     {
@@ -192,7 +193,7 @@ public class PropertyController : ControllerBase
         return Ok(new ApiResponse<Property> { Success = true, Data = property });
     }
 
-    [Authorize(Roles = "super_admin,admin,property_manager")]
+    [RequirePermission("properties", "delete")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProperty(int id)
     {
@@ -218,7 +219,7 @@ public class PropertyController : ControllerBase
         return Ok(new ApiResponse<IEnumerable<Building>> { Data = buildings });
     }
 
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("properties", "create")]
     [HttpPost("building")]
     public async Task<ActionResult> CreateBuilding([FromBody] CreateBuildingDto dto)
     {
@@ -241,7 +242,7 @@ public class PropertyController : ControllerBase
         return Ok(new ApiResponse<Building> { Data = building });
     }
 
-    [Authorize(Roles = "super_admin,admin,property_manager")]
+    [RequirePermission("properties", "delete")]
     [HttpDelete("building/{id}")]
     public async Task<IActionResult> DeleteBuilding(int id)
     {
@@ -266,7 +267,7 @@ public class PropertyController : ControllerBase
         return Ok(new ApiResponse<IEnumerable<Unit>> { Data = units });
     }
 
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("properties", "create")]
     [HttpPost("units/bulk")]
     public async Task<ActionResult> CreateUnitsBulk([FromBody] BulkCreateUnitsDto dto)
     {
@@ -295,7 +296,7 @@ public class PropertyController : ControllerBase
         return Ok(new ApiResponse<dynamic> { Success = true, Data = new { Created = units.Count }, Message = $"{units.Count} units created" });
     }
 
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("properties", "create")]
     [HttpPost("unit")]
     public async Task<ActionResult> CreateUnit([FromBody] CreateUnitDto dto)
     {
@@ -320,7 +321,7 @@ public class PropertyController : ControllerBase
         return Ok(new ApiResponse<Unit> { Data = unit });
     }
 
-    [Authorize(Roles = "super_admin,admin,property_manager")]
+    [RequirePermission("properties", "delete")]
     [HttpDelete("unit/{id}")]
     public async Task<IActionResult> DeleteUnit(int id)
     {

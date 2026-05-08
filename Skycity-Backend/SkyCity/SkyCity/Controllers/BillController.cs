@@ -5,6 +5,7 @@ using SkycityBackend.Data;
 using SkycityBackend.DTOs;
 using SkycityBackend.Models;
 using SkycityBackend.Services;
+using SkycityBackend.Attributes;
 using System.Security.Claims;
 
 namespace SkycityBackend.Controllers;
@@ -53,7 +54,7 @@ public class BillController : ControllerBase
         });
     }
 
-    [Authorize(Roles = "super_admin,admin,accountant,property_manager")]
+    [RequirePermission("bills", "view")]
     [HttpGet("association/{associationId}")]
     public async Task<ActionResult> GetAssociationBills(int associationId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
@@ -83,7 +84,7 @@ public class BillController : ControllerBase
         });
     }
 
-    [Authorize(Roles = "super_admin,admin,accountant")]
+    [RequirePermission("bills", "create")]
     [HttpPost]
     public async Task<ActionResult<Bill>> CreateBill([FromBody] CreateBillDto dto)
     {
@@ -116,7 +117,7 @@ public class BillController : ControllerBase
         return Ok(bill);
     }
 
-    [Authorize(Roles = "super_admin,admin,accountant,resident")]
+    [RequirePermission("bills", "edit")]
     [HttpPatch("{id}/pay")]
     public async Task<IActionResult> RecordPayment(int id, [FromBody] UpdateBillStatusDto dto)
     {
@@ -136,7 +137,7 @@ public class BillController : ControllerBase
         return NoContent();
     }
 
-    [Authorize(Roles = "super_admin,admin,accountant")]
+    [RequirePermission("bills", "delete")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBill(int id)
     {

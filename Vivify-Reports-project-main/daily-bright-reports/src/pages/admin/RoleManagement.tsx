@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { api, CustomRole, RolePermissions, PermissionSet } from '@/lib/api';
 import { downloadCSV } from '@/lib/downloadUtils';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import { cn } from '@/lib/utils';
 
 // ─── Permissions Matrix ────────────────────────────────────────────────────
 
-const MODULES = ['complaints', 'work_orders', 'daily_reports', 'analytics', 'chat'] as const;
+const MODULES = ['complaints', 'work_orders', 'daily_reports', 'analytics', 'chat', 'users'] as const;
 const PERM_KEYS = ['view', 'create', 'edit', 'delete'] as const;
 
 const MODULE_LABELS: Record<typeof MODULES[number], string> = {
@@ -31,6 +32,7 @@ const MODULE_LABELS: Record<typeof MODULES[number], string> = {
   daily_reports: 'Daily Reports',
   analytics: 'Analytics',
   chat: 'Community Chat',
+  users: 'User Management',
 };
 
 type ModuleKey = typeof MODULES[number];
@@ -44,6 +46,7 @@ const defaultPermissions = (): RolePermissions =>
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const RoleManagement: React.FC = () => {
+  const { hasPermission } = useAuth();
   const [roles, setRoles] = useState<CustomRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -56,6 +59,13 @@ const RoleManagement: React.FC = () => {
   const [roleName, setRoleName] = useState('');
   const [perms, setPerms] = useState<RolePermissions>(defaultPermissions());
   const [canExportPerm, setCanExportPerm] = useState(false);
+
+  // Permission checks - Role Management doesn't require permissions
+  // Admin can always manage roles
+  const canView = true;
+  const canCreate = true;
+  const canEdit = true;
+  const canDelete = true;
 
   const load = async () => {
     setIsLoading(true);
@@ -276,10 +286,10 @@ const RoleManagement: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="gap-2" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }}>
+              <Button variant="outline" className="gap-2" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }} disabled={!canCreate}>
                 <Upload className="h-4 w-4" />Bulk Upload
               </Button>
-              <Button className="gap-2" onClick={() => setIsCreateOpen(true)}>
+              <Button className="gap-2" onClick={() => setIsCreateOpen(true)} disabled={!canCreate}>
                 <Plus className="h-4 w-4" />New Role
               </Button>
             </div>
@@ -370,7 +380,8 @@ const RoleManagement: React.FC = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => openEdit(r)}
-                                    className="hover:text-primary hover:bg-primary/10"
+                                    disabled={!canEdit}
+                                    className="hover:text-primary hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <Pencil className="h-4 w-4" />
                                   </Button>
@@ -378,7 +389,8 @@ const RoleManagement: React.FC = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => handleDelete(r.id, r.roleName)}
-                                    className="hover:text-destructive hover:bg-destructive/10"
+                                    disabled={!canDelete}
+                                    className="hover:text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -466,10 +478,10 @@ const RoleManagement: React.FC = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-2 border-slate-100 dark:border-slate-700">
-                            <DropdownMenuItem onClick={() => openEdit(r)} className="cursor-pointer text-xs font-bold rounded-xl py-2 px-3 dark:text-white dark:hover:bg-slate-700">
+                            <DropdownMenuItem onClick={() => openEdit(r)} disabled={!canEdit} className="cursor-pointer text-xs font-bold rounded-xl py-2 px-3 dark:text-white dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">
                               <Pencil className="mr-2 h-3.5 w-3.5" /> Edit Role
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(r.id, r.roleName)} className="text-rose-600 dark:text-rose-400 cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950 hover:text-rose-700 dark:hover:text-rose-300">
+                            <DropdownMenuItem onClick={() => handleDelete(r.id, r.roleName)} disabled={!canDelete} className="text-rose-600 dark:text-rose-400 cursor-pointer text-xs font-bold rounded-xl py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950 hover:text-rose-700 dark:hover:text-rose-300 disabled:opacity-50 disabled:cursor-not-allowed">
                               <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>

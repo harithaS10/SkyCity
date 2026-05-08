@@ -219,7 +219,7 @@ public class ChatController : ControllerBase
     }
 
     // Create group — admin/manager only
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("chat", "create")]
     [HttpPost("groups")]
     public async Task<ActionResult> CreateGroup([FromBody] CreateGroupDto dto)
     {

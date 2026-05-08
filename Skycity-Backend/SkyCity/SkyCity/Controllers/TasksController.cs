@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkycityBackend.Data;
 using SkycityBackend.Models;
+using SkycityBackend.Attributes;
 using System.Security.Claims;
 
 namespace SkycityBackend.Controllers;
@@ -175,7 +176,7 @@ public class TasksController : ControllerBase
     }
 
     // POST /tasks
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("tasks", "create")]
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] TaskDto dto)
     {
@@ -261,7 +262,7 @@ public class TasksController : ControllerBase
     // }
 
     // POST /tasks/bulk — bulk create tasks for multiple employees
-    [Authorize(Roles = "super_admin,admin,sub_admin,property_manager")]
+    [RequirePermission("tasks", "create")]
     [HttpPost("bulk")]
     public async Task<ActionResult> BulkCreate([FromBody] BulkTaskDto dto)
     {

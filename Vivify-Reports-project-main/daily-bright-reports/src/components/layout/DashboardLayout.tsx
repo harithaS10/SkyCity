@@ -72,17 +72,7 @@ import { toast } from 'sonner';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AllowedRole = 
-  | 'super_admin' 
-  | 'admin' 
-  | 'sub_admin' 
-  | 'property_manager' 
-  | 'facility_manager' 
-  | 'staff' 
-  | 'resident' 
-  | 'helpdesk' 
-  | 'accountant' 
-  | 'security_head';
+type AllowedRole = string; // Custom roles only - any string is allowed
 
 interface NavItem {
   label: string;
@@ -100,25 +90,14 @@ interface DropdownItem {
 // ─── Navigation Configuration (Role-Aware) ────────────────────────────────────
 
 const navItems: NavItem[] = [
-  // Platform Level
-  { label: 'Platform Stats', href: '/super-admin/overview', icon: <Layers className="h-3.5 w-3.5" />, roles: ['super_admin'] },
-  { label: 'Associations', href: '/super-admin/admins', icon: <Building2 className="h-3.5 w-3.5" />, roles: ['super_admin'] },
-
-  // Resident & Shared
-  { label: 'My Home', href: '/resident/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['resident'] },
-  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'staff', 'helpdesk'] },
-
-  // Staff order: Dashboard → Community Chat → My Tasks → Daily Reports → My Reports → Complaints
-  { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: ['resident', 'staff', 'property_manager'] },
-  { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['staff'] },
-  { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
-  { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'security_head', 'facility_manager'] },
-  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: ['resident', 'staff'] },
-
-  // Admin order: Dashboard → [Management dropdown] → [Employee Tasks button] → Work Allocation → Community Chat → Analytics
-  // (These are rendered inline in JSX after Management/Employee Tasks, not via navItems for admin)
-  { label: 'Work Allocation', href: '/admin/work-allocation', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['property_manager', 'facility_manager'] },
-  { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" />, roles: ['property_manager'] },
+  // User items - available to all users
+  { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: [] },
+  { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: [] },
+  { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: [] },
+  { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: [] },
+  { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: [] },
+  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: [] },
+  // Admin-only items - NOT in navItems, rendered separately for admin users
 ];
 
 // Admin dropdowns
@@ -142,18 +121,7 @@ const productManagementItems: DropdownItem[] = [
 
 // ─── RoleBadge ────────────────────────────────────────────────────────────────
 
-const ROLE_BADGE: Record<AllowedRole, { label: string; color: string }> = {
-  super_admin: { label: 'Platform Owner', color: 'text-amber-400' },
-  admin: { label: 'Admin', color: 'text-primary-foreground/70' },
-  sub_admin: { label: 'Association Admin', color: 'text-slate-300' },
-  property_manager: { label: 'Property Manager', color: 'text-slate-400' },
-  facility_manager: { label: 'Facility Manager', color: 'text-slate-300' },
-  staff: { label: 'Staff', color: 'text-primary-foreground/70' },
-  resident: { label: 'Resident', color: 'text-slate-300' },
-  helpdesk: { label: 'Helpdesk', color: 'text-slate-200' },
-  accountant: { label: 'Accountant', color: 'text-slate-300' },
-  security_head: { label: 'Security Head', color: 'text-red-300' },
-};
+const ROLE_BADGE: Record<string, { label: string; color: string }> = {}; // Custom roles - no hardcoded badges
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -203,8 +171,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Polling for admin notifications
   useEffect(() => {
-    const isAdmin = user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'property_manager' || user?.role === 'facility_manager';
-    if (!isAdmin) return;
+    // All users can receive notifications
     const fetchAdminNotifs = async () => {
       try {
         const res = await api.notifications.getAll();
@@ -239,22 +206,19 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   const filteredNavItems = navItems.filter((item) => {
     if (!user) return false;
-    if (!item.roles.includes(user.role as AllowedRole)) return false;
-    // For staff, apply custom role permissions
-    if (user.role === 'staff') {
-      const moduleMap: Record<string, string> = {
-        '/complaints': 'complaints',
-        '/admin/work-allocation': 'work_orders',
-        '/daily-report': 'daily_reports',
-        '/my-reports': 'daily_reports',
-        '/my-tasks': 'work_orders',
-        '/admin/analytics': 'analytics',
-        '/chat': 'chat',
-      };
-      const module = moduleMap[item.href];
-      if (module) return hasPermission(module, 'view');
-    }
-    return true;
+    // All items available to all custom roles - permissions checked via hasPermission
+    const moduleMap: Record<string, string> = {
+      '/complaints': 'complaints',
+      '/admin/work-allocation': 'work_orders',
+      '/daily-report': 'daily_reports',
+      '/my-reports': 'daily_reports',
+      '/my-tasks': 'work_orders',
+      '/admin/analytics': 'analytics',
+      '/chat': 'chat',
+    };
+    const module = moduleMap[item.href];
+    if (module) return hasPermission(module, 'view');
+    return true; // Dashboard and other items always visible
   });
 
   useEffect(() => {
@@ -342,9 +306,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const displayLogo = logoUrl ?? logo;
   const roleBadge = user ? ROLE_BADGE[user.role as AllowedRole] : null;
 
-  const isAdminRole = user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'property_manager';
-  const isSuperAdmin = user?.role === 'super_admin';
-  const isResident = user?.role === 'resident';
+  // Check if user is admin (role name = "Admin")
+  const isAdminRole = user?.role?.toLowerCase() === 'admin';
+  const isSuperAdmin = false; // Not used
+  const isResident = false; // Not used
 
   // Build a helper to render desktop dropdown menus
   const renderDropdown = (
@@ -513,7 +478,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             <ModeToggle className="text-primary-foreground/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8" />
 
             {/* Admin Notification Bell */}
-            {(user?.role === 'admin' || user?.role === 'sub_admin' || user?.role === 'property_manager' || user?.role === 'facility_manager') && (
+            {isAdminRole && (
               <div className="relative" ref={adminNotifPanelRef}>
                 <Button
                   variant="ghost"

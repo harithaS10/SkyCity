@@ -49,9 +49,9 @@ const statusColors: Record<string, string> = {
 const Complaints: React.FC = () => {
   const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
-  const canView = user?.role === 'staff' ? hasPermission('complaints', 'view') : true;
-  const canManage = ['admin', 'sub_admin', 'property_manager', 'helpdesk', 'super_admin'].includes(user?.role ?? '');
-  const canCreate = user?.role === 'staff' ? hasPermission('complaints', 'create') : true;
+  const canView = hasPermission('complaints', 'view');
+  const canManage = hasPermission('complaints', 'edit') || hasPermission('complaints', 'delete');
+  const canCreate = hasPermission('complaints', 'create');
 
   // Redirect if no view permission
   React.useEffect(() => {
@@ -119,8 +119,9 @@ const Complaints: React.FC = () => {
       setIsLoadingStaff(true);
       api.users.getAll().then(res => {
         if (res.success && res.data) {
-          const excluded = ['admin', 'super_admin'];
-          setStaffList(res.data.filter((u: any) => !excluded.includes(u.role)));
+          // Filter out users without staff-like roles (keep all custom roles)
+          // In custom roles system, we don't filter by role name
+          setStaffList(res.data);
         }
       }).catch(() => {}).finally(() => setIsLoadingStaff(false));
     }
@@ -207,7 +208,10 @@ const Complaints: React.FC = () => {
       } else {
         toast.error(res.message || 'Failed to create');
       }
-    } catch { toast.error('Failed to create complaint'); }
+    } catch (error: any) { 
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to create complaint';
+      toast.error(errorMessage); 
+    }
     finally { setIsSubmitting(false); }
   };
 
@@ -318,8 +322,9 @@ const Complaints: React.FC = () => {
       } else {
         toast.error(res.message || 'Failed to update');
       }
-    } catch {
-      toast.error('Failed to update complaint');
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to update complaint';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -531,8 +536,8 @@ const Complaints: React.FC = () => {
                       setIsLoadingStaff(true);
                       api.users.getAll().then(res => {
                         if (res.success && res.data) {
-                          const excluded = ['admin', 'super_admin'];
-                          setStaffList(res.data.filter((u: any) => !excluded.includes(u.role)));
+                          // In custom roles system, we don't filter by role name
+                          setStaffList(res.data);
                         }
                       }).catch(() => {}).finally(() => setIsLoadingStaff(false));
                     }}>
@@ -593,8 +598,14 @@ const Complaints: React.FC = () => {
                     <h1 className="text-2xl font-black text-white tracking-tight">Issues Center</h1>
                     <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Complaint Management</p>
                  </div>
-                 {canCreate && (
-                    <Button onClick={() => setIsCreateOpen(true)} className="bg-white/10 hover:bg-white/20 text-white rounded-full h-[46px] w-[46px] shadow-sm backdrop-blur-md p-0 flex flex-col items-center justify-center shrink-0 active:scale-95 transition-transform">
+                 {true && (
+                    <Button onClick={() => {
+                      if (!canCreate) { 
+                        toast.error("You don't have permission to create complaints"); 
+                        return; 
+                      }
+                      setIsCreateOpen(true);
+                    }} className="bg-white/10 hover:bg-white/20 text-white rounded-full h-[46px] w-[46px] shadow-sm backdrop-blur-md p-0 flex flex-col items-center justify-center shrink-0 active:scale-95 transition-transform">
                        <Plus className="h-6 w-6" strokeWidth={2.5} />
                     </Button>
                  )}
@@ -808,7 +819,7 @@ const Complaints: React.FC = () => {
                                {canManage && c.status === 'Open' && (
                                   <Button className="flex-1 h-11 rounded-2xl text-xs font-black shadow-md bg-slate-800 hover:bg-slate-900 text-white" onClick={() => {
                                      setSelected(c); setIsAssignOpen(true); setIsLoadingStaff(true);
-                                     api.users.getAll().then(res => { if (res.success && res.data) { const excluded = ['admin', 'super_admin']; setStaffList(res.data.filter((u: any) => !excluded.includes(u.role))); } }).catch(() => {}).finally(() => setIsLoadingStaff(false));
+                                     api.users.getAll().then(res => { if (res.success && res.data) { setStaffList(res.data); } }).catch(() => {}).finally(() => setIsLoadingStaff(false));
                                   }}>
                                      <User className="h-4 w-4 mr-1.5" /> Assign To
                                   </Button>

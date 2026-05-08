@@ -62,8 +62,7 @@ const RootRedirect = () => {
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'super_admin') return <Navigate to="/super-admin/overview" replace />;
-  if (user.role === 'resident') return <Navigate to="/resident/dashboard" replace />;
+  // All users go to dashboard - no special routing for system roles
   return <Navigate to="/dashboard" replace />;
 };
 

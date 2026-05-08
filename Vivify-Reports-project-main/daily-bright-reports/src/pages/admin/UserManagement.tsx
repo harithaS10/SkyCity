@@ -249,13 +249,28 @@ const UserManagement: React.FC = () => {
 
   const handleRoleChange = async (userId: number, role: string) => {
     try {
+      // Update local state immediately for instant UI feedback
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
+      
+      console.log('Updating user role:', { userId, role });
       const response = await api.users.update(userId, { role });
-      if (response.success) {
+      console.log('Role update response:', response);
+      
+      if (response.success !== false) {
         toast.success('Role updated successfully');
-        fetchUsers();
+        // Refetch immediately to confirm the save
+        await fetchUsers();
+      } else {
+        // Revert on error
+        console.error('Role update failed:', response.message);
+        await fetchUsers();
+        toast.error(response.message || "Failed to update role");
       }
-    } catch (error) {
-      toast.error("Failed to update role");
+    } catch (error: any) {
+      // Revert on error
+      console.error('Role update error:', error);
+      await fetchUsers();
+      toast.error(error.message || "Failed to update role");
     }
   };
 
@@ -392,7 +407,7 @@ const UserManagement: React.FC = () => {
                       <SelectTrigger className="bg-background">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
+                      <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card z-[200] max-h-[200px] overflow-y-auto">
                         {customRoles.length > 0 ? (
                           customRoles.map(r => (
                             <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
@@ -416,7 +431,7 @@ const UserManagement: React.FC = () => {
                         <SelectTrigger className="bg-background">
                           <SelectValue placeholder="Select department" />
                         </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
+                        <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card z-[200] max-h-[200px] overflow-y-auto">
                           <SelectItem value="none">— No Department —</SelectItem>
                           {departments.map(d => (
                             <SelectItem key={d.id} value={d.id.toString()}>{d.departmentName}</SelectItem>
@@ -436,7 +451,7 @@ const UserManagement: React.FC = () => {
                         <SelectTrigger className="bg-background">
                           <SelectValue placeholder="Select custom role" />
                         </SelectTrigger>
-                        <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
+                        <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card z-[200] max-h-[200px] overflow-y-auto">
                           <SelectItem value="none">— No Custom Role —</SelectItem>
                           {customRoles.map(r => (
                             <SelectItem key={r.id} value={r.id.toString()}>{r.roleName}</SelectItem>
@@ -534,7 +549,7 @@ const UserManagement: React.FC = () => {
                           <SelectTrigger className="bg-background">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200]">
+                          <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card z-[200] max-h-[200px] overflow-y-auto">
                             {customRoles.length > 0 ? (
                               customRoles.map(r => (
                                 <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
@@ -666,7 +681,7 @@ const UserManagement: React.FC = () => {
                                 <SelectTrigger className="w-32 h-8 bg-background border-slate-200">
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent className="bg-card">
+                                <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card max-h-[200px] overflow-y-auto">
                                   {customRoles.length > 0 ? (
                                     customRoles.map(r => (
                                       <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
@@ -814,7 +829,7 @@ const UserManagement: React.FC = () => {
                             <SelectTrigger className="w-full h-9 bg-slate-50 dark:bg-slate-900 border-none rounded-xl text-[11px] font-bold text-slate-700 dark:text-slate-300">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="bg-card rounded-2xl shadow-xl border-slate-100">
+                            <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card rounded-2xl shadow-xl border-slate-100 max-h-[200px] overflow-y-auto">
                               {customRoles.length > 0 ? (
                                 customRoles.map(r => (
                                   <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>

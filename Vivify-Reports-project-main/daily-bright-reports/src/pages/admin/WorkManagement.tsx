@@ -258,7 +258,7 @@ const WorkManagement: React.FC = () => {
                   <Hash className="h-6 w-6 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{works.filter(w => w.workCode.startsWith('0')).length}</p>
+                  <p className="text-2xl font-bold">{works.filter(w => w.workType === 'Standard').length}</p>
                   <p className="text-sm text-muted-foreground">Standard Works</p>
                 </div>
               </CardContent>
@@ -269,7 +269,7 @@ const WorkManagement: React.FC = () => {
                   <FileText className="h-6 w-6 text-warning" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{works.filter(w => !w.workCode.startsWith('0')).length}</p>
+                  <p className="text-2xl font-bold">{works.filter(w => w.workType === 'Special').length}</p>
                   <p className="text-sm text-muted-foreground">Special Works</p>
                 </div>
               </CardContent>
@@ -412,11 +412,11 @@ const WorkManagement: React.FC = () => {
                 <p className="text-[9px] uppercase font-bold tracking-widest opacity-70 mt-1">Total</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex flex-col items-center justify-center border border-white/10 text-center">
-                <p className="text-xl font-black">{works.filter(w => w.workCode.startsWith('0')).length}</p>
+                <p className="text-xl font-black">{works.filter(w => w.workType === 'Standard').length}</p>
                 <p className="text-[9px] uppercase font-bold tracking-widest opacity-70 mt-1">Standard</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex flex-col items-center justify-center border border-white/10 text-center">
-                <p className="text-xl font-black">{works.filter(w => !w.workCode.startsWith('0')).length}</p>
+                <p className="text-xl font-black">{works.filter(w => w.workType === 'Special').length}</p>
                 <p className="text-[9px] uppercase font-bold tracking-widest opacity-70 mt-1">Special</p>
               </div>
             </div>

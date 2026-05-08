@@ -136,22 +136,8 @@ export const api = {
   // Roles (FIXED - added this section)
   roles: {
     getAll: async () => {
-      try {
-        const response = await apiClient.get('/roles');
-        return response.data;
-      } catch (error) {
-        return {
-          success: true,
-          data: [
-            { id: 1, roleName: 'Super Admin', roleType: 'super_admin' },
-            { id: 2, roleName: 'Admin', roleType: 'admin' },
-            { id: 3, roleName: 'Property Manager', roleType: 'property_manager' },
-            { id: 4, roleName: 'Facility Manager', roleType: 'facility_manager' },
-            { id: 5, roleName: 'Staff', roleType: 'staff' },
-            { id: 6, roleName: 'Resident', roleType: 'resident' },
-          ]
-        };
-      }
+      const response = await apiClient.get('/roles');
+      return response.data;
     },
     getById: async (id: number) => {
       const response = await apiClient.get(`/roles/${id}`);

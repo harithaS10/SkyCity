@@ -23,8 +23,9 @@ public class RequirePermissionAttribute : Attribute, IAsyncAuthorizationFilter
         var user = context.HttpContext.User;
         if (user?.Identity?.IsAuthenticated != true)
         {
-            context.Result = new UnauthorizedObjectResult(
-                new ApiResponse { Success = false, Message = "Unauthorized" });
+            context.Result = new ObjectResult(
+                new ApiResponse { Success = false, Message = "Unauthorized" })
+            { StatusCode = 200 };
             return;
         }
 
@@ -36,9 +37,12 @@ public class RequirePermissionAttribute : Attribute, IAsyncAuthorizationFilter
         var allowed = await permService.HasPermissionAsync(role, _module, _action);
         if (!allowed)
         {
+            var message = $"You don't have '{_action}' permission on '{_module}'.";
+            
+            // Return 200 OK with success: false
             context.Result = new ObjectResult(
-                new ApiResponse { Success = false, Message = $"You don't have '{_action}' permission on '{_module}'" })
-            { StatusCode = 403 };
+                new ApiResponse { Success = false, Message = message })
+            { StatusCode = 200 };
         }
     }
 }

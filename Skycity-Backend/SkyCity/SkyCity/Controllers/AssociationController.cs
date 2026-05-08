@@ -5,11 +5,12 @@ using SkycityBackend.Data;
 using SkycityBackend.DTOs;
 using SkycityBackend.Models;
 using SkycityBackend.Services;
+using SkycityBackend.Attributes;
 using System.Security.Claims;
 
 namespace SkycityBackend.Controllers;
 
-[Authorize(Roles = "super_admin")]
+[Authorize]
 [ApiController]
 [Route("association")]
 public class AssociationController : ControllerBase
@@ -24,6 +25,7 @@ public class AssociationController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission("associations", "view")]
     public async Task<ActionResult> GetAssociations([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         // Only show associations that have an active admin user (IsDeleted=1)
@@ -67,6 +69,7 @@ public class AssociationController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("associations", "create")]
     public async Task<ActionResult> CreateAssociation([FromBody] CreateAssociationDto dto)
     {
         if (!ModelState.IsValid)
@@ -100,6 +103,7 @@ public class AssociationController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("associations", "edit")]
     public async Task<IActionResult> UpdateAssociation(int id, [FromBody] UpdateAssociationDto dto)
     {
         if (id != dto.Id || !ModelState.IsValid)
@@ -129,6 +133,7 @@ public class AssociationController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission("associations", "delete")]
     public async Task<IActionResult> DeleteAssociation(int id)
     {
         var rows = await _context.Database.ExecuteSqlRawAsync(
@@ -145,6 +150,7 @@ public class AssociationController : ControllerBase
     }
 
     [HttpPatch("{id}/toggle-status")]
+    [RequirePermission("associations", "edit")]
     public async Task<IActionResult> ToggleStatus(int id)
     {
         var association = await _context.Associations.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.Id == id);

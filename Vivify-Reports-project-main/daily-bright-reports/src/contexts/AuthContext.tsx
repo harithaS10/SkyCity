@@ -37,18 +37,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [permissions, setPermissions] = useState<RolePermissions>({});
 
   const loadRolePermissions = async (role: string, associationId?: number) => {
-    // Admin/super_admin have full access — no need to fetch
-    if (['admin', 'super_admin', 'sub_admin'].includes(role)) {
-      setPermissions({ complaints: { view: true, create: true, edit: true, delete: true }, work_orders: { view: true, create: true, edit: true, delete: true }, daily_reports: { view: true, create: true, edit: true, delete: true }, analytics: { view: true, create: true, edit: true, delete: true }, chat: { view: true, create: true, edit: true, delete: true }, export: true });
-      return;
-    }
+    // Load permissions from custom roles database
     try {
       const res = await api.roles.getAll();
       if (res.success && res.data) {
         const match = res.data.find((r: any) => r.roleName?.toLowerCase() === role?.toLowerCase());
-        if (match?.permissions) setPermissions(match.permissions);
+        if (match?.permissions) {
+          setPermissions(match.permissions);
+        } else {
+          // Role not found in custom roles, set empty permissions
+          setPermissions({});
+        }
       }
-    } catch {}
+    } catch {
+      setPermissions({});
+    }
+  };
+
+  // Check if user is admin based on role name from Role Management
+  const isUserAdmin = (roleName: string): boolean => {
+    return roleName?.toLowerCase() === 'admin';
   };
 
   useEffect(() => {
@@ -84,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Poll permissions every 30s so role changes apply without re-login
   useEffect(() => {
-    if (!user || ['admin', 'super_admin', 'sub_admin'].includes(user.role)) return;
+    if (!user) return;
     const interval = setInterval(() => {
       loadRolePermissions(user.role, user.associationId);
     }, 30000);
@@ -164,21 +172,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.setItem('user', JSON.stringify(updated));
   };
 
-  // Role helper flags — computed from current user
-  const isSuperAdmin = user?.role === 'super_admin';
-  const isAdmin = user?.role === 'admin' || user?.role === 'sub_admin';
-  const isManager = user?.role === 'property_manager' || user?.role === 'facility_manager';
-  const isStaff = user?.role === 'staff';
-  const isVendor = user?.role === 'vendor';
-  const isResident = user?.role === 'resident';
-  const isHelpdesk = user?.role === 'helpdesk';
-  const canExport = isSuperAdmin || isAdmin || (user?.role as any) === 'accountant' || !!(permissions as any).export;
+  // Role helper flags — based on role name from Role Management
+  // Admin role = "Admin", all others are users
+  const isSuperAdmin = false; // Not used
+  const isAdmin = isUserAdmin(user?.role ?? ''); // True if role name is "Admin"
+  const isManager = false; // Not used
+  const isStaff = false; // Not used
+  const isVendor = false; // Not used
+  const isResident = false; // Not used
+  const isHelpdesk = false; // Not used
+  const canExport = !!(permissions as any).export;
 
   // Check if current user has a specific permission
   const hasPermission = (module: string, action: 'view' | 'create' | 'edit' | 'delete' = 'view'): boolean => {
-    // Admin-level roles have full access to everything
-    if (isSuperAdmin || isAdmin || isManager || isHelpdesk) return true;
-    
+    // All users follow their custom role permissions (including Admin)
     const mod = (permissions as any)[module];
     if (!mod) return false;
     if (typeof mod === 'boolean') return mod;

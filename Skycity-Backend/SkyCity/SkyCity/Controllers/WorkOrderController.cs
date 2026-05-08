@@ -5,6 +5,7 @@ using SkycityBackend.Data;
 using SkycityBackend.DTOs;
 using SkycityBackend.Models;
 using SkycityBackend.Services;
+using SkycityBackend.Attributes;
 using System.Security.Claims;
 
 namespace SkycityBackend.Controllers;
@@ -76,7 +77,7 @@ public class WorkOrderController : ControllerBase
         return Ok(new ApiResponse<WorkOrder> { Data = workOrder }); // Changed Ok return
     }
 
-    [Authorize(Roles = "property_manager,admin,super_admin,helpdesk")] // Roles changed
+    [RequirePermission("work_orders", "create")]
     [HttpPost]
     public async Task<ActionResult> CreateWorkOrder([FromBody] CreateWorkOrderDto dto) // Changed return type
     {
@@ -125,7 +126,7 @@ public class WorkOrderController : ControllerBase
         return Ok(new ApiResponse { Message = "Status updated successfully" }); // Changed return
     }
 
-    [Authorize(Roles = "property_manager,admin")] // Roles changed
+    [RequirePermission("work_orders", "edit")]
     [HttpPost("{id}/approve")]
     public async Task<IActionResult> ApproveWorkOrder(int id, [FromBody] ApproveWorkOrderDto dto)
     {

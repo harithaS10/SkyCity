@@ -22,8 +22,8 @@ const Login: React.FC = () => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     if (token && storedUser && user) {
-      if (user.role === 'super_admin') navigate('/super-admin/overview', { replace: true });
-      else navigate('/dashboard', { replace: true });
+      // All users go to dashboard - no special routing for system roles
+      navigate('/dashboard', { replace: true });
     }
   }, [user, navigate]);
 
@@ -175,20 +175,10 @@ const Login: React.FC = () => {
     }
     const result = await login({ username, password, acceptTerms: acceptedTerms });
     if (result.success && result.user) {
-      // Only staff are required to accept terms and conditions
-      if (result.user.role === 'staff' && !result.user.hasAcceptedTerms && !acceptedTerms) {
-        logout();
-        setError('Staff members must accept the terms and conditions to log in.');
-        return;
-      }
-
+      // All users go to dashboard - no special routing for system roles
       toast.success('Login successful!');
       sessionStorage.setItem('show_task_popup', '1');
-      if (result.user.role === 'super_admin') {
-        navigate('/super-admin/overview');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     } else {
       setError(result.error || 'Login failed');
     }
