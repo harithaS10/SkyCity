@@ -45,19 +45,20 @@ public class ClientsController : ControllerBase
 
         var assocId = IsSuperAdmin ? (dto.AssociationId ?? CurrentAssocId) : CurrentAssocId;
 
-        // Prevent duplicates: same name or same email within the same association
-        var duplicate = await _context.Clients
-            .Where(c => c.AssociationId == assocId)
-            .Where(c => c.Name.ToLower() == dto.Name.ToLower() || c.Email.ToLower() == dto.Email.ToLower())
-            .FirstOrDefaultAsync();
+        // Prevent duplicates: same email within the same association (only active/non-deleted clients)
+        var emailDuplicate = await _context.Clients
+            .Where(c => c.AssociationId == assocId && c.IsDeleted)
+            .FirstOrDefaultAsync(c => c.Email.ToLower() == dto.Email.ToLower().Trim());
 
-        if (duplicate != null)
-        {
-            var reason = duplicate.Name.ToLower() == dto.Name.ToLower()
-                ? $"A client named \"{duplicate.Name}\" already exists."
-                : $"Email \"{duplicate.Email}\" is already used by client \"{duplicate.Name}\".";
-            return BadRequest(new ApiResponse { Success = false, Message = reason });
-        }
+        if (emailDuplicate != null)
+            return BadRequest(new ApiResponse { Success = false, Message = $"Email \"{dto.Email}\" is already used by client \"{emailDuplicate.Name}\"." });
+
+        var nameDuplicate = await _context.Clients
+            .Where(c => c.AssociationId == assocId && c.IsDeleted)
+            .FirstOrDefaultAsync(c => c.Name.ToLower() == dto.Name.ToLower().Trim());
+
+        if (nameDuplicate != null)
+            return BadRequest(new ApiResponse { Success = false, Message = $"A client named \"{nameDuplicate.Name}\" already exists." });
 
         var client = new Client
         {
@@ -124,13 +125,13 @@ public class ClientsController : ControllerBase
 
         var assocId = CurrentAssocId;
 
-        // Load existing names and emails for this association
+        // Load existing names and emails for this association (only non-deleted clients)
         var existingNames = await _context.Clients
-            .Where(c => c.AssociationId == assocId)
+            .Where(c => c.AssociationId == assocId && c.IsDeleted)
             .Select(c => c.Name.ToLower())
             .ToListAsync();
         var existingEmails = await _context.Clients
-            .Where(c => c.AssociationId == assocId)
+            .Where(c => c.AssociationId == assocId && c.IsDeleted)
             .Select(c => c.Email.ToLower())
             .ToListAsync();
 

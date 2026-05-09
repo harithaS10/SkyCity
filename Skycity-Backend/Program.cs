@@ -5,14 +5,18 @@ using SkycityBackend.Data;
 using SkycityBackend.Middleware;
 using SkycityBackend.Services;
 using System.Text;
+using System.Security.Claims;
 using Microsoft.OpenApi.Models;
 using SkycityBackend.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddControllers(options =>
+{
+    // Register TenantFilter as a global MVC action filter
+    options.Filters.Add<TenantFilter>();
+}); builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Skycity API", Version = "v1" });
@@ -23,7 +27,7 @@ builder.Services.AddHttpContextAccessor();
 
 // Database
 string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=103.230.85.44;Database=Employeesreport;User Id=sa;Password=V9%2f+?b$H%9d;MultipleActiveResultSets=true;TrustServerCertificate=True;";
+    ?? "Server=localhost;Database=SkyCity;User Id=sa;Password=ENyxnMfNb2EjIv8pf9LN;MultipleActiveResultSets=true;TrustServerCertificate=True;Connect Timeout=30;Max Pool Size=50;";
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -33,13 +37,16 @@ var jwtKey = builder.Configuration["Jwt:Key"] ?? "SkycityReportingSecretKey12345
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = false,
             ValidateAudience = false,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier
         };
     });
 
@@ -53,10 +60,8 @@ builder.Services.AddCors(options =>
             "http://localhost:3000",
             "https://vivifysoft.in",
             "https://www.vivifysoft.in",
-            "https://api.vivifysoft.in",
-            "https://vivifysoft.com",
-            "https://www.vivifysoft.com",
-            "https://api.vivifysoft.com"
+            "http://api.vivifysoft.com/SkyCity",
+            "https://api.vivifysoft.in/SkyCity"
             )
               .AllowAnyMethod()
               .AllowAnyHeader()
@@ -71,6 +76,7 @@ builder.Services.AddResponseCaching();
 // Custom Services
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<TenantFilter>();
 
 builder.Services.AddResponseCompression(options =>
@@ -108,6 +114,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 app.UseResponseCaching();
+app.UseStaticFiles(); // serve wwwroot files (uploads)
 
 // Handle OPTIONS preflight globally
 app.Use(async (context, next) =>
@@ -123,7 +130,31 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<TenantFilter>();
+app.UseMiddleware<TenantMiddleware>();
 app.MapControllers();
+
+// Auto-run SQL migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var migrationDir = Path.Combine(AppContext.BaseDirectory, "Data", "migrations");
+    if (Directory.Exists(migrationDir))
+    {
+        foreach (var file in Directory.GetFiles(migrationDir, "*.sql").OrderBy(f => f))
+        {
+            try
+            {
+                var sql = await File.ReadAllTextAsync(file);
+                await db.Database.ExecuteSqlRawAsync(sql);
+                logger.LogInformation("Migration applied: {file}", Path.GetFileName(file));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Migration {file} error (may be already applied): {msg}", Path.GetFileName(file), ex.Message);
+            }
+        }
+    }
+}
 
 app.Run();

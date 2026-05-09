@@ -216,19 +216,15 @@ const AdminReportsPage: React.FC = () => {
 
     return (
         <DashboardLayout>
-            <div className="space-y-6 animate-in fade-in duration-500 pt-2">
+            <div className="animate-in fade-in duration-500">
 
-                {/* Header + Filters inline — matches Analytics Dashboard style */}
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-4">
-                    {/* Title */}
+                {/* ── DESKTOP HEADER (hidden on mobile) ── */}
+                <div className="hidden sm:flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6 pt-2">
                     <div>
                         <h1 className="text-3xl font-black tracking-tight text-primary">Administrative Reports</h1>
                         <p className="text-muted-foreground font-medium">Detailed insights into work allocation, completion trends, and reassignment history.</p>
                     </div>
-
-                    {/* Filters + Export — same row as Analytics */}
                     <div className="flex items-center gap-2 flex-nowrap">
-                        {/* User filter */}
                         <Select value={filterUser} onValueChange={setFilterUser}>
                             <SelectTrigger className="h-10 rounded-xl border border-input bg-background gap-2 px-3 min-w-[160px] text-sm font-medium shadow-sm">
                                 <Users className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -236,46 +232,32 @@ const AdminReportsPage: React.FC = () => {
                             </SelectTrigger>
                             <SelectContent className="max-h-60 overflow-y-auto">
                                 <SelectItem value="all">All Employees</SelectItem>
-                                {allUsers.map(name => (
-                                    <SelectItem key={name} value={name}>{name}</SelectItem>
-                                ))}
+                                {allUsers.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
                             </SelectContent>
                         </Select>
-
-                        {/* From date */}
                         <div className="relative">
                             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input type="date" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)}
                                 className="h-10 text-sm rounded-xl border border-input bg-background pl-9 w-[145px] font-medium shadow-sm" />
                         </div>
-
-                        {/* To date */}
                         <div className="relative">
                             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                             <Input type="date" value={filterToDate} onChange={e => setFilterToDate(e.target.value)}
                                 className="h-10 text-sm rounded-xl border border-input bg-background pl-9 w-[145px] font-medium shadow-sm" />
                         </div>
-
-                        {/* Clear filters */}
                         {hasFilters && (
-                            <Button variant="destructive" size="sm" onClick={clearFilters}
-                                className="h-10 gap-1.5 rounded-xl px-3 text-sm font-medium shadow-sm shrink-0">
+                            <Button variant="destructive" size="sm" onClick={clearFilters} className="h-10 gap-1.5 rounded-xl px-3 text-sm font-medium shadow-sm shrink-0">
                                 <X className="h-4 w-4" /> Clear
                             </Button>
                         )}
-
-                        {/* Export */}
                         <Button className="h-10 gap-2 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm shadow-sm shrink-0"
                             onClick={() => handleDownload('excel')}>
-                            <Download className="h-4 w-4" />
-                            Export Data
+                            <Download className="h-4 w-4" /> Export Data
                         </Button>
                     </div>
                 </div>
-
-                {/* Record count when filtered */}
                 {hasFilters && (
-                    <p className="text-xs text-muted-foreground font-medium -mt-4">
+                    <p className="hidden sm:block text-xs text-muted-foreground font-medium mb-4">
                         {activeTab === 'pending' && `${filteredPending.length} record${filteredPending.length !== 1 ? 's' : ''} found`}
                         {activeTab === 'completed' && `${filteredCompleted.length} record${filteredCompleted.length !== 1 ? 's' : ''} found`}
                         {activeTab === 'reassignment' && `${filteredReassignment.length} record${filteredReassignment.length !== 1 ? 's' : ''} found`}
@@ -426,79 +408,162 @@ const AdminReportsPage: React.FC = () => {
                     </div>
 
                     {/* ── MOBILE CARD VIEW ── */}
-                    <div className="block sm:hidden space-y-4">
-                        {/* Mobile tab selector */}
-                        <div className="flex rounded-xl overflow-hidden border border-input">
-                            {(['pending', 'completed', 'reassignment'] as const).map(tab => (
-                                <button key={tab} onClick={() => setActiveTab(tab)}
-                                    className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wide transition-colors ${activeTab === tab ? 'bg-primary text-white' : 'bg-background text-muted-foreground'}`}>
-                                    {tab === 'pending' ? 'Pending' : tab === 'completed' ? 'Completed' : 'Reassigned'}
-                                </button>
-                            ))}
+                    <div className="block sm:hidden min-h-screen bg-slate-50 dark:bg-slate-950 pb-[100px] -mx-4 -mt-4 animate-in fade-in duration-300">
+
+                        {/* Teal header — title, export, stats (matches Analytics exactly) */}
+                        <div className="bg-primary px-6 pt-10 pb-16 rounded-b-[3rem] shadow-xl relative z-10 text-white">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h1 className="text-3xl font-black text-white tracking-tight">Reports</h1>
+                                    <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Administrative Overview</p>
+                                </div>
+                                <Button onClick={() => handleDownload('excel')}
+                                    className="bg-white/20 text-white rounded-xl h-11 px-4 border-none backdrop-blur-md hover:bg-white/30"
+                                    size="sm">
+                                    <Download className="h-4 w-4 mr-2" />
+                                    <span className="text-[11px] font-black uppercase">Export</span>
+                                </Button>
+                            </div>
+                            {/* Stats grid */}
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                                    <span className="text-[8px] font-black uppercase text-white/60 block mb-2">Pending</span>
+                                    <p className="text-2xl font-black">{filteredPending.length}</p>
+                                </div>
+                                <div className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                                    <span className="text-[8px] font-black uppercase text-white/60 block mb-2">Completed</span>
+                                    <p className="text-2xl font-black">{filteredCompleted.length}</p>
+                                </div>
+                                <div className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                                    <span className="text-[8px] font-black uppercase text-white/60 block mb-2">Reassigned</span>
+                                    <p className="text-2xl font-black">{filteredReassignment.length}</p>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Mobile cards — Pending */}
-                        {activeTab === 'pending' && (
-                            filteredPending.length === 0
-                                ? <p className="text-center text-sm text-muted-foreground py-8">No pending work found.</p>
-                                : filteredPending.map((item, i) => (
-                                    <div key={item.id} className="bg-card rounded-2xl p-4 shadow-sm ring-1 ring-black/5 space-y-2">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div>
-                                                <span className="text-[10px] text-muted-foreground font-bold">#{i + 1}</span>
-                                                <p className="font-bold text-sm text-slate-800 dark:text-white mt-0.5">{item.title}</p>
-                                            </div>
-                                            <Badge variant="outline" className="capitalize shrink-0">{item.priority}</Badge>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-slate-50">
-                                            <span>👤 {item.assignedToName || 'Unknown'}</span>
-                                            <span>📅 {item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : '-'}</span>
-                                        </div>
-                                    </div>
-                                ))
-                        )}
+                        {/* White cards section — overlaps teal with -mt-5 */}
+                        <div className="px-4 -mt-5 relative z-20 space-y-4">
 
-                        {/* Mobile cards — Completed */}
-                        {activeTab === 'completed' && (
-                            filteredCompleted.length === 0
-                                ? <p className="text-center text-sm text-muted-foreground py-8">No completed work records found.</p>
-                                : filteredCompleted.map((item, i) => (
-                                    <div key={item.id} className="bg-card rounded-2xl p-4 shadow-sm ring-1 ring-black/5 space-y-2">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div>
-                                                <span className="text-[10px] text-muted-foreground font-bold">#{i + 1}</span>
-                                                <p className="font-bold text-sm text-slate-800 dark:text-white mt-0.5">{item.title}</p>
-                                            </div>
-                                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">Done</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-slate-50">
-                                            <span>👤 {item.assignedToName || 'Unknown'}</span>
-                                            <span>✅ {item.completedAt ? format(new Date(item.completedAt), 'MMM dd, yyyy') : '-'}</span>
-                                        </div>
-                                        {item.duration && <p className="text-[11px] text-muted-foreground">⏱ {item.duration}</p>}
+                            {/* Filters card */}
+                            <div className="bg-white dark:bg-card rounded-[1.5rem] p-4 shadow-xl ring-1 ring-black/5 space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <Users className="h-3.5 w-3.5 text-primary" />
+                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Filters</span>
+                                    {hasFilters && (
+                                        <button onClick={clearFilters} className="ml-auto text-[9px] font-black text-rose-500 px-2 py-0.5 bg-rose-50 rounded-md">Clear</button>
+                                    )}
+                                </div>
+                                <Select value={filterUser} onValueChange={setFilterUser}>
+                                    <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-sm">
+                                        <Users className="h-3.5 w-3.5 mr-2 text-primary" />
+                                        <SelectValue placeholder="All Employees" />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper" side="bottom" avoidCollisions={false} className="max-h-60 overflow-y-auto rounded-xl">
+                                        <SelectItem value="all" className="font-bold">All Employees</SelectItem>
+                                        {allUsers.map(name => <SelectItem key={name} value={name} className="font-bold">{name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="relative">
+                                        <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary pointer-events-none" />
+                                        <Input type="date" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)}
+                                            className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 text-[10px] font-bold pl-8" />
                                     </div>
-                                ))
-                        )}
+                                    <div className="relative">
+                                        <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary pointer-events-none" />
+                                        <Input type="date" value={filterToDate} onChange={e => setFilterToDate(e.target.value)}
+                                            className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 text-[10px] font-bold pl-8" />
+                                    </div>
+                                </div>
+                            </div>
 
-                        {/* Mobile cards — Reassignment */}
-                        {activeTab === 'reassignment' && (
-                            filteredReassignment.length === 0
-                                ? <p className="text-center text-sm text-muted-foreground py-8">No reassignment history found.</p>
-                                : filteredReassignment.map((item, i) => (
-                                    <div key={`${item.id}-${i}`} className="bg-card rounded-2xl p-4 shadow-sm ring-1 ring-black/5 space-y-2">
-                                        <div>
-                                            <span className="text-[10px] text-muted-foreground font-bold">#{i + 1}</span>
-                                            <p className="font-bold text-sm text-slate-800 dark:text-white mt-0.5">{item.title}</p>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-xs">
-                                            <span className="text-muted-foreground">{item.previousAssigneeName || 'Unknown'}</span>
-                                            <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                                            <span className="font-bold text-primary">{item.assignedToName || 'Unknown'}</span>
-                                        </div>
-                                        {item.reason && <p className="text-[11px] text-muted-foreground italic">"{item.reason}"</p>}
-                                    </div>
-                                ))
-                        )}
+                            {/* Tab selector */}
+                            <div className="flex rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-sm">
+                                {(['pending', 'completed', 'reassignment'] as const).map(tab => (
+                                    <button key={tab} onClick={() => setActiveTab(tab)}
+                                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-wide transition-colors ${activeTab === tab ? 'bg-primary text-white' : 'bg-white dark:bg-card text-slate-400'}`}>
+                                        {tab === 'pending' ? 'Pending' : tab === 'completed' ? 'Completed' : 'Reassigned'}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Cards list */}
+                            <div className="space-y-2.5 pb-10">
+                                <div className="flex justify-between items-center px-1">
+                                    <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                                        {activeTab === 'pending' ? 'Standing Pending' : activeTab === 'completed' ? 'Completed Work' : 'Reassignment History'}
+                                    </h3>
+                                    <span className="text-[9px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">
+                                        {activeTab === 'pending' ? filteredPending.length : activeTab === 'completed' ? filteredCompleted.length : filteredReassignment.length}
+                                    </span>
+                                </div>
+
+                                {activeTab === 'pending' && (
+                                    filteredPending.length === 0
+                                        ? <p className="text-center text-sm text-slate-400 py-8 font-bold">No pending work found.</p>
+                                        : filteredPending.map((item, i) => (
+                                            <div key={item.id} className="bg-white dark:bg-card rounded-[1.25rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="h-9 w-9 rounded-full bg-amber-50 flex items-center justify-center font-black text-amber-600 text-[11px] shrink-0">{i + 1}</div>
+                                                        <div className="min-w-0">
+                                                            <h4 className="text-[11px] font-black text-slate-800 dark:text-white truncate">{item.title}</h4>
+                                                            <p className="text-[9px] font-bold text-slate-400">👤 {item.assignedToName || 'Unknown'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1 shrink-0">
+                                                        <Badge variant="outline" className="capitalize text-[9px]">{item.priority}</Badge>
+                                                        <span className="text-[9px] text-slate-400">{item.dueDate ? format(new Date(item.dueDate), 'MMM dd') : '-'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                )}
+
+                                {activeTab === 'completed' && (
+                                    filteredCompleted.length === 0
+                                        ? <p className="text-center text-sm text-slate-400 py-8 font-bold">No completed records found.</p>
+                                        : filteredCompleted.map((item, i) => (
+                                            <div key={item.id} className="bg-white dark:bg-card rounded-[1.25rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="h-9 w-9 rounded-full bg-emerald-50 flex items-center justify-center font-black text-emerald-600 text-[11px] shrink-0">{i + 1}</div>
+                                                        <div className="min-w-0">
+                                                            <h4 className="text-[11px] font-black text-slate-800 dark:text-white truncate">{item.title}</h4>
+                                                            <p className="text-[9px] font-bold text-slate-400">👤 {item.assignedToName || 'Unknown'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1 shrink-0">
+                                                        <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Done</span>
+                                                        <span className="text-[9px] text-slate-400">{item.completedAt ? format(new Date(item.completedAt), 'MMM dd') : '-'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                )}
+
+                                {activeTab === 'reassignment' && (
+                                    filteredReassignment.length === 0
+                                        ? <p className="text-center text-sm text-slate-400 py-8 font-bold">No reassignment history found.</p>
+                                        : filteredReassignment.map((item, i) => (
+                                            <div key={`${item.id}-${i}`} className="bg-white dark:bg-card rounded-[1.25rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center font-black text-blue-600 text-[11px] shrink-0">{i + 1}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-[11px] font-black text-slate-800 dark:text-white truncate">{item.title}</h4>
+                                                        <div className="flex items-center gap-1.5 mt-1">
+                                                            <span className="text-[9px] text-slate-400">{item.previousAssigneeName || '?'}</span>
+                                                            <ArrowRight className="h-2.5 w-2.5 text-slate-300 shrink-0" />
+                                                            <span className="text-[9px] font-black text-primary">{item.assignedToName || '?'}</span>
+                                                        </div>
+                                                        {item.reason && <p className="text-[9px] text-slate-400 italic mt-0.5 truncate">"{item.reason}"</p>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                     </>
                 )}

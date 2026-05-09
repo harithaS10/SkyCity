@@ -90,13 +90,14 @@ interface DropdownItem {
 // ─── Navigation Configuration (Role-Aware) ────────────────────────────────────
 
 const navItems: NavItem[] = [
-  // User items - available to all users
+  // Available to all authenticated users
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-3.5 w-3.5" />, roles: [] },
-  { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: [] },
-  { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: [] },
-  { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: [] },
-  { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: [] },
-  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: [] },
+  { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" />, roles: ['staff', 'resident', 'property_manager', 'facility_manager'] },
+  // Staff/resident only
+  { label: 'My Tasks', href: '/my-tasks', icon: <ClipboardList className="h-3.5 w-3.5" />, roles: ['staff', 'resident'] },
+  { label: 'Daily Reports', href: '/daily-report', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'resident', 'facility_manager'] },
+  { label: 'My Reports', href: '/my-reports', icon: <FileText className="h-3.5 w-3.5" />, roles: ['staff', 'resident', 'facility_manager'] },
+  { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" />, roles: ['staff', 'resident', 'helpdesk'] },
   // Admin-only items - NOT in navItems, rendered separately for admin users
 ];
 
@@ -206,7 +207,11 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   const filteredNavItems = navItems.filter((item) => {
     if (!user) return false;
-    // All items available to all custom roles - permissions checked via hasPermission
+    // If item has role restrictions, check if current user's role is allowed
+    if (item.roles && item.roles.length > 0) {
+      if (!item.roles.includes(user.role)) return false;
+    }
+    // Permission-based filtering for staff
     const moduleMap: Record<string, string> = {
       '/complaints': 'complaints',
       '/admin/work-allocation': 'work_orders',
@@ -217,8 +222,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
       '/chat': 'chat',
     };
     const module = moduleMap[item.href];
-    if (module) return hasPermission(module, 'view');
-    return true; // Dashboard and other items always visible
+    if (module && user.role === 'staff') return hasPermission(module, 'view');
+    return true;
   });
 
   useEffect(() => {
@@ -448,6 +453,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-3.5 w-3.5" /> },
                 { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-3.5 w-3.5" /> },
                 { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-3.5 w-3.5" /> },
+                { label: 'Reports', href: '/admin/reports', icon: <FileText className="h-3.5 w-3.5" /> },
               ].map(item => (
                 <Button
                   key={item.href}
@@ -748,6 +754,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     { label: 'Community Chat', href: '/chat', icon: <MessageSquare className="h-4 w-4" /> },
                     { label: 'Complaints', href: '/complaints', icon: <MessageSquareWarning className="h-4 w-4" /> },
                     { label: 'Analytics', href: '/admin/analytics', icon: <BarChart3 className="h-4 w-4" /> },
+                    { label: 'Reports', href: '/admin/reports', icon: <FileText className="h-4 w-4" /> },
                   ].map((item) => (
                     <Button key={item.href} variant="ghost"
                       className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
@@ -764,7 +771,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               )}
             </div>
 
-            <div className="pt-4 pb-6 mt-2 border-t border-border">
+            <div className="pt-4 pb-20 mt-2 border-t border-border">
               <Button variant="outline" className="w-full justify-start text-sm sm:text-xs h-12 sm:h-9 text-rose-600 border-rose-100 hover:bg-rose-50" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4 sm:h-3.5 sm:w-3.5" />
                 Log out
