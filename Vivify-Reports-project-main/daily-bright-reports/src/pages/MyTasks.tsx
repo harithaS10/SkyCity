@@ -587,7 +587,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
   return (
     <DashboardLayout>
       {/* ===== DESKTOP VIEW ===== */}
-      <div className="hidden lg:block space-y-8 animate-in fade-in duration-500">
+      <div className="hidden lg:block space-y-8 animate-in fade-in duration-500 pt-6">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-3xl font-bold tracking-tight">My Tasks</h1>

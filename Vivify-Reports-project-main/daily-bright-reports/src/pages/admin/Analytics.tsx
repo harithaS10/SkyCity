@@ -317,7 +317,7 @@ const Analytics: React.FC = () => {
     <DashboardLayout>
       <div className="w-full">
         {/* Use CSS-based responsiveness for smoothness, but keep separate states for filters */}
-        <div className="hidden lg:block space-y-8 animate-in fade-in duration-500">
+        <div className="hidden lg:block space-y-8 animate-in fade-in duration-500 pt-6">
           {/* Desktop Content exactly as before */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-4">
             <div>

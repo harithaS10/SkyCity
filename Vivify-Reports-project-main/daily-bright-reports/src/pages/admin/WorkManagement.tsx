@@ -221,6 +221,8 @@ const WorkManagement: React.FC = () => {
         
         {/* ===== DESKTOP VIEW ===== */}
         <div className="hidden sm:block space-y-6 mb-6 pt-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
             <div>
               <h1 className="text-2xl font-bold">Work Management</h1>
               <p className="text-muted-foreground">Manage predefined work types and codes</p>

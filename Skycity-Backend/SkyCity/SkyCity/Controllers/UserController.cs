@@ -91,7 +91,9 @@ public class UserController : ControllerBase
                 {
                     { "admin", UserRole.admin },
                     { "staff", UserRole.staff },
-                    { "tester", UserRole.staff }, // Map custom roles to staff by default
+                    { "tester", UserRole.staff },
+                    { "site_manager", UserRole.property_manager },
+                    { "field_supervisor", UserRole.facility_manager },
                     { "super_admin", UserRole.super_admin },
                     { "property_manager", UserRole.property_manager },
                     { "facility_manager", UserRole.facility_manager },
@@ -99,11 +101,17 @@ public class UserController : ControllerBase
                     { "resident", UserRole.resident },
                     { "accountant", UserRole.accountant },
                     { "helpdesk", UserRole.helpdesk },
+                    { "sub_admin", UserRole.sub_admin },
                 };
                 
                 if (roleMapping.TryGetValue(roleStr, out var mappedRole))
                 {
                     user.Role = mappedRole;
+                }
+                else
+                {
+                    // For any new custom role not in the mapping, default to staff
+                    user.Role = UserRole.staff;
                 }
             }
         }

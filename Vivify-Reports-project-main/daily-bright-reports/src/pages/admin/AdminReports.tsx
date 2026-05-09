@@ -227,7 +227,7 @@ const AdminReportsPage: React.FC = () => {
 
     return (
         <DashboardLayout>
-            <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="space-y-8 animate-in fade-in duration-500 pt-6">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div className="space-y-1">
                         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Administrative Reports</h1>
