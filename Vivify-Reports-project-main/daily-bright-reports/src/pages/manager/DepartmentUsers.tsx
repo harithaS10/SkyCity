@@ -35,7 +35,7 @@ const DepartmentUsers: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 animate-fade-in pt-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-100">

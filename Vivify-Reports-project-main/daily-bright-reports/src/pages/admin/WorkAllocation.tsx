@@ -1004,7 +1004,7 @@ const WorkAllocationPage: React.FC = () => {
     <DashboardLayout>
       <div className="w-full">
         {/* ===== DESKTOP VIEW ===== */}
-        <div className="hidden lg:block space-y-8 animate-in fade-in duration-500">
+        <div className="hidden lg:block space-y-8 animate-in fade-in duration-500 pt-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Work Allocation</h1>

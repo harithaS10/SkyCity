@@ -45,7 +45,65 @@ public class UserController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(new ApiResponse<dynamic> { Success = true, Data = users });
+        // Get all custom roles from database
+        var customRoles = await _context.Roles.ToListAsync();
+        
+        // Create a mapping from enum values to custom role names
+        var enumToCustomRoleMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        
+        // Add all custom roles to the mapping
+        foreach (var customRole in customRoles)
+        {
+            // Map the RoleType (enum value) to the custom role name
+            if (!string.IsNullOrEmpty(customRole.RoleType))
+            {
+                enumToCustomRoleMap[customRole.RoleType.ToLower()] = customRole.RoleName;
+            }
+        }
+        
+        // Also add default mappings for system roles (only if not already in custom roles)
+        var defaultMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "admin", "Admin" },
+            { "staff", "Staff" },
+            { "property_manager", "Site Manager" },
+            { "facility_manager", "Field Supervisor" },
+            { "super_admin", "Super Admin" },
+            { "vendor", "Vendor" },
+            { "resident", "Resident" },
+            { "accountant", "Accountant" },
+            { "helpdesk", "Helpdesk" },
+            { "sub_admin", "Sub Admin" },
+        };
+        
+        // Merge custom roles with defaults (custom roles take precedence)
+        foreach (var kvp in defaultMappings)
+        {
+            if (!enumToCustomRoleMap.ContainsKey(kvp.Key))
+            {
+                enumToCustomRoleMap[kvp.Key] = kvp.Value;
+            }
+        }
+
+        // Map enum values back to custom role names for frontend
+        var mappedUsers = users.Select(u => new
+        {
+            u.Id,
+            u.Username,
+            u.FullName,
+            role = enumToCustomRoleMap.TryGetValue(u.role.ToLower(), out var mappedRole) ? mappedRole : u.role,
+            u.AssociationId,
+            u.PropertyId,
+            u.BuildingId,
+            u.UnitId,
+            u.Phone,
+            u.IsActive,
+            u.CreatedAt,
+            u.IsDeleted,
+            u.status
+        }).ToList();
+
+        return Ok(new ApiResponse<dynamic> { Success = true, Data = mappedUsers });
     }
 
     [HttpGet("{id}")]
@@ -57,6 +115,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [RequirePermission("users", "edit")]
     public async Task<ActionResult> Update(int id, [FromBody] UpdateUserDto dto)
     {
         var user = await _context.Users.FindAsync(id);
@@ -78,8 +137,55 @@ public class UserController : ControllerBase
         if (!string.IsNullOrEmpty(dto.Role))
         {
             var roleStr = dto.Role == "user" ? "resident" : dto.Role;
-            if (Enum.TryParse<UserRole>(roleStr, true, out var parsedRole))
+            
+            // First, try to find the custom role in the database by name
+            var customRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == roleStr);
+            if (customRole != null && !string.IsNullOrEmpty(customRole.RoleType))
+            {
+                // Build dynamic mapping from all roles in database
+                var allRoles = await _context.Roles.ToListAsync();
+                var roleTypeToEnumMap = new Dictionary<string, UserRole>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { "admin", UserRole.admin },
+                    { "staff", UserRole.staff },
+                    { "super_admin", UserRole.super_admin },
+                    { "property_manager", UserRole.property_manager },
+                    { "facility_manager", UserRole.facility_manager },
+                    { "vendor", UserRole.vendor },
+                    { "resident", UserRole.resident },
+                    { "accountant", UserRole.accountant },
+                    { "helpdesk", UserRole.helpdesk },
+                    { "sub_admin", UserRole.sub_admin },
+                };
+                
+                // Add all custom roles - map to staff by default for new roles
+                foreach (var role in allRoles)
+                {
+                    if (!string.IsNullOrEmpty(role.RoleType) && !roleTypeToEnumMap.ContainsKey(role.RoleType.ToLower()))
+                    {
+                        roleTypeToEnumMap[role.RoleType.ToLower()] = UserRole.staff;
+                    }
+                }
+                
+                if (roleTypeToEnumMap.TryGetValue(customRole.RoleType.ToLower(), out var mappedRole))
+                {
+                    user.Role = mappedRole;
+                }
+                else
+                {
+                    user.Role = UserRole.staff; // Default to staff for unknown RoleTypes
+                }
+            }
+            else if (Enum.TryParse<UserRole>(roleStr, true, out var parsedRole))
+            {
+                // Try to parse as enum directly
                 user.Role = parsedRole;
+            }
+            else
+            {
+                // For any new custom role not in the mapping, default to staff
+                user.Role = UserRole.staff;
+            }
         }
 
         await _context.SaveChangesAsync();
