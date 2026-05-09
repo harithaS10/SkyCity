@@ -684,7 +684,7 @@ const UserManagement: React.FC = () => {
                                 <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card max-h-[200px] overflow-y-auto">
                                   {customRoles.length > 0 ? (
                                     customRoles.map(r => (
-                                      <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
+                                      <SelectItem key={r.id} value={r.roleName}>
                                         {r.roleName}
                                       </SelectItem>
                                     ))
@@ -832,7 +832,7 @@ const UserManagement: React.FC = () => {
                             <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card rounded-2xl shadow-xl border-slate-100 max-h-[200px] overflow-y-auto">
                               {customRoles.length > 0 ? (
                                 customRoles.map(r => (
-                                  <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
+                                  <SelectItem key={r.id} value={r.roleName}>
                                     {r.roleName}
                                   </SelectItem>
                                 ))

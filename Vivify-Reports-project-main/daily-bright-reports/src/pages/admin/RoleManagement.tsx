@@ -78,6 +78,10 @@ const RoleManagement: React.FC = () => {
   useEffect(() => { load(); }, []);
 
   const togglePerm = (module: ModuleKey, key: PermKey) => {
+    // Don't allow editing permissions for Admin role
+    if (editTarget && editTarget.roleName.toLowerCase() === 'admin') {
+      return;
+    }
     setPerms(prev => ({
       ...prev,
       [module]: { ...(prev[module] as PermissionSet), [key]: !(prev[module] as any)?.[key] },
@@ -96,7 +100,20 @@ const RoleManagement: React.FC = () => {
     if (!roleName.trim()) { toast.error('Role name is required'); return; }
     setIsCreating(true);
     try {
-      const res = await api.roles.create({ roleName: roleName.trim(), permissions: { ...perms, export: canExportPerm } });
+      // If creating Admin role, always set all permissions
+      let permissionsToSave = perms;
+      let exportToSave = canExportPerm;
+      
+      if (roleName.trim().toLowerCase() === 'admin') {
+        const adminPerms: RolePermissions = {};
+        MODULES.forEach(m => {
+          adminPerms[m] = Object.fromEntries(PERM_KEYS.map(k => [k, true])) as PermissionSet;
+        });
+        permissionsToSave = adminPerms;
+        exportToSave = true;
+      }
+      
+      const res = await api.roles.create({ roleName: roleName.trim(), permissions: { ...permissionsToSave, export: exportToSave } });
       if (res.success) { toast.success(`Role "${roleName}" created`); resetForm(); setIsCreateOpen(false); load(); }
       else toast.error(res.message || 'Failed');
     } catch (e: any) { toast.error(e.message); }
@@ -105,7 +122,21 @@ const RoleManagement: React.FC = () => {
 
   const handleUpdate = async () => {
     if (!editTarget) return;
-    const payload = { roleName: roleName.trim(), permissions: { ...perms, export: canExportPerm } };
+    
+    // If updating Admin role, always set all permissions
+    let permissionsToSave = perms;
+    let exportToSave = canExportPerm;
+    
+    if (editTarget.roleName.toLowerCase() === 'admin') {
+      const adminPerms: RolePermissions = {};
+      MODULES.forEach(m => {
+        adminPerms[m] = Object.fromEntries(PERM_KEYS.map(k => [k, true])) as PermissionSet;
+      });
+      permissionsToSave = adminPerms;
+      exportToSave = true;
+    }
+    
+    const payload = { roleName: roleName.trim(), permissions: { ...permissionsToSave, export: exportToSave } };
     try {
       const res = await api.roles.update(editTarget.id, payload);
       if (res.success) {
@@ -134,9 +165,20 @@ const RoleManagement: React.FC = () => {
   const openEdit = (r: CustomRole) => {
     setEditTarget(r);
     setRoleName(r.roleName);
-    const hasPerms = r.permissions && Object.keys(r.permissions).some(k => k !== 'export');
-    setPerms(hasPerms ? r.permissions : defaultPermissions());
-    setCanExportPerm(r.permissions?.export ?? false);
+    
+    // If editing Admin role, always set all permissions to true
+    if (r.roleName.toLowerCase() === 'admin') {
+      const adminPerms: RolePermissions = {};
+      MODULES.forEach(m => {
+        adminPerms[m] = Object.fromEntries(PERM_KEYS.map(k => [k, true])) as PermissionSet;
+      });
+      setPerms(adminPerms);
+      setCanExportPerm(true);
+    } else {
+      const hasPerms = r.permissions && Object.keys(r.permissions).some(k => k !== 'export');
+      setPerms(hasPerms ? r.permissions : defaultPermissions());
+      setCanExportPerm(r.permissions?.export ?? false);
+    }
   };
 
   const downloadTemplate = async () => {
@@ -183,7 +225,10 @@ const RoleManagement: React.FC = () => {
     }
   };
 
-  const renderPermissionsGrid = () => (
+  const renderPermissionsGrid = () => {
+    const isAdminRole = editTarget && editTarget.roleName.toLowerCase() === 'admin';
+    
+    return (
     <>
       {/* Desktop View */}
       <div className="hidden sm:block overflow-x-auto rounded-xl border border-slate-200">
@@ -207,8 +252,10 @@ const RoleManagement: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => togglePerm(m, k)}
+                        disabled={isAdminRole}
                         className={cn(
                           'h-6 w-6 rounded border-2 flex items-center justify-center mx-auto transition-colors',
+                          isAdminRole ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
                           checked ? 'bg-[#1e293b] border-[#1e293b] text-white' : 'border-slate-300 hover:border-[#1e293b]/50 bg-white'
                         )}
                       >
@@ -226,8 +273,13 @@ const RoleManagement: React.FC = () => {
             <p className="text-sm font-semibold text-slate-800">Allow Data Export / Download</p>
             <p className="text-xs text-muted-foreground mt-0.5">Users with this role can export reports and analytics</p>
           </div>
-          <Switch checked={canExportPerm} onCheckedChange={setCanExportPerm} className="shrink-0 ml-4" />
+          <Switch checked={canExportPerm} onCheckedChange={isAdminRole ? undefined : setCanExportPerm} disabled={isAdminRole} className="shrink-0 ml-4" />
         </div>
+        {isAdminRole && (
+          <div className="px-4 py-3 bg-blue-50 border-t border-blue-100 text-xs text-blue-700 font-medium">
+            Admin role has all permissions by default and cannot be modified.
+          </div>
+        )}
       </div>
 
       {/* Mobile View */}
@@ -239,10 +291,11 @@ const RoleManagement: React.FC = () => {
               {PERM_KEYS.map(k => {
                 const checked = !!(perms as any)[m]?.[k];
                 return (
-                  <div key={k} onClick={() => togglePerm(m, k)} className="flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-xl shadow-sm cursor-pointer hover:border-[#1e293b]/30 transition-colors">
+                  <div key={k} onClick={() => !isAdminRole && togglePerm(m, k)} className={cn("flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-xl shadow-sm transition-colors", isAdminRole ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-[#1e293b]/30')}>
                     <span className="text-xs font-bold text-slate-600 capitalize">{k}</span>
                     <button
                       type="button"
+                      disabled={isAdminRole}
                       className={cn(
                         'h-6 w-6 rounded border-2 flex items-center justify-center transition-colors shrink-0',
                         checked ? 'bg-[#1e293b] border-[#1e293b] text-white' : 'border-slate-300 bg-white'
@@ -257,16 +310,22 @@ const RoleManagement: React.FC = () => {
           </div>
         ))}
         
-        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between mt-4">
+        <div className={cn("bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between mt-4", isAdminRole && 'opacity-60')}>
           <div className="flex-1 pr-4">
             <h4 className="font-bold text-slate-800 text-sm">Data Export</h4>
             <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-tight">Allow downloading reports and analytics</p>
           </div>
-          <Switch checked={canExportPerm} onCheckedChange={setCanExportPerm} className="shrink-0" />
+          <Switch checked={canExportPerm} onCheckedChange={isAdminRole ? undefined : setCanExportPerm} disabled={isAdminRole} className="shrink-0" />
         </div>
+        {isAdminRole && (
+          <div className="px-4 py-3 bg-blue-50 border border-blue-100 rounded-2xl text-xs text-blue-700 font-medium text-center">
+            Admin role has all permissions by default and cannot be modified.
+          </div>
+        )}
       </div>
     </>
   );
+  };
 
   const headerBg = 'bg-primary';
   const headerText = 'text-white font-semibold h-11';
