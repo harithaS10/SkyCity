@@ -1337,7 +1337,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="w-full">
       {/* ===== DESKTOP VIEW ===== */}
-      <div className="hidden lg:flex flex-col space-y-8 animate-in fade-in duration-500">
+      <div className="hidden lg:flex flex-col space-y-8 animate-in fade-in duration-500 pt-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin Terminal</h1>
@@ -1356,7 +1356,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-        <Card className="hover-lift border-none shadow-md">
+        <Card className="hover-lift border-none shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]" onClick={() => navigate('/admin/users')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Personnel</CardTitle>
             <Users className="h-4 w-4 text-primary" />
@@ -1367,7 +1367,7 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover-lift border-none shadow-md">
+        <Card className="hover-lift border-none shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]" onClick={() => navigate('/admin/reports')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Global Reports</CardTitle>
             <FileText className="h-4 w-4 text-primary" />
@@ -1378,7 +1378,7 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover-lift border-none shadow-md">
+        <Card className="hover-lift border-none shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]" onClick={() => navigate('/admin/work-allocation')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
             <ListTodo className="h-4 w-4 text-blue-600" />
@@ -1389,7 +1389,7 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover-lift border-none shadow-md">
+        <Card className="hover-lift border-none shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]" onClick={() => navigate('/admin/work-allocation')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -1400,7 +1400,7 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="hover-lift border-none shadow-md">
+        <Card className="hover-lift border-none shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-[0.98]" onClick={() => navigate('/admin/work-allocation')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ongoing Tasks</CardTitle>
             <Clock className="h-4 w-4 text-primary" />
@@ -1411,7 +1411,8 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className={`hover-lift border-none shadow-md ${(pendingWork.length > 0 || (taskStats?.overdueTasks || 0) > 0) ? 'bg-destructive/5' : ''}`}>
+        <Card className={`hover-lift border-none shadow-md cursor-pointer hover:shadow-lg transition-all active:scale-[0.98] ${(pendingWork.length > 0 || (taskStats?.overdueTasks || 0) > 0) ? 'bg-destructive/5' : ''}`}
+          onClick={() => navigate('/admin/work-allocation')}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue Items</CardTitle>
             <AlertCircle className={`h-4 w-4 ${(pendingWork.length > 0 || (taskStats?.overdueTasks || 0) > 0) ? 'text-destructive' : 'text-muted-foreground'}`} />
@@ -1751,11 +1752,11 @@ const AdminDashboard: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-2 gap-4 mt-4 relative z-10">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10 cursor-pointer active:scale-95 transition-transform" onClick={() => navigate('/admin/reports')}>
               <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Global Reports</p>
               <p className="text-2xl font-black text-white">{totalReports}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10 cursor-pointer active:scale-95 transition-transform" onClick={() => navigate('/admin/users')}>
               <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Active Personnel</p>
               <p className="text-2xl font-black text-white">{totalUsers}</p>
             </div>

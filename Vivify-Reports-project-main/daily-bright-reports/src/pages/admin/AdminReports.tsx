@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
@@ -15,26 +15,13 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Loader2, ClipboardList, CheckCircle2, History, ArrowRight, Download, FileSpreadsheet, FileText, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, ClipboardList, CheckCircle2, History, ArrowRight, Download, X, Users, Calendar as CalendarIcon } from 'lucide-react';
+import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'sonner';
 
 const AdminReportsPage: React.FC = () => {
@@ -44,8 +31,44 @@ const AdminReportsPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<string>('pending');
 
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [deleteType, setDeleteType] = useState<'completed' | 'reassignment' | null>(null);
+    // Filters
+    const [filterFromDate, setFilterFromDate] = useState('');
+    const [filterToDate, setFilterToDate] = useState('');
+    const [filterUser, setFilterUser] = useState('all');
+
+    // Unique user names across all data for the user filter dropdown
+    const allUsers = useMemo(() => {
+        const names = new Set<string>();
+        [...standingPending, ...pendingToCompleted, ...reassignmentHistory].forEach(item => {
+            if (item.assignedToName) names.add(item.assignedToName);
+        });
+        return Array.from(names).sort();
+    }, [standingPending, pendingToCompleted, reassignmentHistory]);
+
+    const applyFilters = (items: any[], dateField: string) => {
+        return items.filter(item => {
+            const dateVal = item[dateField];
+            if (filterFromDate && dateVal) {
+                try {
+                    if (new Date(dateVal) < startOfDay(new Date(filterFromDate))) return false;
+                } catch { /* ignore */ }
+            }
+            if (filterToDate && dateVal) {
+                try {
+                    if (new Date(dateVal) > endOfDay(new Date(filterToDate))) return false;
+                } catch { /* ignore */ }
+            }
+            if (filterUser !== 'all' && item.assignedToName !== filterUser) return false;
+            return true;
+        });
+    };
+
+    const filteredPending = useMemo(() => applyFilters(standingPending, 'dueDate'), [standingPending, filterFromDate, filterToDate, filterUser]);
+    const filteredCompleted = useMemo(() => applyFilters(pendingToCompleted, 'completedAt'), [pendingToCompleted, filterFromDate, filterToDate, filterUser]);
+    const filteredReassignment = useMemo(() => applyFilters(reassignmentHistory, 'originalAssignDate'), [reassignmentHistory, filterFromDate, filterToDate, filterUser]);
+
+    const clearFilters = () => { setFilterFromDate(''); setFilterToDate(''); setFilterUser('all'); };
+    const hasFilters = filterFromDate || filterToDate || filterUser !== 'all';
 
     useEffect(() => {
         fetchReports();
@@ -191,271 +214,294 @@ const AdminReportsPage: React.FC = () => {
         }
     };
 
-    const handleDeleteClick = () => {
-        if (activeTab === 'completed') {
-            setDeleteType('completed');
-            setIsDeleteDialogOpen(true);
-        } else if (activeTab === 'reassignment') {
-            setDeleteType('reassignment');
-            setIsDeleteDialogOpen(true);
-        }
-    }
-
-    const confirmDelete = async () => {
-        try {
-            let res;
-            if (deleteType === 'completed') {
-                res = await api.admin.clearCompletedReports();
-            } else if (deleteType === 'reassignment') {
-                res = await api.admin.clearReassignmentHistory();
-            }
-
-            if (res && res.success) {
-                toast.success(res.message);
-                fetchReports();
-            } else {
-                toast.error("Failed to clear data.");
-            }
-        } catch (err) {
-            console.error(err);
-            toast.error("An error occurred while clearing data.");
-        } finally {
-            setIsDeleteDialogOpen(false);
-            setDeleteType(null);
-        }
-    };
-
     return (
         <DashboardLayout>
-            <div className="space-y-8 animate-in fade-in duration-500">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Administrative Reports</h1>
-                        <p className="text-sm text-muted-foreground max-w-[600px]">
-                            Detailed insights into work allocation, completion trends, and reassignment history.
-                        </p>
+            <div className="space-y-6 animate-in fade-in duration-500 pt-2">
+
+                {/* Header + Filters inline — matches Analytics Dashboard style */}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-4">
+                    {/* Title */}
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tight text-primary">Administrative Reports</h1>
+                        <p className="text-muted-foreground font-medium">Detailed insights into work allocation, completion trends, and reassignment history.</p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3">
-                        {(activeTab === 'completed' || activeTab === 'reassignment') && (
-                            <Button variant="destructive" className="gap-2 h-10 px-4 rounded-xl shadow-sm border-none" onClick={handleDeleteClick}>
-                                <Trash2 className="h-4 w-4" />
-                                <span className="font-semibold">Clear History</span>
+                    {/* Filters + Export — same row as Analytics */}
+                    <div className="flex items-center gap-2 flex-nowrap">
+                        {/* User filter */}
+                        <Select value={filterUser} onValueChange={setFilterUser}>
+                            <SelectTrigger className="h-10 rounded-xl border border-input bg-background gap-2 px-3 min-w-[160px] text-sm font-medium shadow-sm">
+                                <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <SelectValue placeholder="All Employees" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60 overflow-y-auto">
+                                <SelectItem value="all">All Employees</SelectItem>
+                                {allUsers.map(name => (
+                                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {/* From date */}
+                        <div className="relative">
+                            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <Input type="date" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)}
+                                className="h-10 text-sm rounded-xl border border-input bg-background pl-9 w-[145px] font-medium shadow-sm" />
+                        </div>
+
+                        {/* To date */}
+                        <div className="relative">
+                            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                            <Input type="date" value={filterToDate} onChange={e => setFilterToDate(e.target.value)}
+                                className="h-10 text-sm rounded-xl border border-input bg-background pl-9 w-[145px] font-medium shadow-sm" />
+                        </div>
+
+                        {/* Clear filters */}
+                        {hasFilters && (
+                            <Button variant="destructive" size="sm" onClick={clearFilters}
+                                className="h-10 gap-1.5 rounded-xl px-3 text-sm font-medium shadow-sm shrink-0">
+                                <X className="h-4 w-4" /> Clear
                             </Button>
                         )}
 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button className="gap-2 h-10 px-4 rounded-xl bg-primary shadow-lg shadow-primary/20 border-none">
-                                    <Download className="h-4 w-4" />
-                                    <span className="font-semibold">Export {activeTab === 'pending' ? 'Pending' : activeTab === 'completed' ? 'Completed' : 'History'}</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuItem onClick={() => handleDownload('excel')} className="cursor-pointer py-2">
-                                    <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
-                                    <span>Export as Excel</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDownload('csv')} className="cursor-pointer py-2">
-                                    <FileText className="mr-2 h-4 w-4 text-primary" />
-                                    <span>Export as CSV</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        {/* Export */}
+                        <Button className="h-10 gap-2 px-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-sm shadow-sm shrink-0"
+                            onClick={() => handleDownload('excel')}>
+                            <Download className="h-4 w-4" />
+                            Export Data
+                        </Button>
                     </div>
                 </div>
+
+                {/* Record count when filtered */}
+                {hasFilters && (
+                    <p className="text-xs text-muted-foreground font-medium -mt-4">
+                        {activeTab === 'pending' && `${filteredPending.length} record${filteredPending.length !== 1 ? 's' : ''} found`}
+                        {activeTab === 'completed' && `${filteredCompleted.length} record${filteredCompleted.length !== 1 ? 's' : ''} found`}
+                        {activeTab === 'reassignment' && `${filteredReassignment.length} record${filteredReassignment.length !== 1 ? 's' : ''} found`}
+                    </p>
+                )}
 
                 {isLoading ? (
                     <div className="flex items-center justify-center p-12">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                 ) : (
+                    <>
+                    {/* ── DESKTOP TABLE VIEW ── */}
+                    <div className="hidden sm:block">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <div className="overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
                             <TabsList className="inline-flex w-auto min-w-full lg:min-w-[600px] h-11 bg-muted/50 p-1">
-                                <TabsTrigger value="pending" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">
-                                    Standing Pending
-                                </TabsTrigger>
-                                <TabsTrigger value="completed" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">
-                                    Pending to Completed
-                                </TabsTrigger>
-                                <TabsTrigger value="reassignment" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">
-                                    Reassignment History
-                                </TabsTrigger>
+                                <TabsTrigger value="pending" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">Standing Pending</TabsTrigger>
+                                <TabsTrigger value="completed" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">Pending to Completed</TabsTrigger>
+                                <TabsTrigger value="reassignment" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">Reassignment History</TabsTrigger>
                             </TabsList>
                         </div>
-
                         <TabsContent value="pending" className="mt-6">
                             <Card className="border-none shadow-md">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <ClipboardList className="h-5 w-5 text-amber-500" />
-                                        Standing Pending Work
-                                    </CardTitle>
+                                    <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5 text-amber-500" />Standing Pending Work</CardTitle>
                                     <CardDescription>Work currently assigned but not yet completed.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="rounded-md border">
+                                <div className="rounded-md border overflow-hidden">
+                                    <div className="overflow-auto max-h-[500px]">
                                         <Table className="border-x">
                                             <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="border-r">Title</TableHead>
-                                                    <TableHead className="border-r">Assigned To</TableHead>
-                                                    <TableHead className="border-r">Priority</TableHead>
-                                                    <TableHead>Due Date</TableHead>
+                                                <TableRow className="bg-primary hover:bg-primary h-9">
+                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Title</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Assigned To</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Priority</TableHead>
+                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Due Date</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {standingPending.length === 0 ? (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="h-24 text-center">No pending work found.</TableCell>
+                                                {filteredPending.length === 0 ? (
+                                                    <TableRow><TableCell colSpan={5} className="h-24 text-center">No pending work found.</TableCell></TableRow>
+                                                ) : filteredPending.map((item, index) => (
+                                                    <TableRow key={item.id}>
+                                                        <TableCell className="border-r text-muted-foreground text-xs font-medium">{index + 1}</TableCell>
+                                                        <TableCell className="font-medium border-r">{item.title}</TableCell>
+                                                        <TableCell className="border-r">{item.assignedToName || 'Unknown'}</TableCell>
+                                                        <TableCell className="border-r"><Badge variant="outline" className="capitalize">{item.priority}</Badge></TableCell>
+                                                        <TableCell>{item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : '-'}</TableCell>
                                                     </TableRow>
-                                                ) : (
-                                                    standingPending.map((item) => (
-                                                        <TableRow key={item.id}>
-                                                            <TableCell className="font-medium border-r">{item.title}</TableCell>
-                                                            <TableCell className="border-r">{item.assignedToName || 'Unknown'}</TableCell>
-                                                            <TableCell className="border-r">
-                                                                <Badge variant="outline" className="capitalize">{item.priority}</Badge>
-                                                            </TableCell>
-                                                            <TableCell>{item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : '-'}</TableCell>
-                                                        </TableRow>
-                                                    ))
-                                                )}
+                                                ))}
                                             </TableBody>
                                         </Table>
                                     </div>
+                                </div>
                                 </CardContent>
                             </Card>
                         </TabsContent>
-
                         <TabsContent value="completed" className="mt-6">
                             <Card className="border-none shadow-md">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                                        Pending to Completed Work
-                                    </CardTitle>
+                                    <CardTitle className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-500" />Pending to Completed Work</CardTitle>
                                     <CardDescription>Work items that have been successfully completed.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="rounded-md border">
+                                <div className="rounded-md border overflow-hidden">
+                                    <div className="overflow-auto max-h-[500px]">
                                         <Table className="border-x">
                                             <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="border-r">Title</TableHead>
-                                                    <TableHead className="border-r">Completed By</TableHead>
-                                                    <TableHead className="border-r">Completion Date</TableHead>
-                                                    <TableHead>Duration</TableHead>
+                                                <TableRow className="bg-primary hover:bg-primary h-9">
+                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Title</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Completed By</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Completion Date</TableHead>
+                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Duration</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {pendingToCompleted.length === 0 ? (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="h-24 text-center">No completed work records found.</TableCell>
+                                                {filteredCompleted.length === 0 ? (
+                                                    <TableRow><TableCell colSpan={5} className="h-24 text-center">No completed work records found.</TableCell></TableRow>
+                                                ) : filteredCompleted.map((item, index) => (
+                                                    <TableRow key={item.id}>
+                                                        <TableCell className="border-r text-muted-foreground text-xs font-medium">{index + 1}</TableCell>
+                                                        <TableCell className="font-medium border-r">{item.title}</TableCell>
+                                                        <TableCell className="border-r">{item.assignedToName || 'Unknown'}</TableCell>
+                                                        <TableCell className="border-r">{item.completedAt ? format(new Date(item.completedAt), 'MMM dd, yyyy') : '-'}</TableCell>
+                                                        <TableCell className="text-muted-foreground text-xs italic">{item.duration || '-'}</TableCell>
                                                     </TableRow>
-                                                ) : (
-                                                    pendingToCompleted.map((item) => (
-                                                        <TableRow key={item.id}>
-                                                            <TableCell className="font-medium border-r">{item.title}</TableCell>
-                                                            <TableCell className="border-r">{item.assignedToName || 'Unknown'}</TableCell>
-                                                            <TableCell className="border-r">{item.completedAt ? format(new Date(item.completedAt), 'MMM dd, yyyy') : '-'}</TableCell>
-                                                            <TableCell className="text-muted-foreground text-xs italic">{item.duration || '-'}</TableCell>
-                                                        </TableRow>
-                                                    ))
-                                                )}
+                                                ))}
                                             </TableBody>
                                         </Table>
                                     </div>
+                                </div>
                                 </CardContent>
                             </Card>
                         </TabsContent>
-
                         <TabsContent value="reassignment" className="mt-6">
                             <Card className="border-none shadow-md">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <History className="h-5 w-5 text-blue-500" />
-                                        Reassignment History
-                                    </CardTitle>
+                                    <CardTitle className="flex items-center gap-2"><History className="h-5 w-5 text-blue-500" />Reassignment History</CardTitle>
                                     <CardDescription>Audit trail of work items reassigned between users.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="rounded-md border">
+                                <div className="rounded-md border overflow-hidden">
+                                    <div className="overflow-auto max-h-[500px]">
                                         <Table className="border-x">
                                             <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="border-r">Work Title</TableHead>
-                                                    <TableHead className="border-r">From User</TableHead>
-                                                    <TableHead className="border-r text-center w-[50px]"></TableHead>
-                                                    <TableHead className="border-r">To User</TableHead>
-                                                    <TableHead className="border-r">Timeline</TableHead>
-                                                    <TableHead>Reason</TableHead>
+                                                <TableRow className="bg-primary hover:bg-primary h-9">
+                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Work Title</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">From User</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-center w-[50px] text-white font-bold py-2 text-xs bg-primary z-10"></TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">To User</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Timeline</TableHead>
+                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Reason</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {reassignmentHistory.length === 0 ? (
-                                                    <TableRow>
-                                                        <TableCell colSpan={6} className="h-24 text-center">No reassignment history found.</TableCell>
+                                                {filteredReassignment.length === 0 ? (
+                                                    <TableRow><TableCell colSpan={7} className="h-24 text-center">No reassignment history found.</TableCell></TableRow>
+                                                ) : filteredReassignment.map((item, index) => (
+                                                    <TableRow key={`${item.id}-${index}`}>
+                                                        <TableCell className="border-r text-muted-foreground text-xs font-medium">{index + 1}</TableCell>
+                                                        <TableCell className="font-medium border-r">{item.title}</TableCell>
+                                                        <TableCell className="text-muted-foreground border-r">{item.previousAssigneeName || 'Unknown'}</TableCell>
+                                                        <TableCell className="border-r"><ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" /></TableCell>
+                                                        <TableCell className="font-bold text-primary border-r">{item.assignedToName || 'Unknown'}</TableCell>
+                                                        <TableCell className="border-r">
+                                                            <div className="flex flex-col gap-0.5 text-[10px] leading-tight min-w-[120px]">
+                                                                <div className="flex justify-between border-b border-muted py-0.5"><span className="text-slate-400">Assigned:</span><span>{item.originalAssignDate ? format(new Date(item.originalAssignDate), 'MMM dd, yy') : '-'}</span></div>
+                                                                <div className="flex justify-between border-b border-muted py-0.5"><span className="text-blue-400">Reassigned:</span><span className="text-blue-700">{item.reassignedDate ? format(new Date(item.reassignedDate), 'MMM dd, yy') : '-'}</span></div>
+                                                                {item.completedDate && <div className="flex justify-between py-0.5"><span className="text-emerald-400">Completed:</span><span className="text-emerald-700 font-bold">{format(new Date(item.completedDate), 'MMM dd, yy')}</span></div>}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell><span className="text-sm italic text-muted-foreground">{item.reason || '-'}</span></TableCell>
                                                     </TableRow>
-                                                ) : (
-                                                    reassignmentHistory.map((item, index) => (
-                                                        <TableRow key={`${item.id}-${index}`}>
-                                                            <TableCell className="font-medium border-r">{item.title}</TableCell>
-                                                            <TableCell className="text-muted-foreground border-r">{item.previousAssigneeName || 'Unknown'}</TableCell>
-                                                            <TableCell className="border-r"><ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" /></TableCell>
-                                                            <TableCell className="font-bold text-primary border-r">{item.assignedToName || 'Unknown'}</TableCell>
-                                                            <TableCell className="border-r">
-                                                                <div className="flex flex-col gap-0.5 text-[10px] leading-tight min-w-[120px]">
-                                                                    <div className="flex justify-between border-b border-muted py-0.5">
-                                                                        <span className="text-slate-400">Assigned:</span>
-                                                                        <span>{item.originalAssignDate ? format(new Date(item.originalAssignDate), 'MMM dd, yy') : '-'}</span>
-                                                                    </div>
-                                                                    <div className="flex justify-between border-b border-muted py-0.5">
-                                                                        <span className="text-blue-400">Reassigned:</span>
-                                                                        <span className="text-blue-700">{item.reassignedDate ? format(new Date(item.reassignedDate), 'MMM dd, yy') : '-'}</span>
-                                                                    </div>
-                                                                    {item.completedDate && (
-                                                                        <div className="flex justify-between py-0.5">
-                                                                            <span className="text-emerald-400">Completed:</span>
-                                                                            <span className="text-emerald-700 font-bold">{format(new Date(item.completedDate), 'MMM dd, yy')}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <span className="text-sm italic text-muted-foreground">{item.reason || '-'}</span>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))
-                                                )}
+                                                ))}
                                             </TableBody>
                                         </Table>
                                     </div>
+                                </div>
                                 </CardContent>
                             </Card>
                         </TabsContent>
                     </Tabs>
-                )}
+                    </div>
 
-                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete all
-                                {deleteType === 'completed' ? ' completed work records ' : ' reassignment history '}
-                                from the database.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Continue
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                    {/* ── MOBILE CARD VIEW ── */}
+                    <div className="block sm:hidden space-y-4">
+                        {/* Mobile tab selector */}
+                        <div className="flex rounded-xl overflow-hidden border border-input">
+                            {(['pending', 'completed', 'reassignment'] as const).map(tab => (
+                                <button key={tab} onClick={() => setActiveTab(tab)}
+                                    className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wide transition-colors ${activeTab === tab ? 'bg-primary text-white' : 'bg-background text-muted-foreground'}`}>
+                                    {tab === 'pending' ? 'Pending' : tab === 'completed' ? 'Completed' : 'Reassigned'}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Mobile cards — Pending */}
+                        {activeTab === 'pending' && (
+                            filteredPending.length === 0
+                                ? <p className="text-center text-sm text-muted-foreground py-8">No pending work found.</p>
+                                : filteredPending.map((item, i) => (
+                                    <div key={item.id} className="bg-card rounded-2xl p-4 shadow-sm ring-1 ring-black/5 space-y-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <span className="text-[10px] text-muted-foreground font-bold">#{i + 1}</span>
+                                                <p className="font-bold text-sm text-slate-800 dark:text-white mt-0.5">{item.title}</p>
+                                            </div>
+                                            <Badge variant="outline" className="capitalize shrink-0">{item.priority}</Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-slate-50">
+                                            <span>👤 {item.assignedToName || 'Unknown'}</span>
+                                            <span>📅 {item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : '-'}</span>
+                                        </div>
+                                    </div>
+                                ))
+                        )}
+
+                        {/* Mobile cards — Completed */}
+                        {activeTab === 'completed' && (
+                            filteredCompleted.length === 0
+                                ? <p className="text-center text-sm text-muted-foreground py-8">No completed work records found.</p>
+                                : filteredCompleted.map((item, i) => (
+                                    <div key={item.id} className="bg-card rounded-2xl p-4 shadow-sm ring-1 ring-black/5 space-y-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <span className="text-[10px] text-muted-foreground font-bold">#{i + 1}</span>
+                                                <p className="font-bold text-sm text-slate-800 dark:text-white mt-0.5">{item.title}</p>
+                                            </div>
+                                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">Done</span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-slate-50">
+                                            <span>👤 {item.assignedToName || 'Unknown'}</span>
+                                            <span>✅ {item.completedAt ? format(new Date(item.completedAt), 'MMM dd, yyyy') : '-'}</span>
+                                        </div>
+                                        {item.duration && <p className="text-[11px] text-muted-foreground">⏱ {item.duration}</p>}
+                                    </div>
+                                ))
+                        )}
+
+                        {/* Mobile cards — Reassignment */}
+                        {activeTab === 'reassignment' && (
+                            filteredReassignment.length === 0
+                                ? <p className="text-center text-sm text-muted-foreground py-8">No reassignment history found.</p>
+                                : filteredReassignment.map((item, i) => (
+                                    <div key={`${item.id}-${i}`} className="bg-card rounded-2xl p-4 shadow-sm ring-1 ring-black/5 space-y-2">
+                                        <div>
+                                            <span className="text-[10px] text-muted-foreground font-bold">#{i + 1}</span>
+                                            <p className="font-bold text-sm text-slate-800 dark:text-white mt-0.5">{item.title}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <span className="text-muted-foreground">{item.previousAssigneeName || 'Unknown'}</span>
+                                            <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                            <span className="font-bold text-primary">{item.assignedToName || 'Unknown'}</span>
+                                        </div>
+                                        {item.reason && <p className="text-[11px] text-muted-foreground italic">"{item.reason}"</p>}
+                                    </div>
+                                ))
+                        )}
+                    </div>
+                    </>
+                )}
             </div>
         </DashboardLayout>
     );

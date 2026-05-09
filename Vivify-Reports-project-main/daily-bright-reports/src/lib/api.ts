@@ -564,6 +564,28 @@ export const api = {
         return { success: false, data: null };
       }
     },
+
+    // Admin Reports endpoints
+    getStandingPending: async (): Promise<ApiResponse<any[]>> => {
+      const response = await apiClient.get('/reports/standing-pending');
+      return response.data;
+    },
+    getPendingToCompleted: async (): Promise<ApiResponse<any[]>> => {
+      const response = await apiClient.get('/reports/pending-to-completed');
+      return response.data;
+    },
+    getReassignmentHistory: async (): Promise<ApiResponse<any[]>> => {
+      const response = await apiClient.get('/reports/reassignment-history');
+      return response.data;
+    },
+    clearCompletedReports: async (): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete('/reports/completed');
+      return response.data;
+    },
+    clearReassignmentHistory: async (): Promise<ApiResponse<any>> => {
+      const response = await apiClient.delete('/reports/reassignment-history');
+      return response.data;
+    },
   },
 
   // Users

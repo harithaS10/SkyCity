@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkycityBackend.Data;
 using SkycityBackend.DTOs;
+using SkycityBackend.Models;
 using System.Security.Claims;
 
 namespace SkycityBackend.Controllers
@@ -25,7 +26,6 @@ namespace SkycityBackend.Controllers
         {
             try
             {
-                // Count all work allocations for the current association
                 var totalTasks = await _context.WorkAllocations
                     .CountAsync(a => a.AssociationId == CurrentAssocId);
 
@@ -38,21 +38,19 @@ namespace SkycityBackend.Controllers
                 var pendingTasks = await _context.WorkAllocations
                     .CountAsync(a => a.AssociationId == CurrentAssocId && a.Status == "pending");
 
-                // Overdue tasks: pending or in-progress tasks with due date in the past
+                // Overdue: pending/in-progress tasks with due date in the past
                 var now = DateTime.UtcNow;
                 var overdueTasks = await _context.WorkAllocations
-                    .CountAsync(a => a.AssociationId == CurrentAssocId 
+                    .CountAsync(a => a.AssociationId == CurrentAssocId
                         && (a.Status == "pending" || a.Status == "in-progress")
-                        && a.DueDate.HasValue
                         && a.DueDate < now);
 
-                // Count total users in the association
                 var totalUsers = await _context.Users
                     .CountAsync(u => u.AssociationId == CurrentAssocId);
 
-                // Count total reports (assuming reports are in a Reports table)
-                var totalReports = await _context.Reports
-                    .CountAsync(r => r.AssociationId == CurrentAssocId);
+                // Use WorkAllocations as the report source (no separate Reports table)
+                var totalReports = await _context.WorkAllocations
+                    .CountAsync(a => a.AssociationId == CurrentAssocId);
 
                 var stats = new
                 {
