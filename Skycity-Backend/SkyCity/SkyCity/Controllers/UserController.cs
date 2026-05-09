@@ -78,8 +78,34 @@ public class UserController : ControllerBase
         if (!string.IsNullOrEmpty(dto.Role))
         {
             var roleStr = dto.Role == "user" ? "resident" : dto.Role;
+            
+            // Try to parse as enum first
             if (Enum.TryParse<UserRole>(roleStr, true, out var parsedRole))
+            {
                 user.Role = parsedRole;
+            }
+            else
+            {
+                // If not a valid enum, map custom role names to enum values
+                var roleMapping = new Dictionary<string, UserRole>(StringComparer.OrdinalIgnoreCase)
+                {
+                    { "admin", UserRole.admin },
+                    { "staff", UserRole.staff },
+                    { "tester", UserRole.staff }, // Map custom roles to staff by default
+                    { "super_admin", UserRole.super_admin },
+                    { "property_manager", UserRole.property_manager },
+                    { "facility_manager", UserRole.facility_manager },
+                    { "vendor", UserRole.vendor },
+                    { "resident", UserRole.resident },
+                    { "accountant", UserRole.accountant },
+                    { "helpdesk", UserRole.helpdesk },
+                };
+                
+                if (roleMapping.TryGetValue(roleStr, out var mappedRole))
+                {
+                    user.Role = mappedRole;
+                }
+            }
         }
 
         await _context.SaveChangesAsync();

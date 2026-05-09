@@ -271,7 +271,7 @@ const ClientManagement: React.FC = () => {
       <div className="animate-fade-in">
         
         {/* ===== DESKTOP VIEW ===== */}
-        <div className="hidden sm:block space-y-6 mb-6">
+        <div className="hidden sm:block space-y-6 mb-6 pt-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
             <div>

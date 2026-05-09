@@ -135,7 +135,7 @@ const EmployeeList: React.FC = () => {
     <DashboardLayout>
       <div className="animate-in fade-in duration-500 relative">
         {/* ===== DESKTOP VIEW ===== */}
-        <div className="hidden sm:block space-y-8 mb-8">
+        <div className="hidden sm:block space-y-8 mb-8 pt-6">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-1">
