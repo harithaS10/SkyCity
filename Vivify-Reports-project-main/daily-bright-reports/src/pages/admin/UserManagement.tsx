@@ -248,29 +248,21 @@ const UserManagement: React.FC = () => {
   };
 
   const handleRoleChange = async (userId: number, role: string) => {
+    // Optimistically update local state
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
     try {
-      // Update local state immediately for instant UI feedback
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
-      
-      console.log('Updating user role:', { userId, role });
       const response = await api.users.update(userId, { role });
-      console.log('Role update response:', response);
-      
       if (response.success !== false) {
         toast.success('Role updated successfully');
-        // Refetch immediately to confirm the save
+        // Refetch to get the persisted custom role name from backend
         await fetchUsers();
       } else {
-        // Revert on error
-        console.error('Role update failed:', response.message);
         await fetchUsers();
-        toast.error(response.message || "Failed to update role");
+        toast.error(response.message || 'Failed to update role');
       }
     } catch (error: any) {
-      // Revert on error
-      console.error('Role update error:', error);
       await fetchUsers();
-      toast.error(error.message || "Failed to update role");
+      toast.error(error.message || 'Failed to update role');
     }
   };
 

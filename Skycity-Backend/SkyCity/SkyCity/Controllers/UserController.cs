@@ -38,6 +38,7 @@ public class UserController : ControllerBase
             .Select(u => new {
                 u.Id, u.Username, u.FullName,
                 role = u.Role.ToString(),
+                u.CustomRoleName,
                 u.AssociationId, u.PropertyId, u.BuildingId, u.UnitId,
                 u.Phone, u.IsActive, u.CreatedAt,
                 u.IsDeleted,
@@ -85,13 +86,16 @@ public class UserController : ControllerBase
             }
         }
 
-        // Map enum values back to custom role names for frontend
+        // Map enum values back to custom role names for frontend display
         var mappedUsers = users.Select(u => new
         {
             u.Id,
             u.Username,
             u.FullName,
-            role = enumToCustomRoleMap.TryGetValue(u.role.ToLower(), out var mappedRole) ? mappedRole : u.role,
+            // If a custom role name was explicitly saved, use it; otherwise fall back to enum display name
+            role = !string.IsNullOrEmpty(u.CustomRoleName)
+                ? u.CustomRoleName
+                : (enumToCustomRoleMap.TryGetValue(u.role.ToLower(), out var mappedRole) ? mappedRole : u.role),
             u.AssociationId,
             u.PropertyId,
             u.BuildingId,
@@ -137,54 +141,59 @@ public class UserController : ControllerBase
         if (!string.IsNullOrEmpty(dto.Role))
         {
             var roleStr = dto.Role == "user" ? "resident" : dto.Role;
-            
-            // First, try to find the custom role in the database by name
+
+            // Built-in display name → enum mapping
+            var builtInDisplayToEnum = new Dictionary<string, UserRole>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Admin", UserRole.admin },
+                { "Sub Admin", UserRole.sub_admin },
+                { "Site Manager", UserRole.property_manager },
+                { "Property Manager", UserRole.property_manager },
+                { "Field Supervisor", UserRole.facility_manager },
+                { "Facility Manager", UserRole.facility_manager },
+                { "Staff", UserRole.staff },
+                { "Vendor", UserRole.vendor },
+                { "Resident", UserRole.resident },
+                { "Accountant", UserRole.accountant },
+                { "Helpdesk", UserRole.helpdesk },
+                { "Super Admin", UserRole.super_admin },
+            };
+
+            // Try to find the custom role in the database by name
             var customRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == roleStr);
             if (customRole != null && !string.IsNullOrEmpty(customRole.RoleType))
             {
-                // Build dynamic mapping from all roles in database
-                var allRoles = await _context.Roles.ToListAsync();
+                // Save the custom role display name so it persists across page reloads
+                user.CustomRoleName = customRole.RoleName;
+
                 var roleTypeToEnumMap = new Dictionary<string, UserRole>(StringComparer.OrdinalIgnoreCase)
                 {
-                    { "admin", UserRole.admin },
-                    { "staff", UserRole.staff },
-                    { "super_admin", UserRole.super_admin },
-                    { "property_manager", UserRole.property_manager },
-                    { "facility_manager", UserRole.facility_manager },
-                    { "vendor", UserRole.vendor },
-                    { "resident", UserRole.resident },
-                    { "accountant", UserRole.accountant },
-                    { "helpdesk", UserRole.helpdesk },
-                    { "sub_admin", UserRole.sub_admin },
+                    { "admin", UserRole.admin }, { "staff", UserRole.staff },
+                    { "super_admin", UserRole.super_admin }, { "property_manager", UserRole.property_manager },
+                    { "facility_manager", UserRole.facility_manager }, { "vendor", UserRole.vendor },
+                    { "resident", UserRole.resident }, { "accountant", UserRole.accountant },
+                    { "helpdesk", UserRole.helpdesk }, { "sub_admin", UserRole.sub_admin },
                 };
-                
-                // Add all custom roles - map to staff by default for new roles
-                foreach (var role in allRoles)
-                {
-                    if (!string.IsNullOrEmpty(role.RoleType) && !roleTypeToEnumMap.ContainsKey(role.RoleType.ToLower()))
-                    {
-                        roleTypeToEnumMap[role.RoleType.ToLower()] = UserRole.staff;
-                    }
-                }
-                
-                if (roleTypeToEnumMap.TryGetValue(customRole.RoleType.ToLower(), out var mappedRole))
-                {
-                    user.Role = mappedRole;
-                }
-                else
-                {
-                    user.Role = UserRole.staff; // Default to staff for unknown RoleTypes
-                }
+                user.Role = roleTypeToEnumMap.TryGetValue(customRole.RoleType.ToLower(), out var mappedRole)
+                    ? mappedRole : UserRole.staff;
+            }
+            else if (builtInDisplayToEnum.TryGetValue(roleStr, out var builtInRole))
+            {
+                // Built-in display name like "Field Supervisor", "Site Manager", etc.
+                user.Role = builtInRole;
+                user.CustomRoleName = null; // clear custom role name for built-in roles
             }
             else if (Enum.TryParse<UserRole>(roleStr, true, out var parsedRole))
             {
-                // Try to parse as enum directly
+                // Raw enum value like "facility_manager"
                 user.Role = parsedRole;
+                user.CustomRoleName = null;
             }
             else
             {
-                // For any new custom role not in the mapping, default to staff
+                // Unknown role — store as custom name, default enum to staff
                 user.Role = UserRole.staff;
+                user.CustomRoleName = roleStr;
             }
         }
 

@@ -129,4 +129,17 @@ app.UseAuthorization();
 app.UseMiddleware<TenantMiddleware>();
 app.MapControllers();
 
+// Add CustomRoleName column if it doesn't exist
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        db.Database.ExecuteSqlRaw(
+            "IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Users' AND COLUMN_NAME='CustomRoleName') " +
+            "ALTER TABLE Users ADD CustomRoleName NVARCHAR(100) NULL");
+    }
+    catch { /* ignore if already exists */ }
+}
+
 app.Run();
