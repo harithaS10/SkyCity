@@ -216,18 +216,7 @@ const AdminReportsPage: React.FC = () => {
 
     return (
         <DashboardLayout>
-<<<<<<< HEAD
             <div className="animate-in fade-in duration-500">
-=======
-            <div className="space-y-8 animate-in fade-in duration-500 pt-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Administrative Reports</h1>
-                        <p className="text-sm text-muted-foreground max-w-[600px]">
-                            Detailed insights into work allocation, completion trends, and reassignment history.
-                        </p>
-                    </div>
->>>>>>> 825f6221f8ed6287ea068d07bb75f8fb03ac6894
 
                 {/* ── DESKTOP HEADER (hidden on mobile) ── */}
                 <div className="hidden sm:flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6 pt-2">
