@@ -658,37 +658,36 @@ const WorkAllocationPage: React.FC = () => {
                 ))}
               </div>
               {selectedLocationType && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">
+                <div className="space-y-2">
+                  <Label htmlFor="property-select" className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                     {selectedLocationType === 'tower' ? 'Select Tower' : 'Select Area'}
                   </Label>
-                  <div className="border rounded-xl max-h-36 overflow-y-auto divide-y">
-                    {properties
-                      .filter(p => selectedLocationType === 'tower'
+                  <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                    <SelectTrigger id="property-select" className="w-full rounded-xl bg-background">
+                      <SelectValue placeholder={selectedLocationType === 'tower' ? 'Choose a tower...' : 'Choose an area...'} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" side="bottom" avoidCollisions={false} className="bg-card z-[200] max-h-[200px] overflow-y-auto">
+                      {properties
+                        .filter(p => selectedLocationType === 'tower'
+                          ? p.propertyType !== 'others'
+                          : p.propertyType === 'others')
+                        .map(p => (
+                          <SelectItem key={p.id} value={p.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <span>{p.propertyName}</span>
+                              {p.floorNo && <span className="text-xs opacity-70">{p.floorNo} Floors</span>}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      {properties.filter(p => selectedLocationType === 'tower'
                         ? p.propertyType !== 'others'
-                        : p.propertyType === 'others')
-                      .map(p => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setSelectedPropertyId(p.id.toString())}
-                          className={cn(
-                            'w-full text-left px-3 py-2 text-sm transition-colors hover:bg-accent',
-                            selectedPropertyId === p.id.toString()
-                              ? 'bg-primary text-primary-foreground hover:bg-primary'
-                              : ''
-                          )}
-                        >
-                          {p.propertyName}
-                          {p.floorNo && <span className="text-xs opacity-70 ml-2">{p.floorNo} Floors</span>}
-                        </button>
-                      ))}
-                    {properties.filter(p => selectedLocationType === 'tower'
-                      ? p.propertyType !== 'others'
-                      : p.propertyType === 'others').length === 0 && (
-                      <p className="px-3 py-2 text-xs text-muted-foreground">No {selectedLocationType === 'tower' ? 'towers' : 'areas'} found</p>
-                    )}
-                  </div>
+                        : p.propertyType === 'others').length === 0 && (
+                        <div className="px-2 py-2 text-xs text-muted-foreground text-center">
+                          No {selectedLocationType === 'tower' ? 'towers' : 'areas'} found
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
