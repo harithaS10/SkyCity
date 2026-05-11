@@ -363,7 +363,7 @@ const EmployeeTaskAssignment: React.FC = () => {
     <DashboardLayout>
       <div className="animate-in fade-in duration-500 relative">
         {/* ===== DESKTOP VIEW ===== */}
-        <div className="hidden sm:block space-y-8 mb-8 pt-6">
+        <div className="hidden sm:block space-y-8 mb-8 pt-2">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">

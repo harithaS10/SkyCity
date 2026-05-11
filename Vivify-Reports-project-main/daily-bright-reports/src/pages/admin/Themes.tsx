@@ -112,7 +112,7 @@ const Themes: React.FC = () => {
     <DashboardLayout>
       <div className="animate-fade-in relative">
         {/* ===== DESKTOP VIEW ===== */}
-        <div className="hidden sm:block p-6 space-y-6 pt-6">
+        <div className="hidden sm:block p-6 space-y-6 pt-2">
           <div>
             <h1 className="text-2xl font-bold">Branding</h1>
             <p className="text-muted-foreground text-sm mt-1">Customize your company logo, name and colors</p>

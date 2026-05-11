@@ -337,7 +337,7 @@ const ProductManagement: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 animate-in fade-in duration-500 pt-6">
+      <div className="space-y-8 animate-in fade-in duration-500 pt-2">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-1">
