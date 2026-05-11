@@ -132,7 +132,7 @@ const AdminReportsPage: React.FC = () => {
                 AssignedTo: item.assignedToName || 'Unknown',
                 Priority: item.priority || '-',
                 Status: item.status,
-                Date: (item.status === 'completed' ? item.completedAt : item.dueDate) ? format(new Date(item.status === 'completed' ? item.completedAt : item.dueDate), 'yyyy-MM-dd') : '-'
+                Date: (item.status === 'completed' ? item.completedAt : item.dueDate) ? format(new Date(item.status === 'completed' ? item.completedAt : item.dueDate), 'yyyy-MM-dd') : 'No Due Date'
             }));
             filename = `all-work-${format(new Date(), 'yyyy-MM-dd')}`;
         } else if (activeTab === 'pending') {
@@ -141,7 +141,7 @@ const AdminReportsPage: React.FC = () => {
                 Description: item.description || '-',
                 AssignedTo: item.assignedToName || 'Unknown',
                 Priority: item.priority,
-                DueDate: item.dueDate ? format(new Date(item.dueDate), 'yyyy-MM-dd') : '-'
+                DueDate: item.dueDate ? format(new Date(item.dueDate), 'yyyy-MM-dd') : 'No Due Date'
             }));
             filename = `standing-pending-${format(new Date(), 'yyyy-MM-dd')}`;
         } else if (activeTab === 'completed') {
@@ -395,7 +395,7 @@ const AdminReportsPage: React.FC = () => {
                                                     <TableCell>
                                                         {item.status === 'completed' 
                                                             ? (item.completedAt ? format(new Date(item.completedAt), 'MMM dd, yyyy') : '-') 
-                                                            : (item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : '-')}
+                                                            : (item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : 'No Due Date')}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -442,7 +442,7 @@ const AdminReportsPage: React.FC = () => {
                                                             </Badge>
                                                         </TableCell>
                                                         <TableCell className="border-r"><Badge variant="outline" className="capitalize">{item.priority}</Badge></TableCell>
-                                                        <TableCell>{item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : '-'}</TableCell>
+                                                        <TableCell>{item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : 'No Due Date'}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
@@ -685,7 +685,7 @@ const AdminReportsPage: React.FC = () => {
                                                         <span className="text-[9px] text-slate-400">
                                                             {item.status === 'completed' 
                                                                 ? (item.completedAt ? format(new Date(item.completedAt), 'MMM dd') : '-')
-                                                                : (item.dueDate ? format(new Date(item.dueDate), 'MMM dd') : '-')}
+                                                                : (item.dueDate ? format(new Date(item.dueDate), 'MMM dd') : 'No Due Date')}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -708,7 +708,7 @@ const AdminReportsPage: React.FC = () => {
                                                     </div>
                                                     <div className="flex flex-col items-end gap-1 shrink-0">
                                                         <Badge variant="outline" className="capitalize text-[9px]">{item.priority}</Badge>
-                                                        <span className="text-[9px] text-slate-400">{item.dueDate ? format(new Date(item.dueDate), 'MMM dd') : '-'}</span>
+                                                        <span className="text-[9px] text-slate-400">{item.dueDate ? format(new Date(item.dueDate), 'MMM dd') : 'No Due Date'}</span>
                                                     </div>
                                                 </div>
                                             </div>
