@@ -304,7 +304,15 @@ const WorkAllocationPage: React.FC = () => {
         api.properties.getByAssociation(Number(user?.associationId)).catch(() => ({ success: true, data: [] }))
       ]);
 
-      if (allocationsRes.success) setAllocations(allocationsRes.data || []);
+      if (allocationsRes.success) {
+        const sortedData = (allocationsRes.data || []).sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
+          if (dateB !== dateA) return dateB - dateA;
+          return (b.id || 0) - (a.id || 0);
+        });
+        setAllocations(sortedData);
+      }
       if (usersRes.success) setUsers((usersRes.data || []).filter((u: any) => u.isActive !== false).map((u: any) => ({ ...u, name: u.fullName || u.username || 'Unknown' })));
       if (worksRes.success) setAvailableWorks((worksRes.data || []).map((w: any) => ({
         id: w.id,
@@ -370,7 +378,7 @@ const WorkAllocationPage: React.FC = () => {
     const matchesFrom = !filterDateFrom || (dueDate && dueDate >= new Date(filterDateFrom));
     const matchesTo = !filterDateTo || (dueDate && dueDate <= new Date(filterDateTo + 'T23:59:59'));
     return matchesSearch && matchesStatus && matchesEmployee && matchesFrom && matchesTo;
-  });
+  }).sort((a: any, b: any) => (b.id || 0) - (a.id || 0));
 
   const hasActiveFilters = filterEmployee !== 'all' || filterDateFrom !== '' || filterDateTo !== '' || filterStatus !== 'all' || searchQuery !== '';
 

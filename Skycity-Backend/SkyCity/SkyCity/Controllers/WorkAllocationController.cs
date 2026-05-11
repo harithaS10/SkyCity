@@ -53,6 +53,7 @@ public class WorkAllocationController : ControllerBase
         var items = await _context.WorkAllocations
             .Where(a => a.AssociationId == CurrentAssocId)
             .OrderByDescending(a => a.CreatedAt)
+            .ThenByDescending(a => a.Id)
             .ToListAsync();
 
         var userIds = items.SelectMany(a => new[] { a.AssignedTo, a.AssignedBy }).Distinct().ToList();

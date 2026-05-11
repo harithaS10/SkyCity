@@ -81,7 +81,8 @@ const WorkManagement: React.FC = () => {
     try {
       const response = await api.works.getAll();
       if (response.success && response.data) {
-        setWorks(response.data);
+        const sortedData = [...(response.data || [])].sort((a: any, b: any) => b.id - a.id);
+        setWorks(sortedData);
       }
     } catch (error) {
       console.error("Error fetching works:", error);

@@ -686,7 +686,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                   <p className="text-muted-foreground">No tasks to do. Great job!</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
                   {pendingTasks.map((task, index) => (
                     <TaskCard key={task.id} task={task} index={index} />
                   ))}
@@ -744,7 +744,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
               )}
 
               {inProgressTasks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
                   {inProgressTasks.map((task, index) => (
                     <TaskCard key={task.id} task={task} index={index} />
                   ))}

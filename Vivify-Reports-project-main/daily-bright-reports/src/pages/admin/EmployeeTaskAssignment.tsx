@@ -155,7 +155,13 @@ const EmployeeTaskAssignment: React.FC = () => {
         _source: 'stafftask' as const,
       }));
 
-      setTasks([...allocTasks, ...adminTasksMapped]);
+      const combinedTasks = [...allocTasks, ...adminTasksMapped].sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        if (dateB !== dateA) return dateB - dateA;
+        return b.id - a.id;
+      });
+      setTasks(combinedTasks);
     } catch (error) {
       console.error("Error fetching employee tasks:", error);
       toast.error("Failed to load employee tasks");
