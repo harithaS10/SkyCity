@@ -64,10 +64,17 @@ const EmployeeList: React.FC = () => {
       const response = await api.users.getAll();
       if (response.success && response.data) {
         // Filter staff/employee roles (exclude super_admin, admin, resident)
-        const staffRoles = ['staff', 'helpdesk', 'property_manager', 'facility_manager', 'vendor', 'sub_admin', 'accountant'];
+        // Using lowercase for case-insensitive comparison
+        const staffRoles = ['staff', 'helpdesk', 'property_manager', 'facility_manager', 'vendor', 'sub_admin', 'accountant', 'field sup', 'site manager', 'field supervisor', 'property manager'];
         const activeEmployees = response.data.filter(
-          (user: Employee) => staffRoles.includes(user.role) && (user.isActive !== false)
-        );
+          (user: Employee) => {
+            const role = (user.role || '').toLowerCase();
+            return staffRoles.includes(role) && (user.isActive !== false);
+          }
+        ).map((user: Employee) => ({
+          ...user,
+          fullName: user.fullName || user.username // Fallback to username
+        }));
         setEmployees(activeEmployees);
         
         // Fetch stats for each employee

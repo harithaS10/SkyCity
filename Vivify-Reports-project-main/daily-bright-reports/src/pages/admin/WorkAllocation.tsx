@@ -305,7 +305,7 @@ const WorkAllocationPage: React.FC = () => {
       ]);
 
       if (allocationsRes.success) setAllocations(allocationsRes.data || []);
-      if (usersRes.success) setUsers((usersRes.data || []).filter((u: any) => u.isActive !== false).map((u: any) => ({ ...u, name: u.fullName })));
+      if (usersRes.success) setUsers((usersRes.data || []).filter((u: any) => u.isActive !== false).map((u: any) => ({ ...u, name: u.fullName || u.username || 'Unknown' })));
       if (worksRes.success) setAvailableWorks((worksRes.data || []).map((w: any) => ({
         id: w.id,
         workTitle: w.workTitle,
