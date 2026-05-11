@@ -294,7 +294,7 @@ const EmployeeList: React.FC = () => {
                                   </div>
                                 </TableCell>
                                 <TableCell className="border-r">
-                                  <Badge variant="outline" className="font-mono text-[10px] bg-slate-50">
+                                  <Badge variant="outline" className="font-mono text-[10px] bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700">
                                     EMP-{employee.id.toString().padStart(3, '0')}
                                   </Badge>
                                 </TableCell>

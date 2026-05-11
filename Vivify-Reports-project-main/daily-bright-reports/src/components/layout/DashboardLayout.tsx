@@ -332,7 +332,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             'h-8 px-2 gap-1 text-[11px] font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
             activeHrefs.includes(location.pathname)
               ? 'bg-white/20 text-white shadow-md'
-              : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
+              : 'text-white/80 hover:bg-white/10 hover:text-white'
           )}
         >
           <span className="relative z-10 flex items-center gap-1">
@@ -360,7 +360,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden w-full">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 w-full border-b border-primary/20 bg-primary text-primary-foreground shadow-md safe-top"
+        className="fixed top-0 left-0 right-0 z-50 w-full border-b border-white/10 bg-[#0d9488] text-white shadow-md safe-top"
       >
         <div className="flex h-16 sm:h-14 items-center justify-between px-3 sm:px-3 lg:px-4 xl:px-6 max-w-[1800px] mx-auto w-full gap-2">
 
@@ -369,7 +369,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             <Button
               variant="ghost"
               size="icon"
-              className="xl:hidden text-primary-foreground/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8 flex-shrink-0"
+              className="xl:hidden text-white/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8 flex-shrink-0"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="h-5 w-5 sm:h-4 sm:w-4" /> : <Menu className="h-5 w-5 sm:h-4 sm:w-4" />}
@@ -410,7 +410,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       'h-8 px-2 gap-1 text-[11px] font-semibold transition-all relative overflow-hidden group rounded-md whitespace-nowrap flex-shrink-0',
                       isActive
                         ? 'bg-white/20 text-white shadow-md'
-                        : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
                     )}
                     onClick={() => {
                       navigate(item.href);
@@ -440,7 +440,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <button
                   onClick={() => navigate('/admin/employees')}
                   className={cn(
-                    'flex items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors text-primary-foreground/80 hover:text-white hover:bg-white/10 whitespace-nowrap flex-shrink-0',
+                    'flex items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors text-white/80 hover:text-white hover:bg-white/10 whitespace-nowrap flex-shrink-0',
                     location.pathname.startsWith('/admin/employee') && 'bg-white/20 text-white shadow-md'
                   )}
                 >
@@ -463,7 +463,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     'h-8 px-2 gap-1 text-[11px] font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
                     location.pathname === item.href
                       ? 'bg-white/20 text-white shadow-md'
-                      : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
+                      : 'text-white/80 hover:bg-white/10 hover:text-white'
                   )}
                   onClick={() => navigate(item.href)}
                 >
@@ -481,7 +481,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
             {/* Association Info Badge (Non-SuperAdmins) */}
             
 
-            <ModeToggle className="text-primary-foreground/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8" />
+            <ModeToggle className="text-white/80 hover:text-white hover:bg-white/10 h-10 w-10 sm:h-8 sm:w-8" />
 
             {/* Admin Notification Bell */}
             {isAdminRole && (
@@ -489,7 +489,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-primary-foreground/80 hover:bg-white/10 hover:text-white"
+                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-white/80 hover:bg-white/10 hover:text-white"
                   onClick={() => setShowAdminNotifPanel(v => !v)}
                 >
                   <Bell className={cn('h-4 w-4', apiNotifUnread > 0 && 'text-amber-300')} />
@@ -566,7 +566,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-primary-foreground/80 hover:bg-white/10 hover:text-white"
+                  className="relative h-10 w-10 sm:h-8 sm:w-8 text-white/80 hover:bg-white/10 hover:text-white"
                   onClick={() => setShowReminderPanel(v => !v)}
                 >
                   <Bell className={cn('h-4 w-4', (unreadCount + apiNotifUnread) > 0 && 'text-amber-300')} />
@@ -644,18 +644,18 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="h-10 sm:h-8 px-2 sm:px-1.5 gap-1.5 hover:bg-white/10 hover:text-white border border-transparent transition-all text-primary-foreground"
+                  className="h-10 sm:h-8 px-2 sm:px-1.5 gap-1.5 hover:bg-white/10 hover:text-white border border-transparent transition-all text-white"
                 >
                   <div className="flex h-8 w-8 sm:h-6 sm:w-6 items-center justify-center rounded-md bg-white/20 shadow-sm flex-shrink-0">
                     <User className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-white" />
                   </div>
                   <div className="hidden sm:block text-left min-w-0 max-w-[100px]">
                     <p className="text-[11px] font-bold text-white leading-none mb-0.5 truncate">{user?.fullName}</p>
-                    <p className={cn('text-[9px] capitalize truncate', roleBadge?.color ?? 'text-primary-foreground/70')}>
+                    <p className={cn('text-[9px] capitalize truncate', roleBadge?.color ?? 'text-white/70')}>
                       {roleBadge?.label ?? user?.role}
                     </p>
                   </div>
-                  <ChevronDown className="h-4 w-4 sm:h-3 sm:w-3 text-primary-foreground/70 flex-shrink-0" />
+                  <ChevronDown className="h-4 w-4 sm:h-3 sm:w-3 text-white/70 flex-shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 p-1 bg-card border shadow-lg">
@@ -691,7 +691,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     variant="ghost"
                     className={cn(
                       'w-full justify-start h-11 sm:h-9 px-3 text-[13px] sm:text-xs font-medium transition-all',
-                      isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      isActive ? 'bg-[#0d9488] text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                     )}
                     onClick={() => {
                       navigate(item.href);
@@ -720,7 +720,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   {managementItems.map((item) => (
                     <Button key={item.href} variant="ghost"
                       className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
-                        location.pathname === item.href ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        location.pathname === item.href ? 'bg-[#0d9488] text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       )}
                       onClick={() => { navigate(item.href); setIsMobileMenuOpen(false); }}
                     >
@@ -735,7 +735,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   {taskManagementItems.map((item) => (
                     <Button key={item.href} variant="ghost"
                       className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
-                        location.pathname === item.href ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        location.pathname === item.href ? 'bg-[#0d9488] text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       )}
                       onClick={() => { navigate(item.href); setIsMobileMenuOpen(false); }}
                     >
@@ -758,7 +758,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   ].map((item) => (
                     <Button key={item.href} variant="ghost"
                       className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
-                        location.pathname === item.href ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        location.pathname === item.href ? 'bg-[#0d9488] text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       )}
                       onClick={() => { navigate(item.href); setIsMobileMenuOpen(false); }}
                     >
