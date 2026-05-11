@@ -60,34 +60,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    // Restore session from localStorage
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (storedUser && token) {
-      // Check if JWT token is expired
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const expiry = payload.exp * 1000; // convert to ms
-        if (Date.now() >= expiry) {
-          // Token expired — clear storage and stay on login
-          localStorage.removeItem('user');
+    const initAuth = async () => {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (storedUser && token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const expiry = payload.exp * 1000;
+          if (Date.now() >= expiry) {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('authToken');
+            setIsLoading(false);
+            return;
+          }
+          
+          const u = JSON.parse(storedUser);
+          setUser(u);
+          // Await permissions loading before clearing the loading state
+          await loadRolePermissions(u.role, u.associationId);
+        } catch (error) {
           localStorage.removeItem('token');
-          localStorage.removeItem('authToken');
-          setIsLoading(false);
-          return;
+          localStorage.removeItem('user');
         }
-      } catch {
-        // Invalid token format — clear it
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setIsLoading(false);
-        return;
       }
-      const u = JSON.parse(storedUser);
-      setUser(u);
-      loadRolePermissions(u.role, u.associationId);
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   // Poll permissions every 30s so role changes apply without re-login
