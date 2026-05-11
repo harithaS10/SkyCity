@@ -1025,7 +1025,7 @@ const WorkAllocationPage: React.FC = () => {
     <DashboardLayout>
       <div className="w-full">
         {/* ===== DESKTOP VIEW ===== */}
-        <div className="hidden lg:block space-y-8 animate-in fade-in duration-500 pt-6">
+        <div className="hidden lg:block space-y-6 animate-in fade-in duration-500 pt-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Work Allocation</h1>
@@ -1391,7 +1391,7 @@ const WorkAllocationPage: React.FC = () => {
         {/* ===== MOBILE VIEW ===== */}
         <div className="block lg:hidden min-h-screen bg-slate-50 dark:bg-slate-950 pb-[80px] -mx-4 -mt-4">
           {/* Mobile Header */}
-          <div className="bg-primary/95 pt-8 pb-10 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
+          <div className="bg-primary/95 pt-4 pb-10 px-6 rounded-b-[2.5rem] shadow-lg relative z-10 text-white">
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h1 className="text-2xl font-black text-white tracking-tight">Work Allocation</h1>
