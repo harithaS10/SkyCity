@@ -227,8 +227,6 @@ public class User : ISoftDelete
     public string FullName { get; set; } = string.Empty;
     public string? Email { get; set; }
     public UserRole Role { get; set; } = UserRole.resident;
-    /// <summary>Stores the custom role display name (e.g. "tester") assigned by admin.</summary>
-    public string? CustomRoleName { get; set; }
     public int? AssociationId { get; set; }
     public int? PropertyId { get; set; }
     public int? BuildingId { get; set; }

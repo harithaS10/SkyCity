@@ -116,10 +116,22 @@ const UserManagement: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-    // Load departments and custom roles for the create form
     api.departments.getAll().then(r => { if (r.success && r.data) setDepartments(r.data); }).catch(() => {});
     api.roles.getAll().then(r => { if (r.success && r.data) setCustomRoles(r.data); }).catch(() => {});
   }, []);
+
+  // Built-in roles always available — merged with custom roles for the dropdown
+  const builtInRoles = [
+    { id: -1, roleName: 'Admin' }, { id: -2, roleName: 'Sub Admin' },
+    { id: -3, roleName: 'Site Manager' }, { id: -4, roleName: 'Field Supervisor' },
+    { id: -5, roleName: 'Staff' }, { id: -6, roleName: 'Vendor' },
+    { id: -7, roleName: 'Resident' }, { id: -8, roleName: 'Accountant' },
+    { id: -9, roleName: 'Helpdesk' },
+  ];
+  const allRoles = [
+    ...builtInRoles,
+    ...customRoles.filter(r => !builtInRoles.some(b => b.roleName.toLowerCase() === r.roleName.toLowerCase())),
+  ];
 
   // Helper function to format role display name
   const formatRoleName = (roleValue: string): string => {
@@ -674,15 +686,11 @@ const UserManagement: React.FC = () => {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card max-h-[200px] overflow-y-auto">
-                                  {customRoles.length > 0 ? (
-                                    customRoles.map(r => (
-                                      <SelectItem key={r.id} value={r.roleName}>
-                                        {r.roleName}
-                                      </SelectItem>
-                                    ))
-                                  ) : (
-                                    <div className="px-2 py-2 text-xs text-slate-500">No roles available</div>
-                                  )}
+                                  {allRoles.map(r => (
+                                    <SelectItem key={r.id} value={r.roleName}>
+                                      {r.roleName}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </TableCell>
@@ -822,15 +830,11 @@ const UserManagement: React.FC = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card rounded-2xl shadow-xl border-slate-100 max-h-[200px] overflow-y-auto">
-                              {customRoles.length > 0 ? (
-                                customRoles.map(r => (
-                                  <SelectItem key={r.id} value={r.roleName}>
-                                    {r.roleName}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <div className="px-2 py-2 text-xs text-slate-500">No roles available</div>
-                              )}
+                              {allRoles.map(r => (
+                                <SelectItem key={r.id} value={r.roleName}>
+                                  {r.roleName}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
