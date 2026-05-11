@@ -18,11 +18,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ClipboardList, CheckCircle2, History, ArrowRight, Download, X, Users, Calendar as CalendarIcon } from 'lucide-react';
-import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'sonner';
+import { Users, CalendarIcon, X, Download, Loader2, ClipboardList, CheckCircle2, ArrowRight, History as HistoryIcon } from 'lucide-react';
 
 const AdminReportsPage: React.FC = () => {
     const [standingPending, setStandingPending] = useState<any[]>([]);
@@ -235,16 +236,40 @@ const AdminReportsPage: React.FC = () => {
                                 {allUsers.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
                             </SelectContent>
                         </Select>
-                        <div className="relative">
-                            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input type="date" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)}
-                                className="h-10 text-sm rounded-xl border border-input bg-background pl-9 w-[145px] font-medium shadow-sm" />
-                        </div>
-                        <div className="relative">
-                            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                            <Input type="date" value={filterToDate} onChange={e => setFilterToDate(e.target.value)}
-                                className="h-10 text-sm rounded-xl border border-input bg-background pl-9 w-[145px] font-medium shadow-sm" />
-                        </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="h-10 text-sm rounded-xl gap-2 px-3 w-[145px] font-medium shadow-sm">
+                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                    {filterFromDate ? format(new Date(filterFromDate), 'MMM dd') : 'From Date'}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-card rounded-xl" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={filterFromDate ? new Date(filterFromDate) : undefined}
+                                    onSelect={(date) => setFilterFromDate(date ? format(date, 'yyyy-MM-dd') : '')}
+                                    disabled={(date) => date > new Date()}
+                                    className="rounded-md"
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="h-10 text-sm rounded-xl gap-2 px-3 w-[145px] font-medium shadow-sm">
+                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                    {filterToDate ? format(new Date(filterToDate), 'MMM dd') : 'To Date'}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-card rounded-xl" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={filterToDate ? new Date(filterToDate) : undefined}
+                                    onSelect={(date) => setFilterToDate(date ? format(date, 'yyyy-MM-dd') : '')}
+                                    disabled={(date) => date > new Date()}
+                                    className="rounded-md"
+                                />
+                            </PopoverContent>
+                        </Popover>
                         {hasFilters && (
                             <Button variant="destructive" size="sm" onClick={clearFilters} className="h-10 gap-1.5 rounded-xl px-3 text-sm font-medium shadow-sm shrink-0">
                                 <X className="h-4 w-4" /> Clear
@@ -359,7 +384,7 @@ const AdminReportsPage: React.FC = () => {
                         <TabsContent value="reassignment" className="mt-6">
                             <Card className="border-none shadow-md">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><History className="h-5 w-5 text-blue-500" />Reassignment History</CardTitle>
+                                    <CardTitle className="flex items-center gap-2"><HistoryIcon className="h-5 w-5 text-blue-500" />Reassignment History</CardTitle>
                                     <CardDescription>Audit trail of work items reassigned between users.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -464,16 +489,40 @@ const AdminReportsPage: React.FC = () => {
                                     </SelectContent>
                                 </Select>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div className="relative">
-                                        <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary pointer-events-none" />
-                                        <Input type="date" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)}
-                                            className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 text-[10px] font-bold pl-8" />
-                                    </div>
-                                    <div className="relative">
-                                        <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary pointer-events-none" />
-                                        <Input type="date" value={filterToDate} onChange={e => setFilterToDate(e.target.value)}
-                                            className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 text-[10px] font-bold pl-8" />
-                                    </div>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="h-10 text-[10px] rounded-xl gap-1.5 px-2 font-bold bg-slate-50 border-none ring-1 ring-slate-100">
+                                                <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+                                                {filterFromDate ? format(new Date(filterFromDate), 'MMM dd') : 'From'}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0 bg-card rounded-xl" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={filterFromDate ? new Date(filterFromDate) : undefined}
+                                                onSelect={(date) => setFilterFromDate(date ? format(date, 'yyyy-MM-dd') : '')}
+                                                disabled={(date) => date > new Date()}
+                                                className="rounded-md"
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="h-10 text-[10px] rounded-xl gap-1.5 px-2 font-bold bg-slate-50 border-none ring-1 ring-slate-100">
+                                                <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+                                                {filterToDate ? format(new Date(filterToDate), 'MMM dd') : 'To'}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0 bg-card rounded-xl" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={filterToDate ? new Date(filterToDate) : undefined}
+                                                onSelect={(date) => setFilterToDate(date ? format(date, 'yyyy-MM-dd') : '')}
+                                                disabled={(date) => date > new Date()}
+                                                className="rounded-md"
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
                             </div>
 

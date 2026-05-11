@@ -21,7 +21,8 @@ import {
   Building2,
   PlayCircle,
   Trash2,
-  FileText
+  FileText,
+  X
 } from "lucide-react";
 import {
   Dialog,
@@ -1411,13 +1412,13 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
 
       {/* Task Detail Dialog — full screen on mobile (Screen 3) */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden shadow-2xl sm:rounded-2xl rounded-none sm:max-h-[90vh] h-[100dvh] sm:h-auto flex flex-col">
+        <DialogContent className="max-w-md p-0 overflow-hidden shadow-2xl sm:rounded-2xl rounded-none sm:max-h-[90vh] h-[100dvh] sm:h-auto flex flex-col [&>button]:hidden">
           {selectedTask && (
             <div className="flex flex-col h-full sm:max-h-[85vh]">
               {/* Mobile header with back button */}
               <div className={`flex items-center gap-3 px-4 py-3 text-white ${selectedTask.priority === 'high' ? 'bg-rose-500' :
                   selectedTask.priority === 'medium' ? 'bg-amber-500' : 'bg-[#1E5FA8]'
-                }`}>
+                } relative`}>
                 <button onClick={() => setIsDetailDialogOpen(false)}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
@@ -1429,6 +1430,10 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                 <Badge className="bg-white/20 text-white border-0 text-[10px] capitalize shrink-0">
                   {selectedTask.status?.replace('_', ' ').replace('-', ' ')}
                 </Badge>
+                <button onClick={() => setIsDetailDialogOpen(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors ml-auto">
+                  <X className="h-4 w-4 text-white" />
+                </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4 overscroll-contain">
