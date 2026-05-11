@@ -18,7 +18,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { Shield, Plus, MoreVertical, Pencil, Trash2, Check, X, Upload, Download, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
+import { Shield, Plus, MoreVertical, Pencil, Trash2, Check, X, Upload, Download, FileSpreadsheet, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ─── Permissions Matrix ────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ const RoleManagement: React.FC = () => {
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [bulkCsvText, setBulkCsvText] = useState('');
   const [isBulkUploading, setIsBulkUploading] = useState(false);
-  const [bulkResult, setBulkResult] = useState<{ created: any[] } | null>(null);
+  const [bulkResult, setBulkResult] = useState<{ created: any[]; errors?: string[] } | null>(null);
   const bulkFileRef = useRef<HTMLInputElement>(null);
   const [editTarget, setEditTarget] = useState<CustomRole | null>(null);
   const [roleName, setRoleName] = useState('');
@@ -212,8 +212,8 @@ const RoleManagement: React.FC = () => {
     try {
       const res = await api.roles.bulkCreate(items);
       if (res.success) {
-        setBulkResult({ created: res.data || [] });
-        toast.success(`Bulk upload complete: ${res.data?.length ?? 0} roles created`);
+        setBulkResult(res.data);
+        toast.success(`Bulk upload complete: ${res.data?.created?.length ?? 0} roles created`);
         load();
       } else {
         toast.error(res.message || 'Bulk upload failed');
@@ -643,10 +643,35 @@ const RoleManagement: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3 py-2">
-                <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                  <p className="text-sm font-semibold text-emerald-700">{bulkResult.created.length} roles created successfully</p>
+                <div className={cn(
+                  "flex items-center gap-2 p-3 rounded-xl border",
+                  (bulkResult.created?.length ?? 0) > 0 ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                )}>
+                  {(bulkResult.created?.length ?? 0) > 0 ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                  )}
+                  <p className={cn(
+                    "text-sm font-semibold",
+                    (bulkResult.created?.length ?? 0) > 0 ? "text-emerald-700" : "text-amber-700"
+                  )}>
+                    {(bulkResult.created?.length ?? 0) === 0 
+                      ? "No new roles created (duplicates or already exist)" 
+                      : `${bulkResult.created.length} roles created successfully`}
+                  </p>
                 </div>
+                {bulkResult.errors && bulkResult.errors.length > 0 && (
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                      <p className="text-xs font-semibold text-amber-700">{bulkResult.errors.length} items skipped:</p>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto pl-6">
+                      {bulkResult.errors.map((e, i) => <p key={i} className="text-xs text-amber-600">{e}</p>)}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <DialogFooter>
