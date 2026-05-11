@@ -23,19 +23,22 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'sonner';
-import { Users, CalendarIcon, X, Download, Loader2, ClipboardList, CheckCircle2, ArrowRight, History as HistoryIcon } from 'lucide-react';
+import { Users, CalendarIcon, X, Download, Loader2, ClipboardList, CheckCircle2, ArrowRight, History as HistoryIcon, Filter } from 'lucide-react';
 
 const AdminReportsPage: React.FC = () => {
     const [standingPending, setStandingPending] = useState<any[]>([]);
     const [pendingToCompleted, setPendingToCompleted] = useState<any[]>([]);
     const [reassignmentHistory, setReassignmentHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<string>('pending');
+    const [activeTab, setActiveTab] = useState<string>('all');
+    const [selectedItem, setSelectedItem] = useState<any>(null);
 
     // Filters
     const [filterFromDate, setFilterFromDate] = useState('');
     const [filterToDate, setFilterToDate] = useState('');
     const [filterUser, setFilterUser] = useState('all');
+    const [filterPriority, setFilterPriority] = useState('all');
+    const [filterStatus, setFilterStatus] = useState('all');
 
     // Unique user names across all data for the user filter dropdown
     const allUsers = useMemo(() => {
@@ -60,16 +63,39 @@ const AdminReportsPage: React.FC = () => {
                 } catch { /* ignore */ }
             }
             if (filterUser !== 'all' && item.assignedToName !== filterUser) return false;
+            if (filterPriority !== 'all' && (item.priority?.toLowerCase() || '') !== filterPriority) return false;
+            if (filterStatus !== 'all' && (item.status?.toLowerCase() || '') !== filterStatus) return false;
             return true;
         });
     };
 
-    const filteredPending = useMemo(() => applyFilters(standingPending, 'dueDate'), [standingPending, filterFromDate, filterToDate, filterUser]);
-    const filteredCompleted = useMemo(() => applyFilters(pendingToCompleted, 'completedAt'), [pendingToCompleted, filterFromDate, filterToDate, filterUser]);
-    const filteredReassignment = useMemo(() => applyFilters(reassignmentHistory, 'originalAssignDate'), [reassignmentHistory, filterFromDate, filterToDate, filterUser]);
+    const filteredAll = useMemo(() => {
+        const allItems = [...standingPending, ...pendingToCompleted];
+        return allItems.filter(item => {
+            const dateVal = item.status === 'completed' ? item.completedAt : item.dueDate;
+            if (filterFromDate && dateVal) {
+                try {
+                    if (new Date(dateVal) < startOfDay(new Date(filterFromDate))) return false;
+                } catch { /* ignore */ }
+            }
+            if (filterToDate && dateVal) {
+                try {
+                    if (new Date(dateVal) > endOfDay(new Date(filterToDate))) return false;
+                } catch { /* ignore */ }
+            }
+            if (filterUser !== 'all' && item.assignedToName !== filterUser) return false;
+            if (filterPriority !== 'all' && (item.priority?.toLowerCase() || '') !== filterPriority) return false;
+            if (filterStatus !== 'all' && (item.status?.toLowerCase() || '') !== filterStatus) return false;
+            return true;
+        });
+    }, [standingPending, pendingToCompleted, filterFromDate, filterToDate, filterUser, filterPriority, filterStatus]);
 
-    const clearFilters = () => { setFilterFromDate(''); setFilterToDate(''); setFilterUser('all'); };
-    const hasFilters = filterFromDate || filterToDate || filterUser !== 'all';
+    const filteredPending = useMemo(() => applyFilters(standingPending, 'dueDate'), [standingPending, filterFromDate, filterToDate, filterUser, filterPriority, filterStatus]);
+    const filteredCompleted = useMemo(() => applyFilters(pendingToCompleted, 'completedAt'), [pendingToCompleted, filterFromDate, filterToDate, filterUser, filterPriority, filterStatus]);
+    const filteredReassignment = useMemo(() => applyFilters(reassignmentHistory, 'originalAssignDate'), [reassignmentHistory, filterFromDate, filterToDate, filterUser, filterPriority, filterStatus]);
+
+    const clearFilters = () => { setFilterFromDate(''); setFilterToDate(''); setFilterUser('all'); setFilterPriority('all'); setFilterStatus('all'); };
+    const hasFilters = filterFromDate || filterToDate || filterUser !== 'all' || filterPriority !== 'all' || filterStatus !== 'all';
 
     useEffect(() => {
         fetchReports();
@@ -99,7 +125,17 @@ const AdminReportsPage: React.FC = () => {
         let data_to_export: any[] = [];
         let filename = '';
 
-        if (activeTab === 'pending') {
+        if (activeTab === 'all') {
+            data_to_export = [...standingPending, ...pendingToCompleted].map(item => ({
+                Title: item.title,
+                Description: item.description || '-',
+                AssignedTo: item.assignedToName || 'Unknown',
+                Priority: item.priority || '-',
+                Status: item.status,
+                Date: (item.status === 'completed' ? item.completedAt : item.dueDate) ? format(new Date(item.status === 'completed' ? item.completedAt : item.dueDate), 'yyyy-MM-dd') : '-'
+            }));
+            filename = `all-work-${format(new Date(), 'yyyy-MM-dd')}`;
+        } else if (activeTab === 'pending') {
             data_to_export = standingPending.map(item => ({
                 Title: item.title,
                 Description: item.description || '-',
@@ -236,6 +272,18 @@ const AdminReportsPage: React.FC = () => {
                                 {allUsers.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
                             </SelectContent>
                         </Select>
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                            <SelectTrigger className="h-10 rounded-xl border border-input bg-background gap-2 px-3 w-[160px] text-sm font-medium shadow-sm">
+                                <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Status</SelectItem>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="in-progress">In Progress</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" className="h-10 text-sm rounded-xl gap-2 px-3 w-[145px] font-medium shadow-sm">
@@ -283,6 +331,7 @@ const AdminReportsPage: React.FC = () => {
                 </div>
                 {hasFilters && (
                     <p className="hidden sm:block text-xs text-muted-foreground font-medium mb-4">
+                        {activeTab === 'all' && `${filteredAll.length} record${filteredAll.length !== 1 ? 's' : ''} found`}
                         {activeTab === 'pending' && `${filteredPending.length} record${filteredPending.length !== 1 ? 's' : ''} found`}
                         {activeTab === 'completed' && `${filteredCompleted.length} record${filteredCompleted.length !== 1 ? 's' : ''} found`}
                         {activeTab === 'reassignment' && `${filteredReassignment.length} record${filteredReassignment.length !== 1 ? 's' : ''} found`}
@@ -300,45 +349,104 @@ const AdminReportsPage: React.FC = () => {
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <div className="overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
                             <TabsList className="inline-flex w-auto min-w-full lg:min-w-[600px] h-11 bg-muted/50 p-1">
+                                <TabsTrigger value="all" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">All</TabsTrigger>
                                 <TabsTrigger value="pending" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">Standing Pending</TabsTrigger>
                                 <TabsTrigger value="completed" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">Pending to Completed</TabsTrigger>
                                 <TabsTrigger value="reassignment" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">Reassignment History</TabsTrigger>
                             </TabsList>
                         </div>
+                        <TabsContent value="all" className="mt-6">
+                            <Card className="border-none shadow-md">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5 text-indigo-500" />All Work</CardTitle>
+                                    <CardDescription>Overview of all assigned and completed work. Click a row to view details.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                <div className="rounded-md border overflow-hidden [&>div]:max-h-[500px]">
+                                    <Table className="border-x">
+                                        <TableHeader>
+                                            <TableRow className="bg-primary hover:bg-primary h-9">
+                                                <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
+                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Title</TableHead>
+                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Assigned To</TableHead>
+                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Status</TableHead>
+                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Priority</TableHead>
+                                                <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Date</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredAll.length === 0 ? (
+                                                <TableRow><TableCell colSpan={6} className="h-24 text-center">No work found.</TableCell></TableRow>
+                                            ) : filteredAll.map((item, index) => (
+                                                <TableRow key={item.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => setSelectedItem(item)}>
+                                                    <TableCell className="border-r text-muted-foreground text-xs font-medium">{index + 1}</TableCell>
+                                                    <TableCell className="font-medium border-r">{item.title}</TableCell>
+                                                    <TableCell className="border-r">{item.assignedToName || 'Unknown'}</TableCell>
+                                                    <TableCell className="border-r">
+                                                        <Badge className={
+                                                            item.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                                            item.status === 'in-progress' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                            'bg-amber-100 text-amber-700 border-amber-200'
+                                                        } variant="outline">
+                                                            {item.status === 'in-progress' ? 'In Progress' : item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Pending'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="border-r"><Badge variant="outline" className="capitalize">{item.priority || '-'}</Badge></TableCell>
+                                                    <TableCell>
+                                                        {item.status === 'completed' 
+                                                            ? (item.completedAt ? format(new Date(item.completedAt), 'MMM dd, yyyy') : '-') 
+                                                            : (item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : '-')}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
                         <TabsContent value="pending" className="mt-6">
                             <Card className="border-none shadow-md">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5 text-amber-500" />Standing Pending Work</CardTitle>
-                                    <CardDescription>Work currently assigned but not yet completed.</CardDescription>
+                                    <CardDescription>Work currently assigned but not yet completed. Click a row to view details.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                <div className="rounded-md border overflow-hidden">
-                                    <div className="overflow-auto max-h-[500px]">
-                                        <Table className="border-x">
+                                <div className="rounded-md border overflow-hidden [&>div]:max-h-[500px]">
+                                    <Table className="border-x">
                                             <TableHeader>
                                                 <TableRow className="bg-primary hover:bg-primary h-9">
                                                     <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
                                                     <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Title</TableHead>
                                                     <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Assigned To</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Status</TableHead>
                                                     <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Priority</TableHead>
                                                     <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Due Date</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {filteredPending.length === 0 ? (
-                                                    <TableRow><TableCell colSpan={5} className="h-24 text-center">No pending work found.</TableCell></TableRow>
+                                                    <TableRow><TableCell colSpan={6} className="h-24 text-center">No pending work found.</TableCell></TableRow>
                                                 ) : filteredPending.map((item, index) => (
-                                                    <TableRow key={item.id}>
+                                                    <TableRow key={item.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => setSelectedItem(item)}>
                                                         <TableCell className="border-r text-muted-foreground text-xs font-medium">{index + 1}</TableCell>
                                                         <TableCell className="font-medium border-r">{item.title}</TableCell>
                                                         <TableCell className="border-r">{item.assignedToName || 'Unknown'}</TableCell>
+                                                        <TableCell className="border-r">
+                                                            <Badge className={
+                                                                item.status === 'completed' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
+                                                                item.status === 'in-progress' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                                                'bg-amber-100 text-amber-700 border-amber-200'
+                                                            } variant="outline">
+                                                                {item.status === 'in-progress' ? 'In Progress' : item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Pending'}
+                                                            </Badge>
+                                                        </TableCell>
                                                         <TableCell className="border-r"><Badge variant="outline" className="capitalize">{item.priority}</Badge></TableCell>
                                                         <TableCell>{item.dueDate ? format(new Date(item.dueDate), 'MMM dd, yyyy') : '-'}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
                                         </Table>
-                                    </div>
                                 </div>
                                 </CardContent>
                             </Card>
@@ -350,9 +458,8 @@ const AdminReportsPage: React.FC = () => {
                                     <CardDescription>Work items that have been successfully completed.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                <div className="rounded-md border overflow-hidden">
-                                    <div className="overflow-auto max-h-[500px]">
-                                        <Table className="border-x">
+                                <div className="rounded-md border overflow-hidden [&>div]:max-h-[500px]">
+                                    <Table className="border-x">
                                             <TableHeader>
                                                 <TableRow className="bg-primary hover:bg-primary h-9">
                                                     <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
@@ -366,7 +473,7 @@ const AdminReportsPage: React.FC = () => {
                                                 {filteredCompleted.length === 0 ? (
                                                     <TableRow><TableCell colSpan={5} className="h-24 text-center">No completed work records found.</TableCell></TableRow>
                                                 ) : filteredCompleted.map((item, index) => (
-                                                    <TableRow key={item.id}>
+                                                    <TableRow key={item.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => setSelectedItem(item)}>
                                                         <TableCell className="border-r text-muted-foreground text-xs font-medium">{index + 1}</TableCell>
                                                         <TableCell className="font-medium border-r">{item.title}</TableCell>
                                                         <TableCell className="border-r">{item.assignedToName || 'Unknown'}</TableCell>
@@ -376,7 +483,6 @@ const AdminReportsPage: React.FC = () => {
                                                 ))}
                                             </TableBody>
                                         </Table>
-                                    </div>
                                 </div>
                                 </CardContent>
                             </Card>
@@ -388,9 +494,8 @@ const AdminReportsPage: React.FC = () => {
                                     <CardDescription>Audit trail of work items reassigned between users.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                <div className="rounded-md border overflow-hidden">
-                                    <div className="overflow-auto max-h-[500px]">
-                                        <Table className="border-x">
+                                <div className="rounded-md border overflow-hidden [&>div]:max-h-[500px]">
+                                    <Table className="border-x">
                                             <TableHeader>
                                                 <TableRow className="bg-primary hover:bg-primary h-9">
                                                     <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
@@ -406,7 +511,7 @@ const AdminReportsPage: React.FC = () => {
                                                 {filteredReassignment.length === 0 ? (
                                                     <TableRow><TableCell colSpan={7} className="h-24 text-center">No reassignment history found.</TableCell></TableRow>
                                                 ) : filteredReassignment.map((item, index) => (
-                                                    <TableRow key={`${item.id}-${index}`}>
+                                                    <TableRow key={`${item.id}-${index}`} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => setSelectedItem(item)}>
                                                         <TableCell className="border-r text-muted-foreground text-xs font-medium">{index + 1}</TableCell>
                                                         <TableCell className="font-medium border-r">{item.title}</TableCell>
                                                         <TableCell className="text-muted-foreground border-r">{item.previousAssigneeName || 'Unknown'}</TableCell>
@@ -424,7 +529,6 @@ const AdminReportsPage: React.FC = () => {
                                                 ))}
                                             </TableBody>
                                         </Table>
-                                    </div>
                                 </div>
                                 </CardContent>
                             </Card>
@@ -488,6 +592,18 @@ const AdminReportsPage: React.FC = () => {
                                         {allUsers.map(name => <SelectItem key={name} value={name} className="font-bold">{name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
+                                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                    <SelectTrigger className="h-10 rounded-xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold text-sm">
+                                        <Filter className="h-3.5 w-3.5 mr-2 text-primary" />
+                                        <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper" side="bottom" avoidCollisions={false} className="rounded-xl">
+                                        <SelectItem value="all" className="font-bold">Status</SelectItem>
+                                        <SelectItem value="pending" className="font-bold">Pending</SelectItem>
+                                        <SelectItem value="in-progress" className="font-bold">In Progress</SelectItem>
+                                        <SelectItem value="completed" className="font-bold">Completed</SelectItem>
+                                    </SelectContent>
+                                </Select>
                                 <div className="grid grid-cols-2 gap-2">
                                     <Popover>
                                         <PopoverTrigger asChild>
@@ -528,10 +644,10 @@ const AdminReportsPage: React.FC = () => {
 
                             {/* Tab selector */}
                             <div className="flex rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-sm">
-                                {(['pending', 'completed', 'reassignment'] as const).map(tab => (
+                                {(['all', 'pending', 'completed', 'reassignment'] as const).map(tab => (
                                     <button key={tab} onClick={() => setActiveTab(tab)}
                                         className={`flex-1 py-3 text-[10px] font-black uppercase tracking-wide transition-colors ${activeTab === tab ? 'bg-primary text-white' : 'bg-white dark:bg-card text-slate-400'}`}>
-                                        {tab === 'pending' ? 'Pending' : tab === 'completed' ? 'Completed' : 'Reassigned'}
+                                        {tab === 'all' ? 'All' : tab === 'pending' ? 'Pending' : tab === 'completed' ? 'Completed' : 'Reassigned'}
                                     </button>
                                 ))}
                             </div>
@@ -540,12 +656,42 @@ const AdminReportsPage: React.FC = () => {
                             <div className="space-y-2.5 pb-10">
                                 <div className="flex justify-between items-center px-1">
                                     <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                                        {activeTab === 'pending' ? 'Standing Pending' : activeTab === 'completed' ? 'Completed Work' : 'Reassignment History'}
+                                        {activeTab === 'all' ? 'All Work' : activeTab === 'pending' ? 'Standing Pending' : activeTab === 'completed' ? 'Completed Work' : 'Reassignment History'}
                                     </h3>
                                     <span className="text-[9px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">
-                                        {activeTab === 'pending' ? filteredPending.length : activeTab === 'completed' ? filteredCompleted.length : filteredReassignment.length}
+                                        {activeTab === 'all' ? filteredAll.length : activeTab === 'pending' ? filteredPending.length : activeTab === 'completed' ? filteredCompleted.length : filteredReassignment.length}
                                     </span>
                                 </div>
+
+                                {activeTab === 'all' && (
+                                    filteredAll.length === 0
+                                        ? <p className="text-center text-sm text-slate-400 py-8 font-bold">No work found.</p>
+                                        : filteredAll.map((item, i) => (
+                                            <div key={item.id} className="bg-white dark:bg-card rounded-[1.25rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="h-9 w-9 rounded-full bg-indigo-50 flex items-center justify-center font-black text-indigo-600 text-[11px] shrink-0">{i + 1}</div>
+                                                        <div className="min-w-0">
+                                                            <h4 className="text-[11px] font-black text-slate-800 dark:text-white truncate">{item.title}</h4>
+                                                            <p className="text-[9px] font-bold text-slate-400">👤 {item.assignedToName || 'Unknown'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1 shrink-0">
+                                                        {item.status === 'completed' ? (
+                                                            <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">Done</span>
+                                                        ) : (
+                                                            <Badge variant="outline" className="capitalize text-[9px]">{item.priority || '-'}</Badge>
+                                                        )}
+                                                        <span className="text-[9px] text-slate-400">
+                                                            {item.status === 'completed' 
+                                                                ? (item.completedAt ? format(new Date(item.completedAt), 'MMM dd') : '-')
+                                                                : (item.dueDate ? format(new Date(item.dueDate), 'MMM dd') : '-')}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                )}
 
                                 {activeTab === 'pending' && (
                                     filteredPending.length === 0
