@@ -1192,29 +1192,32 @@ const WorkAllocationPage: React.FC = () => {
               ) : (
                 <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
                   <div className="overflow-x-auto">
-                    <Table className="border-x table-fixed w-full">
-                      <colgroup>
-                        <col style={{ width: '56px' }} />
-                        <col style={{ width: '16%' }} />
-                        <col style={{ width: '18%' }} />
-                        <col style={{ width: '13%' }} />
-                        <col style={{ width: '13%' }} />
-                        <col style={{ width: '10%' }} />
-                        <col style={{ width: '160px' }} />
-                      </colgroup>
-                      <TableHeader className="bg-primary hover:bg-primary">
-                        <TableRow className="hover:bg-transparent border-none">
-                          <TableHead className="text-white font-semibold h-11 text-center">S/No</TableHead>
-                          <TableHead className="text-white font-semibold h-11">Work Identity</TableHead>
-                          <TableHead className="text-white font-semibold h-11">Instructions</TableHead>
-                          <TableHead className="text-white font-semibold h-11">Assigned To</TableHead>
-                          <TableHead className="text-white font-semibold h-11">Status & Due</TableHead>
-                          <TableHead className="text-white font-semibold h-11 text-center">Priority</TableHead>
-                          <TableHead className="text-center text-white font-semibold px-4 h-11">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                    </Table>
-                    <div className="overflow-y-auto" style={{ maxHeight: '392px' }}>
+                    <div className="min-w-[1000px]">
+                      <div className="sticky top-0 z-20 border-b bg-slate-50/50">
+                        <Table className="border-x table-fixed w-full">
+                          <colgroup>
+                            <col style={{ width: '56px' }} />
+                            <col style={{ width: '16%' }} />
+                            <col style={{ width: '18%' }} />
+                            <col style={{ width: '13%' }} />
+                            <col style={{ width: '13%' }} />
+                            <col style={{ width: '10%' }} />
+                            <col style={{ width: '160px' }} />
+                          </colgroup>
+                          <TableHeader className="bg-primary hover:bg-primary">
+                            <TableRow className="hover:bg-transparent border-none">
+                              <TableHead className="text-white font-semibold h-11 text-center">S/No</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Work Identity</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Instructions</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Assigned To</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Status & Due</TableHead>
+                              <TableHead className="text-white font-semibold h-11 text-center">Priority</TableHead>
+                              <TableHead className="text-center text-white font-semibold px-4 h-11">Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                        </Table>
+                      </div>
+                      <div className="overflow-y-auto" style={{ maxHeight: '392px' }}>
                       <Table className="border-x table-fixed w-full">
                         <colgroup>
                           <col style={{ width: '56px' }} />
@@ -1380,6 +1383,7 @@ const WorkAllocationPage: React.FC = () => {
                           ))}
                         </TableBody>
                       </Table>
+                      </div>
                     </div>
                   </div>
                 </div>

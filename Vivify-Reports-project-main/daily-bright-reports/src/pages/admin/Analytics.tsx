@@ -114,6 +114,7 @@ const Analytics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [clientsMap, setClientsMap] = useState<Record<string, string>>({});
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [detailSearchQuery, setDetailSearchQuery] = useState('');
   const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   useEffect(() => {
@@ -195,6 +196,13 @@ const Analytics: React.FC = () => {
     }
     if (selectedWorks.length > 0) {
       result = result.filter(report => report.entries?.some((e: any) => selectedWorks.includes(e.workTitle || e.WorkTitle || report.workTitle || report.title || '')));
+    }
+    if (detailSearchQuery) {
+      const q = detailSearchQuery.toLowerCase();
+      result = result.filter(report => 
+        report.userName?.toLowerCase().includes(q) || 
+        report.entries?.some((e: any) => (e.workTitle || '').toLowerCase().includes(q) || (e.description || '').toLowerCase().includes(q))
+      );
     }
     return result;
   })();
@@ -394,20 +402,93 @@ const Analytics: React.FC = () => {
           </Card>
 
           <Card className="border-none shadow-xl overflow-hidden">
-            <CardHeader className="bg-muted/30 border-b"><CardTitle>Detailed Records</CardTitle></CardHeader>
+            <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between py-3 px-6">
+              <div>
+                <CardTitle className="text-lg font-black flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Detailed Records
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-wider opacity-60">Complete audit trail of all report entries</CardDescription>
+              </div>
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search by name, work, or note..." 
+                  className="pl-9 h-9 bg-background border-none ring-1 ring-slate-200 focus-visible:ring-primary rounded-xl text-xs font-medium"
+                  value={detailSearchQuery}
+                  onChange={e => setDetailSearchQuery(e.target.value)}
+                />
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-primary hover:bg-primary"><TableRow className="hover:bg-transparent border-none"><TableHead className="text-white italic">Employee</TableHead><TableHead className="text-white">Date</TableHead><TableHead className="text-white text-center">Entries</TableHead><TableHead className="text-white">Overview</TableHead><TableHead className="text-right text-white px-4">Status</TableHead></TableRow></TableHeader>
-                <TableBody>{filteredReports.slice(0, 50).map((report) => (
-                  <TableRow key={report.id} className="transition-colors group hover:bg-slate-50/50 cursor-pointer" onClick={() => setSelectedReport(report)}>
-                    <TableCell className="font-bold border-r"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center border font-normal">{report.userName?.charAt(0)}</div>{report.userName}</div></TableCell>
-                    <TableCell className="font-medium text-muted-foreground border-r">{safeFormatDate(report.date || report.Date)}</TableCell>
-                    <TableCell className="text-center border-r"><Badge variant="outline">{report.entries?.length || 0}</Badge></TableCell>
-                    <TableCell className="max-w-[300px] border-r truncate italic">{(report.entries || []).map((e: any) => e.workTitle).join(', ')}</TableCell>
-                    <TableCell className="text-right border-r">{report.entries?.some((e: any) => e.status === 'pending') ? <Badge className="bg-warning/10 text-warning border-none">Pending</Badge> : <Badge className="bg-emerald-500/10 text-emerald-500 border-none">Done</Badge>}</TableCell>
-                  </TableRow>
-                ))}</TableBody>
-              </Table>
+              <div className="rounded-xl border shadow-inner bg-background overflow-hidden">
+                <div className="min-w-[800px]">
+                  {/* Fixed Header Table */}
+                  <div className="sticky top-0 z-20 border-b bg-slate-50/50">
+                    <Table className="border-x table-fixed w-full">
+                      <colgroup>
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '35%' }} />
+                        <col style={{ width: '15%' }} />
+                      </colgroup>
+                      <TableHeader className="bg-primary hover:bg-primary">
+                        <TableRow className="hover:bg-transparent border-none">
+                          <TableHead className="text-white font-bold text-xs h-11 italic px-4">Employee</TableHead>
+                          <TableHead className="text-white font-bold text-xs h-11 px-4">Date</TableHead>
+                          <TableHead className="text-white font-bold text-xs h-11 text-center px-4">Entries</TableHead>
+                          <TableHead className="text-white font-bold text-xs h-11 px-4">Overview</TableHead>
+                          <TableHead className="text-right text-white font-bold text-xs h-11 px-6">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                    </Table>
+                  </div>
+
+                  {/* Scrollable Body Table */}
+                  <div className="overflow-y-auto" style={{ maxHeight: '450px' }}>
+                    <Table className="border-x table-fixed w-full">
+                      <colgroup>
+                        <col style={{ width: '25%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '35%' }} />
+                        <col style={{ width: '15%' }} />
+                      </colgroup>
+                      <TableBody>
+                        {filteredReports.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="h-32 text-center text-muted-foreground font-medium italic">
+                              No records found matching your filters.
+                            </TableCell>
+                          </TableRow>
+                        ) : filteredReports.map((report) => (
+                          <TableRow key={report.id} className="transition-colors group hover:bg-slate-50/50 cursor-pointer border-b h-12" onClick={() => setSelectedReport(report)}>
+                            <TableCell className="font-bold border-r py-2 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 font-normal text-primary text-[10px] shrink-0">
+                                  {report.userName?.charAt(0)}
+                                </div>
+                                <span className="truncate">{report.userName}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium text-muted-foreground border-r py-2 px-4">{safeFormatDate(report.date || report.Date)}</TableCell>
+                            <TableCell className="text-center border-r py-2 px-4"><Badge variant="outline" className="text-[10px] h-5 font-bold">{report.entries?.length || 0}</Badge></TableCell>
+                            <TableCell className="border-r py-2 px-4 italic text-xs text-muted-foreground truncate">
+                              {(report.entries || []).map((e: any) => e.workTitle).join(', ')}
+                            </TableCell>
+                            <TableCell className="text-right border-r py-2 px-6">
+                              {report.entries?.some((e: any) => e.status === 'pending') 
+                                ? <Badge className="bg-warning/10 text-warning border-none text-[9px] font-black uppercase tracking-tighter h-5">Pending</Badge> 
+                                : <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[9px] font-black uppercase tracking-tighter h-5">Completed</Badge>}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -497,7 +578,21 @@ const Analytics: React.FC = () => {
             </Card>
 
             <div className="space-y-3 pb-10">
-              <div className="flex justify-between items-center px-2"><h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Detailed Logs</h3><span className="text-[9px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">{filteredReports.length}</span></div>
+              <div className="flex justify-between items-center px-2">
+                <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Detailed Logs</h3>
+                <span className="text-[9px] font-black text-primary bg-primary/5 px-2 py-0.5 rounded-full">{filteredReports.length}</span>
+              </div>
+              
+              <div className="relative px-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <Input 
+                  placeholder="Search logs by name or work..." 
+                  className="pl-9 h-10 rounded-xl bg-white dark:bg-slate-900 border-none ring-1 ring-slate-100 dark:ring-slate-800 text-[11px] font-bold shadow-sm" 
+                  value={detailSearchQuery}
+                  onChange={e => setDetailSearchQuery(e.target.value)}
+                />
+              </div>
+
               <div className="space-y-2.5">{filteredReports.slice(0, 15).map((report) => (
                 <div key={report.id} onClick={() => setSelectedReport(report)} className="bg-white dark:bg-card rounded-[1.25rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all flex items-center justify-between">
                    <div className="flex items-center gap-3 min-w-0">
