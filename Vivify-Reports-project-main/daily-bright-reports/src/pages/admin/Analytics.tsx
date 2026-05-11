@@ -374,13 +374,14 @@ const Analytics: React.FC = () => {
                 </div>
               )}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold" disabled={!canExport}><Download className="h-4 w-4" />Export Data</Button></DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleExport('excel')}><FileSpreadsheet className="mr-2 h-4 w-4" />Excel</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport('csv')}><FileText className="mr-2 h-4 w-4" />CSV</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button 
+                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold" 
+                disabled={!canExport}
+                onClick={() => handleExport('excel')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Data
+              </Button>
             </div>
           </div>
 
