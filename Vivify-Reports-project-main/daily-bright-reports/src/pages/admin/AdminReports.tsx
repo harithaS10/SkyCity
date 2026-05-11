@@ -501,7 +501,6 @@ const AdminReportsPage: React.FC = () => {
                                                     <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
                                                     <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Work Title</TableHead>
                                                     <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">From User</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-center w-[50px] text-white font-bold py-2 text-xs bg-primary z-10"></TableHead>
                                                     <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">To User</TableHead>
                                                     <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Timeline</TableHead>
                                                     <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Reason</TableHead>
@@ -509,13 +508,12 @@ const AdminReportsPage: React.FC = () => {
                                             </TableHeader>
                                             <TableBody>
                                                 {filteredReassignment.length === 0 ? (
-                                                    <TableRow><TableCell colSpan={7} className="h-24 text-center">No reassignment history found.</TableCell></TableRow>
+                                                    <TableRow><TableCell colSpan={6} className="h-24 text-center">No reassignment history found.</TableCell></TableRow>
                                                 ) : filteredReassignment.map((item, index) => (
                                                     <TableRow key={`${item.id}-${index}`} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => setSelectedItem(item)}>
                                                         <TableCell className="border-r text-muted-foreground text-xs font-medium">{index + 1}</TableCell>
                                                         <TableCell className="font-medium border-r">{item.title}</TableCell>
                                                         <TableCell className="text-muted-foreground border-r">{item.previousAssigneeName || 'Unknown'}</TableCell>
-                                                        <TableCell className="border-r"><ArrowRight className="h-4 w-4 text-muted-foreground mx-auto" /></TableCell>
                                                         <TableCell className="font-bold text-primary border-r">{item.assignedToName || 'Unknown'}</TableCell>
                                                         <TableCell className="border-r">
                                                             <div className="flex flex-col gap-0.5 text-[10px] leading-tight min-w-[120px]">
