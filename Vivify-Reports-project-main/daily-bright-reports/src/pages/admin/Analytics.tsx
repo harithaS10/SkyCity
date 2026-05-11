@@ -397,10 +397,7 @@ const Analytics: React.FC = () => {
             <Card className="border-none shadow-lg"><CardHeader><CardTitle>Work Distribution</CardTitle></CardHeader><CardContent><div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={workTypeDistribution} cx="50%" cy="50%" innerRadius={80} outerRadius={100} paddingAngle={5} dataKey="value" label={({ name, percent, x, y }) => percent < 0.05 ? null : <text x={x} y={y} fill="#1f2937" fontSize={11} fontWeight={600} textAnchor="middle" dominantBaseline="central">{`${name.slice(0, 12)} ${(percent * 100).toFixed(0)}%`}</text>}>{workTypeDistribution.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip contentStyle={{ borderRadius: '12px' }} /></PieChart></ResponsiveContainer></div></CardContent></Card>
           </div>
 
-          <Card className="border-none shadow-lg overflow-hidden">
-            <CardHeader className="bg-muted/30"><CardTitle>Submission Trend</CardTitle></CardHeader>
-            <CardContent className="pt-6"><div className="h-80 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={trendData} margin={{ top: 10, right: 30, left: 20, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" /><XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} /><YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} /><Tooltip contentStyle={{ borderRadius: '12px' }} /><Line type="monotone" dataKey="entries" stroke="hsl(var(--primary))" strokeWidth={4} dot={{ fill: 'hsl(var(--primary))', r: 5, strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8, strokeWidth: 0 }} /></LineChart></ResponsiveContainer></div></CardContent>
-          </Card>
+
 
           <Card className="border-none shadow-xl overflow-hidden">
             <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between py-3 px-6">

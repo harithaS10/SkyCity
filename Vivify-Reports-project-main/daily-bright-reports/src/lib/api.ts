@@ -524,8 +524,8 @@ export const api = {
         const productivity = users.map((u: any) => ({
           userId: u.id,
           userName: u.fullName,
-          completed: filtered.filter((a: any) => a.assignedTo === u.id && a.status === 'completed').length,
-          pending: filtered.filter((a: any) => a.assignedTo === u.id && a.status !== 'completed').length,
+          completed: filtered.filter((a: any) => a.assignedTo === u.id && a.status?.toLowerCase() === 'completed').length,
+          pending: filtered.filter((a: any) => a.assignedTo === u.id && a.status?.toLowerCase() !== 'completed').length,
         })).filter(u => u.completed + u.pending > 0);
 
         const workDist: Record<string, number> = {};
@@ -541,7 +541,7 @@ export const api = {
         // Build trend data — group by date
         const trendMap: Record<string, number> = {};
         filtered.forEach((a: any) => {
-          const day = a.createdAt ? a.createdAt.split('T')[0] : null;
+          const day = (a.createdAt || a.dueDate || a.assignedDate) ? (a.createdAt || a.dueDate || a.assignedDate).split('T')[0] : null;
           if (day) trendMap[day] = (trendMap[day] || 0) + 1;
         });
         const trendData = Object.entries(trendMap)
@@ -554,7 +554,7 @@ export const api = {
             type: 'standard',
             totalUsers: users.length,
             reportsCount: filtered.length,
-            workDensity: filtered.filter((a: any) => a.status === 'in-progress').length,
+            workDensity: filtered.filter((a: any) => a.status?.toLowerCase() === 'in-progress' || a.status?.toLowerCase() === 'in_progress').length,
             entriesPerReport: users.length > 0 ? Math.round(filtered.length / users.length) : 0,
             productivity,
             workDistribution,
