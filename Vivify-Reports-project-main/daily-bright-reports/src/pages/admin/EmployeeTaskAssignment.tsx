@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -576,131 +577,189 @@ const EmployeeTaskAssignment: React.FC = () => {
                   </TabsList>
 
                   <TabsContent value="daily" className="mt-6">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Task Name</TableHead>
-                            <TableHead>Priority</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {dailyTasks.map((task) => (
-                            <TableRow key={task.id}>
-                              <TableCell className="font-medium">
-                                {task.taskName}
-                                {task.groupId && (
-                                  <Badge className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200 h-5">Group</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className={priorityColors[task.priority]}>
-                                  {task.priority}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v, task._source)}>
-                                  <SelectTrigger className={`h-7 text-xs w-32 ${statusColors[task.status]}`}>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="pending">To Do</SelectItem>
-                                    <SelectItem value="in_progress">In Progress</SelectItem>
-                                    <SelectItem value="completed">Done</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy HH:mm') : '-'}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)} className="text-blue-600 hover:bg-blue-50">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(task.id)} className="text-rose-600 hover:bg-rose-50">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
+                    <div className="rounded-md border border-slate-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table className="table-fixed w-full">
+                          <colgroup>
+                            <col style={{ width: '40%' }} />
+                            <col style={{ width: '15%' }} />
+                            <col style={{ width: '15%' }} />
+                            <col style={{ width: '20%' }} />
+                            <col style={{ width: '100px' }} />
+                          </colgroup>
+                          <TableHeader className="bg-primary hover:bg-primary">
+                            <TableRow className="hover:bg-transparent border-none">
+                              <TableHead className="text-white font-semibold h-11">Task Name</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Priority</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Status</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Due Date</TableHead>
+                              <TableHead className="text-white font-semibold h-11 text-right px-4">Actions</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                        </Table>
+                        <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
+                          <Table className="table-fixed w-full border-t-0">
+                            <colgroup>
+                              <col style={{ width: '40%' }} />
+                              <col style={{ width: '15%' }} />
+                              <col style={{ width: '15%' }} />
+                              <col style={{ width: '20%' }} />
+                              <col style={{ width: '100px' }} />
+                            </colgroup>
+                            <TableBody>
+                              {dailyTasks.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground font-medium italic">
+                                    No daily tasks assigned yet.
+                                  </TableCell>
+                                </TableRow>
+                              ) : dailyTasks.map((task) => (
+                                <TableRow key={task.id} className="hover:bg-slate-50/50 transition-colors border-b">
+                                  <TableCell className="font-medium border-r py-3">
+                                    <div className="flex items-center flex-wrap gap-1.5">
+                                      <span className="truncate">{task.taskName}</span>
+                                      {task.groupId && (
+                                        <Badge className="text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200 h-5">Group</Badge>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="border-r">
+                                    <Badge className={cn("capitalize font-bold text-[10px] px-2 py-0.5", priorityColors[task.priority])}>
+                                      {task.priority}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="border-r">
+                                    <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v, task._source)}>
+                                      <SelectTrigger className={`h-8 text-[11px] font-bold w-[110px] border-none shadow-none ring-1 ring-slate-100 ${statusColors[task.status]}`}>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="pending" className="text-xs font-bold">To Do</SelectItem>
+                                        <SelectItem value="in_progress" className="text-xs font-bold text-blue-700">In Progress</SelectItem>
+                                        <SelectItem value="completed" className="text-xs font-bold text-emerald-700">Done</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                  <TableCell className="border-r">
+                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                                      <Calendar className="h-3.5 w-3.5 opacity-70" />
+                                      {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy HH:mm') : '-'}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right px-4">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(task)} className="h-8 w-8 text-blue-600 hover:bg-blue-50">
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(task.id)} className="h-8 w-8 text-rose-600 hover:bg-rose-50">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
                     </div>
                   </TabsContent>
 
                   <TabsContent value="monthly" className="mt-6">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Task Name</TableHead>
-                            <TableHead>Priority</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {monthlyTasks.map((task) => (
-                            <TableRow key={task.id}>
-                              <TableCell className="font-medium">
-                                {task.taskName}
-                                {task.groupId && (
-                                  <Badge className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200 h-5">Group</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className={priorityColors[task.priority]}>
-                                  {task.priority}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v, task._source)}>
-                                  <SelectTrigger className={`h-7 text-xs w-32 ${statusColors[task.status]}`}>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="pending">To Do</SelectItem>
-                                    <SelectItem value="in_progress">In Progress</SelectItem>
-                                    <SelectItem value="completed">Done</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : '-'}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge className="bg-purple-100 text-purple-800 border-purple-200">
-                                  <Target className="h-3 w-3 mr-1" />
-                                  Recurring
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="sm" onClick={() => openEditDialog(task)} className="text-blue-600 hover:bg-blue-50">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmId(task.id)} className="text-rose-600 hover:bg-rose-50">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
+                    <div className="rounded-md border border-slate-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <Table className="table-fixed w-full">
+                          <colgroup>
+                            <col style={{ width: '30%' }} />
+                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '18%' }} />
+                            <col style={{ width: '18%' }} />
+                            <col style={{ width: '100px' }} />
+                          </colgroup>
+                          <TableHeader className="bg-primary hover:bg-primary">
+                            <TableRow className="hover:bg-transparent border-none">
+                              <TableHead className="text-white font-semibold h-11">Task Name</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Priority</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Status</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Due Date</TableHead>
+                              <TableHead className="text-white font-semibold h-11">Type</TableHead>
+                              <TableHead className="text-white font-semibold h-11 text-right px-4">Actions</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                        </Table>
+                        <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
+                          <Table className="table-fixed w-full border-t-0">
+                            <colgroup>
+                              <col style={{ width: '30%' }} />
+                              <col style={{ width: '12%' }} />
+                              <col style={{ width: '12%' }} />
+                              <col style={{ width: '18%' }} />
+                              <col style={{ width: '18%' }} />
+                              <col style={{ width: '100px' }} />
+                            </colgroup>
+                            <TableBody>
+                              {monthlyTasks.length === 0 ? (
+                                <TableRow>
+                                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground font-medium italic">
+                                    No monthly tasks assigned yet.
+                                  </TableCell>
+                                </TableRow>
+                              ) : monthlyTasks.map((task) => (
+                                <TableRow key={task.id} className="hover:bg-slate-50/50 transition-colors border-b">
+                                  <TableCell className="font-medium border-r py-3">
+                                    <div className="flex items-center flex-wrap gap-1.5">
+                                      <span className="truncate">{task.taskName}</span>
+                                      {task.groupId && (
+                                        <Badge className="text-[10px] bg-indigo-100 text-indigo-700 border-indigo-200 h-5">Group</Badge>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="border-r">
+                                    <Badge className={cn("capitalize font-bold text-[10px] px-2 py-0.5", priorityColors[task.priority])}>
+                                      {task.priority}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="border-r">
+                                    <Select value={task.status} onValueChange={v => handleStatusChange(task.id, v, task._source)}>
+                                      <SelectTrigger className={`h-8 text-[11px] font-bold w-[110px] border-none shadow-none ring-1 ring-slate-100 ${statusColors[task.status]}`}>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="pending" className="text-xs font-bold">To Do</SelectItem>
+                                        <SelectItem value="in_progress" className="text-xs font-bold text-blue-700">In Progress</SelectItem>
+                                        <SelectItem value="completed" className="text-xs font-bold text-emerald-700">Done</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                  <TableCell className="border-r">
+                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                                      <Calendar className="h-3.5 w-3.5 opacity-70" />
+                                      {task.dueDate ? format(new Date(task.dueDate), 'MMM dd, yyyy') : '-'}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="border-r">
+                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-[10px] font-bold uppercase tracking-tight">
+                                      <Target className="h-3 w-3 mr-1" />
+                                      Recurring
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right px-4">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(task)} className="text-blue-600 hover:bg-blue-50">
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={() => setDeleteConfirmId(task.id)} className="h-8 w-8 text-rose-600 hover:bg-rose-50">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
