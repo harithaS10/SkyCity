@@ -23,12 +23,13 @@ import { cn } from '@/lib/utils';
 
 // ─── Permissions Matrix ────────────────────────────────────────────────────
 
-const MODULES = ['complaints', 'work_orders', 'daily_reports', 'analytics', 'chat', 'users'] as const;
+const MODULES = ['complaints', 'work_orders', 'tasks', 'daily_reports', 'analytics', 'chat', 'users'] as const;
 const PERM_KEYS = ['view', 'create', 'edit', 'delete'] as const;
 
 const MODULE_LABELS: Record<typeof MODULES[number], string> = {
   complaints: 'Complaints',
   work_orders: 'Work Orders',
+  tasks: 'Employee Tasks',
   daily_reports: 'Daily Reports',
   analytics: 'Analytics',
   chat: 'Community Chat',

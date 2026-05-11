@@ -175,8 +175,11 @@ const UserTaskDashboard: React.FC = () => {
   const dailyTasks = tasks.filter(task => !task.isRecurring);
   const monthlyTasks = tasks.filter(task => task.isRecurring);
   const completedTasks = tasks.filter(task => task.status === 'completed');
-  const pendingTasks = tasks.filter(task => task.status === 'pending');
-  const inProgressTasks = tasks.filter(task => task.status === 'in_progress');
+  const pendingTasks = tasks.filter(task => task.status?.toLowerCase() === 'pending');
+  const inProgressTasks = tasks.filter(task => {
+    const status = task.status?.toLowerCase() || '';
+    return status === 'in_progress' || status === 'in-progress' || status === 'in progress';
+  });
   const overdueTasks = tasks.filter(task => task.isOverdue && task.status !== 'completed');
 
   const completionRate = tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0;

@@ -512,7 +512,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       <div className="flex items-center gap-2">
                         {apiNotifications.length > 0 && (
                           <button
-                            onClick={() => api.notifications.markAllRead().then(() => setApiNotifications(prev => prev.map(n => ({ ...n, isRead: true }))))}
+                            onClick={() => api.notifications.markAllRead().then(() => setApiNotifications([]))}
                             className="text-xs text-primary hover:text-primary/80 font-medium"
                           >Mark all read</button>
                         )}
@@ -522,13 +522,16 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       </div>
                     </div>
                     <div className="max-h-[60vh] sm:max-h-80 overflow-y-auto">
-                      {apiNotifications.length === 0 ? (
+                      {apiNotifications.filter(n => !n.isRead).length === 0 ? (
                         <div className="flex flex-col items-center gap-2 py-10 text-muted-foreground">
                           <Bell className="h-10 w-10 text-slate-200" />
                           <p className="text-sm font-medium">No notifications yet</p>
                           <p className="text-xs text-center px-6">Notifications will appear here when employees start tasks, complete work, or request changes.</p>
                         </div>
-                      ) : apiNotifications.map((n: any) => {
+                      ) : apiNotifications
+                        .filter(n => !n.isRead)
+                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .map((n: any) => {
                         const icons: Record<string, string> = {
                           task_completed: '✅',
                           task_started: '▶️',
@@ -541,8 +544,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                         return (
                           <div
                             key={`admin-notif-${n.id}`}
-                            className={cn('flex items-start gap-3 border-b px-4 py-3 last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors', !n.isRead && 'bg-blue-50/60 dark:bg-blue-950/20')}
-                            onClick={() => api.notifications.markRead(n.id).then(() => setApiNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x)))}
+                            className={cn('flex items-start gap-3 border-b px-4 py-3 last:border-0 cursor-pointer bg-blue-50/60 dark:bg-blue-950/20 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors')}
+                            onClick={() => api.notifications.markRead(n.id).then(() => setApiNotifications(prev => prev.filter(x => x.id !== n.id)))}
                           >
                             <span className="text-lg mt-0.5 shrink-0">{icons[n.type] ?? '🔔'}</span>
                             <div className="flex-1 min-w-0">
@@ -550,7 +553,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                               <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">{n.message}</p>
                               <p className="text-[10px] text-muted-foreground/60 mt-1">{format(new Date(n.createdAt), 'MMM dd, hh:mm a')}</p>
                             </div>
-                            {!n.isRead && <span className="h-2.5 w-2.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
+                            <span className="h-2.5 w-2.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
                           </div>
                         );
                       })}
@@ -582,57 +585,61 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                       <span className="font-semibold text-sm text-slate-900 dark:text-foreground">Notifications</span>
                       {(visibleReminders.length > 0 || apiNotifications.length > 0) && (
                         <button
-                          onClick={() => {
-                            persistDismiss(new Set(reminders.map((r: any) => r.id)));
-                            api.notifications.markAllRead().then(() => setApiNotifications([]));
-                            setShowReminderPanel(false);
-                          }}
+                            onClick={() => {
+                              persistDismiss(new Set(reminders.map((r: any) => r.id)));
+                              api.notifications.markAllRead().then(() => setApiNotifications([]));
+                              setShowReminderPanel(false);
+                            }}
                           className="text-xs text-muted-foreground hover:text-slate-900 dark:hover:text-white"
                         >Dismiss all</button>
                       )}
                     </div>
                     <div className="max-h-72 overflow-y-auto">
                       {/* API Notifications (approved/rejected requests) */}
-                      {apiNotifications.map((n: any) => (
-                        <div key={`notif-${n.id}`}
-                          className={cn('flex items-start gap-3 border-b px-4 py-3', !n.isRead && 'bg-blue-50/50 dark:bg-blue-950/20')}
-                        >
-                          <span className="text-base mt-0.5 shrink-0">
-                            {n.type === 'request_approved' ? '✅' : n.type === 'request_rejected' ? '❌' : '🔔'}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate text-slate-900 dark:text-foreground">{n.title}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
-                          </div>
-                          <button
-                            onClick={() => api.notifications.markRead(n.id).then(() => setApiNotifications(prev => prev.filter(x => x.id !== n.id)))}
-                            className="text-muted-foreground hover:text-slate-900 dark:hover:text-white shrink-0 mt-0.5"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                      {/* Task Reminders */}
-                      {visibleReminders.length === 0 && apiNotifications.length === 0 ? (
+                      {apiNotifications.filter(n => !n.isRead).length === 0 && visibleReminders.length === 0 ? (
                         <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
                           <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-                          <p className="text-sm">No notifications</p>
+                          <p className="text-sm font-medium">No notifications</p>
                         </div>
-                      ) : visibleReminders.map((r: any) => (
-                        <div key={`rem-${r.id}`} className="flex items-start gap-3 border-b px-4 py-3 last:border-0">
-                          <AlertCircle className={cn('mt-0.5 h-4 w-4 shrink-0', priorityColors[r.priority] || 'text-slate-400')} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate text-slate-900 dark:text-foreground">{r.taskName}</p>
-                            <p className="text-xs text-muted-foreground">Due: {format(new Date(r.dueDate), 'MMM dd, yyyy')}</p>
-                            <span className={cn('text-[10px] font-semibold capitalize', priorityColors[r.priority])}>
-                              {r.priority} priority
-                            </span>
-                          </div>
-                          <button onClick={() => persistDismiss(new Set([...dismissedIds, r.id]))} className="text-muted-foreground hover:text-slate-900 dark:hover:text-white shrink-0 mt-0.5">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                      ) : (
+                        <>
+                          {apiNotifications
+                            .filter(n => !n.isRead)
+                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                            .map((n: any) => (
+                            <div key={`notif-${n.id}`}
+                              className={cn('flex items-start gap-3 border-b px-4 py-3 last:border-0 cursor-pointer transition-colors bg-blue-50/80 dark:bg-blue-900/20')}
+                              onClick={() => api.notifications.markRead(n.id).then(() => setApiNotifications(prev => prev.filter(x => x.id !== n.id)))}
+                            >
+                              <span className="text-lg mt-0.5 shrink-0">
+                                {n.type === 'request_approved' ? '✅' : n.type === 'request_rejected' ? '❌' : '🔔'}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className={cn("text-sm leading-tight truncate", "font-bold text-slate-900 dark:text-white")}>{n.title}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                                <p className="text-[9px] text-muted-foreground/60 mt-1">{format(new Date(n.createdAt), 'MMM dd, hh:mm a')}</p>
+                              </div>
+                              <span className="h-2 w-2 rounded-full bg-blue-500 shrink-0 mt-2" />
+                            </div>
+                          ))}
+                          {/* Task Reminders */}
+                          {visibleReminders.map((r: any) => (
+                            <div key={`rem-${r.id}`} className="flex items-start gap-3 border-b px-4 py-3 last:border-0">
+                              <AlertCircle className={cn('mt-0.5 h-4 w-4 shrink-0', priorityColors[r.priority] || 'text-slate-400')} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate text-slate-900 dark:text-foreground">{r.taskName}</p>
+                                <p className="text-xs text-muted-foreground">Due: {format(new Date(r.dueDate), 'MMM dd, yyyy')}</p>
+                                <span className={cn('text-[10px] font-semibold capitalize', priorityColors[r.priority])}>
+                                  {r.priority} priority
+                                </span>
+                              </div>
+                              <button onClick={() => persistDismiss(new Set([...dismissedIds, r.id]))} className="text-muted-foreground hover:text-slate-900 dark:hover:text-white shrink-0 mt-0.5">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

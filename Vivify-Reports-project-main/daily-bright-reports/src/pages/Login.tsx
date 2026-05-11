@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Eye, EyeOff, AlertCircle, Building2, Shield, BarChart3, Users, Cookie } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, Building2, Shield, BarChart3, Users, Cookie, FileText, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -356,9 +356,29 @@ const Login: React.FC = () => {
                         <DialogTrigger asChild>
                           <button type="button" className="hover:underline font-black focus:outline-none text-left" style={{ color: loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488' }}>Terms and Conditions</button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border-none">
-                          <DialogHeader><DialogTitle className="text-xl font-black">Terms and Conditions</DialogTitle></DialogHeader>
-                          <div className="whitespace-pre-wrap text-sm text-slate-500 mt-4 leading-relaxed">{termsContent || 'Loading terms...'}</div>
+                        <DialogContent className="max-w-2xl max-h-[85vh] p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl bg-white dark:bg-slate-900">
+                          <div className="p-6 sm:p-8 flex flex-col h-full overflow-hidden">
+                            <DialogHeader className="mb-6">
+                              <div className="flex items-center gap-3 mb-1">
+                                <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488'}15` }}>
+                                  <FileText className="h-5 w-5" style={{ color: loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488' }} />
+                                </div>
+                                <div>
+                                  <DialogTitle className="text-xl font-black tracking-tight" style={{ color: loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488' }}>
+                                    Terms and Conditions
+                                  </DialogTitle>
+                                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">Please review before proceeding</p>
+                                </div>
+                              </div>
+                            </DialogHeader>
+
+                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+                              <div className="whitespace-pre-wrap text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                                {termsContent || 'Loading terms...'}
+                              </div>
+                            </div>
+
+                            </div>
                         </DialogContent>
                       </Dialog>
                     </div>
@@ -409,13 +429,50 @@ const Login: React.FC = () => {
                         Learn more
                       </button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-lg rounded-2xl">
-                      <DialogHeader><DialogTitle className="text-lg font-black">Cookie Policy</DialogTitle></DialogHeader>
-                      <div className="text-sm text-slate-500 space-y-3 mt-2 leading-relaxed">
-                        <p><strong className="text-slate-700">Essential Cookies</strong> — Required for authentication and session management. These cannot be disabled.</p>
-                        <p><strong className="text-slate-700">Preference Cookies</strong> — Store your theme color, language, and UI preferences so you don't have to set them every visit.</p>
-                        <p><strong className="text-slate-700">No Tracking</strong> — We do not use advertising or third-party tracking cookies. Your data stays within the SkyCity platform.</p>
-                        <p className="text-xs text-slate-400">By clicking "Accept", you consent to our use of cookies as described above. You can withdraw consent at any time by clearing your browser storage.</p>
+                    <DialogContent className="max-w-lg p-0 overflow-hidden rounded-[2rem] border-none shadow-2xl bg-white dark:bg-slate-900">
+                      <div className="p-6 sm:p-8">
+                        <DialogHeader className="mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488'}15` }}>
+                              <Cookie className="h-5 w-5" style={{ color: loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488' }} />
+                            </div>
+                            <div>
+                              <DialogTitle className="text-xl font-black tracking-tight" style={{ color: loginBgColor && loginBgColor !== '#6366f1' ? loginBgColor : '#0d9488' }}>
+                                Cookie Policy
+                              </DialogTitle>
+                              <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.2em] mt-0.5">How we use your data</p>
+                            </div>
+                          </div>
+                        </DialogHeader>
+                        <div className="space-y-2 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                          <div className="flex items-start gap-2.5">
+                            <div className="h-4 w-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                              <Shield className="h-2.5 w-2.5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                              <strong className="text-slate-900 dark:text-white font-bold">Essential Cookies</strong> — Required for authentication.
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <div className="h-4 w-4 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                              <Zap className="h-2.5 w-2.5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                              <strong className="text-slate-900 dark:text-white font-bold">Preference Cookies</strong> — Store your UI settings.
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2.5">
+                            <div className="h-4 w-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                              <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                              <strong className="text-slate-900 dark:text-white font-bold">No Tracking</strong> — No advertising or analytics cookies.
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-slate-400 mt-4 text-center font-medium leading-relaxed px-2">
+                          By using SkyCity, you agree to our use of essential cookies.
+                        </p>
                       </div>
                     </DialogContent>
                   </Dialog>

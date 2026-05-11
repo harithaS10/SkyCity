@@ -207,19 +207,24 @@ const MyTasks: React.FC = () => {
       // Daily tasks: show only if due today (or pending/in-progress for today)
       if (item.taskType !== 'daily') return false;
       const dueDate = item.dueDate ? format(new Date(item.dueDate), 'yyyy-MM-dd') : '';
-      return dueDate === todayStr || item.status === 'pending' || item.status === 'in_progress';
+      const status = item.status?.toLowerCase() || '';
+      return dueDate === todayStr || status === 'pending' || status === 'in_progress' || status === 'in-progress' || status === 'in progress';
     }
     if (taskTypeFilter === 'monthly') {
       // Monthly tasks: show only if due in current month
       if (item.taskType !== 'monthly') return false;
       const dueDate = item.dueDate ? format(new Date(item.dueDate), 'yyyy-MM') : '';
-      return dueDate === currentMonth || item.status === 'pending' || item.status === 'in_progress';
+      const status = item.status?.toLowerCase() || '';
+      return dueDate === currentMonth || status === 'pending' || status === 'in_progress' || status === 'in-progress' || status === 'in progress';
     }
     return item.taskType === taskTypeFilter;
   });
 
-  const pendingTasks = filteredItems.filter((a) => a.status === 'pending');
-  const inProgressTasks = filteredItems.filter((a) => a.status === 'in-progress' || a.status === 'in_progress');
+  const pendingTasks = filteredItems.filter((a) => a.status?.toLowerCase() === 'pending');
+  const inProgressTasks = filteredItems.filter((a) => {
+    const status = a.status?.toLowerCase() || '';
+    return status === 'in-progress' || status === 'in_progress' || status === 'in progress';
+  });
 
   // Filter completed tasks to only show those from the last 7 days
   const completedTasks = filteredItems.filter((task) => {
@@ -262,11 +267,9 @@ const MyTasks: React.FC = () => {
     return `${days} days remaining`;
   };
 
-  const handleStatusChange = async (taskId: number, newStatus: string, duration?: string) => {
+  const handleStatusChange = async (taskId: number, newStatus: string, source?: string, duration?: string) => {
     try {
-      // Route to correct API based on task source
-      const task = allItems.find(t => t.id === taskId);
-      const isAdminTask = task?._source === 'task';
+      const isAdminTask = source === 'task';
 
       const response = isAdminTask
         ? await api.tasks.updateStatus(taskId, newStatus)
@@ -530,14 +533,14 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                 className="h-8 gap-1.5 text-xs font-medium"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStatusChange(task.id, task._source === 'task' ? 'in_progress' : 'in-progress');
+                  handleStatusChange(task.id, task._source === 'task' ? 'in_progress' : 'in-progress', task._source);
                 }}
               >
                 <PlayCircle className="h-3.5 w-3.5" />
                 Start Task
               </Button>
             )}
-            {(task.status === 'in-progress' || task.status === 'in_progress') && (
+            {(task.status === 'in-progress' || task.status === 'in_progress' || task.status === 'in progress') && (
               <Button
                 size="sm"
                 className="h-8 gap-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700"
@@ -775,7 +778,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                   <p className="text-sm text-slate-400 mt-1">Tasks older than 7 days are automatically hidden.</p>
                 </div>
               ) : (
-                <div className="divide-y dark:divide-slate-700 rounded-lg border dark:border-slate-700 overflow-hidden">
+                <div className="divide-y dark:divide-slate-700 rounded-lg border dark:border-slate-700 overflow-hidden max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
                   {completedTasks.map((task) => (
                     <div
                       key={task.id}
@@ -942,7 +945,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
             <>
               {(mobileTab === 'pending' ? pendingTasks : mobileTab === 'in-progress' ? inProgressTasks : completedTasks).map(task => {
                 const isDone = task.status === 'completed';
-                const isActive = task.status === 'in-progress' || task.status === 'in_progress';
+                const isActive = task.status === 'in-progress' || task.status === 'in_progress' || task.status === 'in progress';
                 const overdue = isOverdue(task.dueDate || task.DueDate, task.status);
 
                 return (
@@ -992,7 +995,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
                           {task.status === 'pending' && (
                             <Button
                               size="sm"
-                              onClick={() => handleStatusChange(task.id, task._source === 'task' ? 'in_progress' : 'in-progress')}
+                              onClick={() => handleStatusChange(task.id, task._source === 'task' ? 'in_progress' : 'in-progress', task._source)}
                               className="h-9 px-4 rounded-xl bg-blue-600 text-white font-black text-[10px] uppercase tracking-wider shadow-lg shadow-blue-200"
                             >
                               <PlayCircle className="h-3.5 w-3.5 mr-1.5" /> Start
@@ -1352,10 +1355,9 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
               onClick={async () => {
                 const duration = `${completionDuration.hours}h ${completionDuration.minutes}m`;
                 
-                // First complete the task
-                try {
-                  const task = allItems.find(t => t.id === selectedTask.id);
-                  const isAdminTask = task?._source === 'task';
+                  // First complete the task
+                  try {
+                    const isAdminTask = selectedTask?._source === 'task';
 
                   const response = isAdminTask
                     ? await api.tasks.updateStatus(selectedTask.id, 'completed')
