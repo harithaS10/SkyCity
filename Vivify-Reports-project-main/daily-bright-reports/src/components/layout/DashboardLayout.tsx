@@ -147,52 +147,79 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const apiNotifUnread = apiNotifications.filter((n: any) => !n.isRead).length;
   const prevNotifIdsRef = React.useRef<Set<number>>(new Set());
 
-  // Polling for staff/resident notifications
+  const isInitialFetchRef = React.useRef(true);
+  // Unified notification polling for all roles (Real Notifications + Live Activity Fallback)
   useEffect(() => {
-    if (user?.role !== 'staff' && user?.role !== 'resident') return;
-    const fetchApiNotifs = async () => {
-      try {
-        const res = await api.notifications.getAll();
-        if (res?.success && Array.isArray(res.data)) {
-          res.data.forEach((n: any) => {
-            if (!prevNotifIdsRef.current.has(n.id) && prevNotifIdsRef.current.size > 0) {
-              if (n.type === 'request_approved') toast.success(n.title, { description: n.message, duration: 6000 });
-              else if (n.type === 'request_rejected') toast.error(n.title, { description: n.message, duration: 6000 });
-            }
-          });
-          prevNotifIdsRef.current = new Set(res.data.map((n: any) => n.id));
-          setApiNotifications(res.data);
-        }
-      } catch { /* silent — endpoint may not be available yet */ }
-    };
-    fetchApiNotifs();
-    const interval = setInterval(fetchApiNotifs, 60000); // reduced to 60s to reduce server load
-    return () => clearInterval(interval);
-  }, [user?.role]);
+    if (!user) return;
 
-  // Polling for admin notifications
-  useEffect(() => {
-    // All users can receive notifications
-    const fetchAdminNotifs = async () => {
+    const fetchNotifications = async () => {
       try {
+        // 1. Fetch Real Notifications
         const res = await api.notifications.getAll();
-        if (res?.success && Array.isArray(res.data)) {
-          res.data.forEach((n: any) => {
-            if (!prevNotifIdsRef.current.has(n.id) && prevNotifIdsRef.current.size > 0) {
-              if (n.type === 'task_completed') toast.success(n.title, { description: n.message, duration: 6000 });
-              else if (['self_assign','task_started','request_change','progress_update'].includes(n.type))
-                toast.info(n.title, { description: n.message, duration: 6000 });
+        let combinedNotifs = res?.success && Array.isArray(res.data) ? res.data : [];
+
+        // 2. Fallback: If Admin, fetch Live Activities and convert to Virtual Notifications
+        const isAdmin = ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'super_admin'].includes(user.role || '');
+        if (isAdmin) {
+          try {
+            const liveRes = await api.allocations.getLiveActivities();
+            if (liveRes?.success && Array.isArray(liveRes.data)) {
+              const now = new Date().getTime();
+              const virtualNotifs = liveRes.data
+                .filter((act: any) => {
+                  // Only show activities from the last 2 hours as "recent" notifications
+                  const actTime = act.lastProgressUpdate ? new Date(act.lastProgressUpdate).getTime() : 0;
+                  return (now - actTime) < (2 * 60 * 60 * 1000); 
+                })
+                .map((act: any) => ({
+                  id: `live-${act.id}-${act.lastProgressUpdate}`,
+                  type: act.status === 'completed' ? 'task_completed' : 'progress_update',
+                  title: act.status === 'completed' ? 'Task Completed' : 'Progress Update',
+                  message: `${act.assigneeName} updated "${act.workTitle || act.title}": ${act.progressNote || act.status}`,
+                  createdAt: act.lastProgressUpdate,
+                  isRead: false,
+                  _isVirtual: true
+                }));
+              
+              // Merge virtual notifications into the list, avoiding duplicates
+              virtualNotifs.forEach(vn => {
+                if (!combinedNotifs.find(n => n.id === vn.id)) {
+                  combinedNotifs.push(vn);
+                }
+              });
             }
-          });
-          prevNotifIdsRef.current = new Set(res.data.map((n: any) => n.id));
-          setApiNotifications(res.data);
+          } catch (err) { console.warn("Live activity fetch failed", err); }
         }
-      } catch { /* silent */ }
+
+        // 3. Process Alerts and Update State
+        combinedNotifs.forEach((n: any) => {
+          // Only show toasts for NEW notifications (not seen in previous fetch)
+          // AND only after the very first load to avoid toast spam on login
+          if (!prevNotifIdsRef.current.has(n.id) && !isInitialFetchRef.current) {
+            // Staff Alerts
+            if (n.type === 'request_approved') toast.success(n.title, { description: n.message });
+            else if (n.type === 'request_rejected') toast.error(n.title, { description: n.message });
+            
+            // Admin Alerts (Real or Virtual)
+            else if (n.type === 'task_completed') toast.success(n.title, { description: n.message });
+            else if (['self_assign', 'task_started', 'request_change', 'progress_update'].includes(n.type))
+              toast.info(n.title, { description: n.message });
+          }
+        });
+
+        prevNotifIdsRef.current = new Set(combinedNotifs.map((n: any) => n.id));
+        isInitialFetchRef.current = false;
+        // Keep only unread in state
+        setApiNotifications(combinedNotifs.filter((n: any) => !n.isRead));
+      } catch (error) {
+        console.warn("Notification poll failed:", error);
+      }
     };
-    fetchAdminNotifs();
-    const interval = setInterval(fetchAdminNotifs, 60000);
+
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
-  }, [user?.role]);
+  }, [user?.id, user?.role]);
   const [dismissedIds, setDismissedIds] = useState<Set<number>>(() => {
     try {
       const stored = localStorage.getItem(`reminder_dismissed_${user?.id ?? 'user'}`);
@@ -311,10 +338,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   const displayLogo = logoUrl ?? logo;
   const roleBadge = user ? ROLE_BADGE[user.role as AllowedRole] : null;
 
-  // Check if user is admin (role name = "Admin")
-  const isAdminRole = user?.role?.toLowerCase() === 'admin';
-  const isSuperAdmin = false; // Not used
-  const isResident = false; // Not used
+  // Check if user has management/admin privileges
+  const isAdminRole = user && ['admin', 'sub_admin', 'property_manager', 'facility_manager', 'super_admin'].includes(user.role?.toLowerCase() ?? '');
+  const isSuperAdmin = user?.role?.toLowerCase() === 'super_admin';
+  const isResident = user?.role?.toLowerCase() === 'resident';
 
   // Build a helper to render desktop dropdown menus
   const renderDropdown = (
@@ -504,10 +531,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     <div className="flex items-center justify-between border-b px-4 py-3">
                       <span className="font-semibold text-sm text-slate-900 dark:text-foreground flex items-center gap-2">
                         <Bell className="h-4 w-4 text-primary" />
-                        Employee Notifications
-                        {apiNotifUnread > 0 && (
-                          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-rose-500 text-[9px] font-bold text-white">{apiNotifUnread}</span>
-                        )}
+                        Notifications
                       </span>
                       <div className="flex items-center gap-2">
                         {apiNotifications.length > 0 && (

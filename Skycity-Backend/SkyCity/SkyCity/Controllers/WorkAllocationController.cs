@@ -32,10 +32,10 @@ public class WorkAllocationController : ControllerBase
     /// <summary>Returns all admin/sub_admin/property_manager user IDs for the current association.</summary>
     private async Task<List<int>> GetAdminIdsAsync()
     {
-        var adminRoles = new[] { "admin", "sub_admin", "property_manager", "facility_manager" };
+        var adminRoles = new[] { UserRole.admin, UserRole.sub_admin, UserRole.property_manager, UserRole.facility_manager, UserRole.super_admin };
         return await _context.Users
             .AsNoTracking()
-            .Where(u => u.AssociationId == CurrentAssocId && u.IsActive && adminRoles.Contains(u.Role.ToString()))
+            .Where(u => u.AssociationId == CurrentAssocId && u.IsActive && adminRoles.Contains(u.Role))
             .Select(u => u.Id)
             .ToListAsync();
     }

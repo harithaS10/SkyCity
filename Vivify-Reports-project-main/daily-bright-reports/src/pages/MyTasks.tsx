@@ -100,8 +100,8 @@ const MyTasks: React.FC = () => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [completionAttachments, setCompletionAttachments] = useState<File[]>([]);
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const [tasksRes, clientsRes, worksRes, adminTasksRes] = await Promise.all([
         api.allocations.getMyTasks().catch(() => ({ success: true, data: [] })),
@@ -129,7 +129,7 @@ const MyTasks: React.FC = () => {
       console.error("Error fetching tasks:", error);
       toast.error("Failed to load tasks");
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -137,11 +137,11 @@ const MyTasks: React.FC = () => {
   const [prevRequestStatuses, setPrevRequestStatuses] = useState<Record<number, string>>({});
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
     
     // Poll for updates every 30 seconds to catch admin approvals/rejections
     const interval = setInterval(() => {
-      fetchData();
+      fetchData(false);
     }, 30000);
     
     return () => clearInterval(interval);
