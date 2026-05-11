@@ -38,7 +38,6 @@ public class UserController : ControllerBase
             .Select(u => new {
                 u.Id, u.Username, u.FullName,
                 role = u.Role.ToString(),
-                u.CustomRoleName,
                 u.AssociationId, u.PropertyId, u.BuildingId, u.UnitId,
                 u.Phone, u.IsActive, u.CreatedAt,
                 u.IsDeleted,
@@ -86,25 +85,13 @@ public class UserController : ControllerBase
             }
         }
 
-        // Map enum values back to custom role names for frontend display
+        // Map enum values back to display names for frontend
         var mappedUsers = users.Select(u => new
         {
-            u.Id,
-            u.Username,
-            u.FullName,
-            // If a custom role name was explicitly saved, use it; otherwise fall back to enum display name
-            role = !string.IsNullOrEmpty(u.CustomRoleName)
-                ? u.CustomRoleName
-                : (enumToCustomRoleMap.TryGetValue(u.role.ToLower(), out var mappedRole) ? mappedRole : u.role),
-            u.AssociationId,
-            u.PropertyId,
-            u.BuildingId,
-            u.UnitId,
-            u.Phone,
-            u.IsActive,
-            u.CreatedAt,
-            u.IsDeleted,
-            u.status
+            u.Id, u.Username, u.FullName,
+            role = enumToCustomRoleMap.TryGetValue(u.role.ToLower(), out var mappedRole) ? mappedRole : u.role,
+            u.AssociationId, u.PropertyId, u.BuildingId, u.UnitId,
+            u.Phone, u.IsActive, u.CreatedAt, u.IsDeleted, u.status
         }).ToList();
 
         return Ok(new ApiResponse<dynamic> { Success = true, Data = mappedUsers });
@@ -163,9 +150,6 @@ public class UserController : ControllerBase
             var customRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == roleStr);
             if (customRole != null && !string.IsNullOrEmpty(customRole.RoleType))
             {
-                // Save the custom role display name so it persists across page reloads
-                user.CustomRoleName = customRole.RoleName;
-
                 var roleTypeToEnumMap = new Dictionary<string, UserRole>(StringComparer.OrdinalIgnoreCase)
                 {
                     { "admin", UserRole.admin }, { "staff", UserRole.staff },
@@ -179,21 +163,15 @@ public class UserController : ControllerBase
             }
             else if (builtInDisplayToEnum.TryGetValue(roleStr, out var builtInRole))
             {
-                // Built-in display name like "Field Supervisor", "Site Manager", etc.
                 user.Role = builtInRole;
-                user.CustomRoleName = null; // clear custom role name for built-in roles
             }
             else if (Enum.TryParse<UserRole>(roleStr, true, out var parsedRole))
             {
-                // Raw enum value like "facility_manager"
                 user.Role = parsedRole;
-                user.CustomRoleName = null;
             }
             else
             {
-                // Unknown role — store as custom name, default enum to staff
                 user.Role = UserRole.staff;
-                user.CustomRoleName = roleStr;
             }
         }
 
