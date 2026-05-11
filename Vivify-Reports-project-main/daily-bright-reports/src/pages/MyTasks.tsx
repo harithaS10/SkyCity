@@ -106,28 +106,45 @@ const MyTasks: React.FC = () => {
       const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
       const withTimeout = (promise: Promise<any>) => Promise.race([promise, timeout(10000)]);
 
-      const [tasksRes, clientsRes, worksRes, adminTasksRes] = await Promise.all([
-        withTimeout(api.allocations.getMyTasks()).catch(() => ({ success: true, data: [] })),
-        withTimeout(api.clients.getAll()).catch(() => ({ success: true, data: [] })),
-        withTimeout(api.works.getActive()).catch(() => ({ success: true, data: [] })),
-        withTimeout(api.tasks.getMyTasks()).catch(() => ({ success: true, data: [] }))
-      ]);
+      // Fire all requests in parallel but process each as it resolves
+      const tasksPromise = withTimeout(api.allocations.getMyTasks()).catch(() => ({ success: true, data: [] }));
+      const adminTasksPromise = withTimeout(api.tasks.getMyTasks()).catch(() => ({ success: true, data: [] }));
+      const clientsPromise = withTimeout(api.clients.getAll()).catch(() => ({ success: true, data: [] }));
+      const worksPromise = withTimeout(api.works.getActive()).catch(() => ({ success: true, data: [] }));
 
-      if (tasksRes.success) setAllocations(tasksRes.data || []);
-      if (clientsRes.success) setClients(clientsRes.data || []);
-      if (worksRes.success) setAvailableWorks(worksRes.data || []);
-      if (adminTasksRes.success) {
-        // Normalize admin tasks to match allocation shape for unified rendering
-        const normalized = (adminTasksRes.data || []).map((t: any) => ({
+      // Show tasks immediately as they arrive (don't wait for all)
+      tasksPromise.then((tasksRes: any) => {
+        if (tasksRes.success) setAllocations((tasksRes.data || []).map((t: any) => ({
           ...t,
-          _source: 'task',                          // mark origin for status update routing
-          title: t.taskName,                        // unify field name
-          dueDate: t.dueDate,
           status: t.status?.toLowerCase() ?? 'pending',
-          taskType: t.isRecurring ? 'monthly' : 'daily',
-        }));
-        setAdminTasks(normalized);
-      }
+        })));
+        if (showLoading) setIsLoading(false); // unblock UI as soon as tasks arrive
+      });
+
+      adminTasksPromise.then((adminTasksRes: any) => {
+        if (adminTasksRes.success) {
+          const normalized = (adminTasksRes.data || []).map((t: any) => ({
+            ...t,
+            _source: 'task',
+            title: t.taskName,
+            dueDate: t.dueDate,
+            status: t.status?.toLowerCase() ?? 'pending',
+            taskType: t.isRecurring ? 'monthly' : 'daily',
+          }));
+          setAdminTasks(normalized);
+        }
+      });
+
+      clientsPromise.then((clientsRes: any) => {
+        if (clientsRes.success) setClients(clientsRes.data || []);
+      });
+
+      worksPromise.then((worksRes: any) => {
+        if (worksRes.success) setAvailableWorks(worksRes.data || []);
+      });
+
+      // Still await all so the finally block runs correctly
+      await Promise.all([tasksPromise, adminTasksPromise, clientsPromise, worksPromise]);
     } catch (error) {
       console.error("Error fetching tasks:", error);
       toast.error("Failed to load tasks");
@@ -231,7 +248,7 @@ const MyTasks: React.FC = () => {
 
   // Filter completed tasks to only show those from the last 7 days
   const completedTasks = filteredItems.filter((task) => {
-    if (task.status !== 'completed') return false;
+    if (task.status?.toLowerCase() !== 'completed') return false;
     if (!task.completedAt) return true;
     const completedDate = new Date(task.completedAt);
     const sevenDaysAgo = new Date();
