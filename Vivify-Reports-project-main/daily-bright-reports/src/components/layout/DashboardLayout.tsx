@@ -329,7 +329,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
           variant="ghost"
           size="sm"
           className={cn(
-            'h-8 px-2 gap-1 text-[11px] font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
+            'h-8 px-2.5 gap-1.5 text-xs font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
             activeHrefs.includes(location.pathname)
               ? 'bg-white/20 text-white shadow-md'
               : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
@@ -407,7 +407,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      'h-8 px-2 gap-1 text-[11px] font-semibold transition-all relative overflow-hidden group rounded-md whitespace-nowrap flex-shrink-0',
+                      'h-8 px-2.5 gap-1.5 text-xs font-semibold transition-all relative overflow-hidden group rounded-md whitespace-nowrap flex-shrink-0',
                       isActive
                         ? 'bg-white/20 text-white shadow-md'
                         : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
@@ -440,7 +440,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <button
                   onClick={() => navigate('/admin/employees')}
                   className={cn(
-                    'flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors text-primary-foreground/80 hover:text-white hover:bg-white/10 whitespace-nowrap flex-shrink-0',
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors text-primary-foreground/80 hover:text-white hover:bg-white/10 whitespace-nowrap flex-shrink-0',
                     location.pathname.startsWith('/admin/employee') && 'bg-white/20 text-white shadow-md'
                   )}
                 >
@@ -460,7 +460,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    'h-8 px-2 gap-1 text-[11px] font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
+                    'h-8 px-2.5 gap-1.5 text-xs font-semibold transition-all rounded-md whitespace-nowrap flex-shrink-0',
                     location.pathname === item.href
                       ? 'bg-white/20 text-white shadow-md'
                       : 'text-primary-foreground/80 hover:bg-white/10 hover:text-white'
