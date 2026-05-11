@@ -47,18 +47,18 @@ const statusColors: Record<string, string> = {
 };
 
 const Complaints: React.FC = () => {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const canView = hasPermission('complaints', 'view');
   const canManage = hasPermission('complaints', 'edit') || hasPermission('complaints', 'delete');
   const canCreate = hasPermission('complaints', 'create');
 
-  // Redirect if no view permission
+  // Redirect if no view permission (but only after auth is loaded)
   React.useEffect(() => {
-    if (!canView) {
+    if (!authLoading && !canView) {
       navigate('/dashboard');
     }
-  }, [canView, navigate]);
+  }, [canView, authLoading, navigate]);
 
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [categories, setCategories] = useState<ComplaintCategory[]>([]);

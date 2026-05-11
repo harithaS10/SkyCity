@@ -89,16 +89,16 @@ const safeFormatDate = (dateStr: string | null | undefined, formatStr: string = 
 };
 
 const Analytics: React.FC = () => {
-  const { user, canExport, hasPermission } = useAuth();
+  const { user, canExport, hasPermission, isLoading: authLoading } = useAuth();
   const canView = user?.role === 'staff' ? hasPermission('analytics', 'view') : true;
   const navigate = useNavigate();
 
-  // Redirect if no permission
+  // Redirect if no permission (but only after auth is loaded)
   React.useEffect(() => {
-    if (!canView) {
+    if (!authLoading && !canView) {
       navigate('/dashboard');
     }
-  }, [canView, navigate]);
+  }, [canView, authLoading, navigate]);
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [customStartDate, setCustomStartDate] = useState<string>(format(startOfMonth(new Date()), 'yyyy-MM-dd'));

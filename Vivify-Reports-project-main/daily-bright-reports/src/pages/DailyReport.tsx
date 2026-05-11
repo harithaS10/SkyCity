@@ -78,17 +78,17 @@ const createEmptyRows = (count: number, startingIndex: number = 0): WorkRow[] =>
 };
 
 const DailyReport: React.FC = () => {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const canView = user?.role === 'staff' ? hasPermission('daily_reports', 'view') : true;
   const canCreate = user?.role === 'staff' ? hasPermission('daily_reports', 'create') : true;
 
-  // Redirect if no view permission
+  // Redirect if no view permission (but only after auth is loaded)
   React.useEffect(() => {
-    if (!canView) {
+    if (!authLoading && !canView) {
       navigate('/dashboard');
     }
-  }, [canView, navigate]);
+  }, [canView, authLoading, navigate]);
   const [date, setDate] = useState<Date>(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isMobileCalendarOpen, setIsMobileCalendarOpen] = useState(false);

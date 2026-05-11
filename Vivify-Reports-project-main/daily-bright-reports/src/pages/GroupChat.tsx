@@ -45,17 +45,17 @@ interface User { id: number; name: string; fullName?: string; role: string; isAc
 interface Group { id: number; groupName: string; memberCount?: number; unreadCount?: number; members?: { userId: number; name?: string }[]; }
 
 const GroupChat: React.FC = () => {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const canView = user?.role === 'staff' ? hasPermission('chat', 'view') : true;
   const canChat = user?.role === 'staff' ? hasPermission('chat', 'create') : true;
 
-  // Redirect if no view permission
+  // Redirect if no view permission (but only after auth is loaded)
   React.useEffect(() => {
-    if (!canView) {
+    if (!authLoading && !canView) {
       navigate('/dashboard');
     }
-  }, [canView, navigate]);
+  }, [canView, authLoading, navigate]);
 
   const chat = useChat(true);
 
