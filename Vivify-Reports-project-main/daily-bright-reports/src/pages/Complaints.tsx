@@ -52,6 +52,9 @@ const Complaints: React.FC = () => {
   const canView = isAdmin || hasPermission('complaints', 'view');
   const canManage = isAdmin || hasPermission('complaints', 'edit') || hasPermission('complaints', 'delete');
   const canCreate = isAdmin || hasPermission('complaints', 'create');
+  // Only admins can change complaint status (assign, mark active, resolve)
+  // Regular staff/employees with edit permission should NOT see admin action buttons
+  const canUpdateStatus = isAdmin;
 
   // Redirect if no view permission (but only after auth is loaded)
   React.useEffect(() => {
@@ -137,7 +140,7 @@ const Complaints: React.FC = () => {
 
   const counts = {
     Open: complaints.filter(c => c.status === 'Open').length,
-    ...(canManage ? { Assigned: complaints.filter(c => c.status === 'Assigned').length } : {}),
+    ...(canUpdateStatus ? { Assigned: complaints.filter(c => c.status === 'Assigned').length } : {}),
     'In Progress': complaints.filter(c => c.status === 'In Progress').length,
     Resolved: complaints.filter(c => c.status === 'Resolved').length,
   };
@@ -381,12 +384,12 @@ const Complaints: React.FC = () => {
               onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
           </div>
           <Tabs value={filterStatus} onValueChange={setFilterStatus}>
-            <TabsList className={`w-full grid ${canManage ? 'grid-cols-5' : 'grid-cols-4'} h-9 rounded-xl bg-muted/60 p-1`}>
+            <TabsList className={`w-full grid ${canUpdateStatus ? 'grid-cols-5' : 'grid-cols-4'} h-9 rounded-xl bg-muted/60 p-1`}>
               <TabsTrigger value="all" className="rounded-lg text-xs font-semibold">All</TabsTrigger>
               <TabsTrigger value="Open" className="rounded-lg text-xs font-semibold data-[state=active]:bg-rose-500 data-[state=active]:text-white">
                 Open {counts.Open > 0 && <span className="ml-1 text-[9px]">({counts.Open})</span>}
               </TabsTrigger>
-              {canManage && <TabsTrigger value="Assigned" className="rounded-lg text-xs font-semibold data-[state=active]:bg-amber-500 data-[state=active]:text-white">Assigned</TabsTrigger>}
+              {canUpdateStatus && <TabsTrigger value="Assigned" className="rounded-lg text-xs font-semibold data-[state=active]:bg-amber-500 data-[state=active]:text-white">Assigned</TabsTrigger>}
               <TabsTrigger value="In Progress" className="rounded-lg text-xs font-semibold data-[state=active]:bg-blue-500 data-[state=active]:text-white">
                 <span className="hidden sm:inline">In Progress</span>
                 <span className="sm:hidden">Active</span>
@@ -530,7 +533,7 @@ const Complaints: React.FC = () => {
                       </div>
                     );
                   })()}
-                  {canManage && c.status === 'Open' && (
+                  {canUpdateStatus && c.status === 'Open' && (
                     <Button size="sm" className="w-full h-7 text-xs gap-1.5" onClick={() => {
                       setSelected(c); setIsAssignOpen(true);
                       setIsLoadingStaff(true);
@@ -544,7 +547,7 @@ const Complaints: React.FC = () => {
                       <User className="h-3 w-3" /> Assign
                     </Button>
                   )}
-                  {canManage && c.status !== 'Open' && c.status !== 'Closed' && c.status !== 'Resolved' && (
+                  {canUpdateStatus && c.status !== 'Open' && c.status !== 'Closed' && c.status !== 'Resolved' && (
                     <div className="flex gap-1.5">
                       {c.status !== 'In Progress' && (
                         <Button size="sm" variant="outline" className="flex-1 h-7 text-xs gap-1 border-blue-200 text-blue-600 hover:bg-blue-50"
@@ -652,7 +655,7 @@ const Complaints: React.FC = () => {
 
               {/* Mobile Filter Tabs */}
               <div className="flex gap-2 overflow-x-auto pb-1" style={{scrollbarWidth: 'none'}}>
-                {['all', 'Open', 'In Progress', 'Resolved', ...(canManage ? ['Assigned'] : [])].map(tab => (
+                {['all', 'Open', 'In Progress', 'Resolved', ...(canUpdateStatus ? ['Assigned'] : [])].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setFilterStatus(tab)}
@@ -814,9 +817,9 @@ const Complaints: React.FC = () => {
                           </div>
 
                           {/* Mobile Actions */}
-                          {((canManage && c.status !== 'Closed') || (user?.role === 'staff' && ['Open', 'Assigned', 'In Progress'].includes(c.status))) && (
+                          {((canUpdateStatus && c.status !== 'Closed') || (user?.role === 'staff' && ['Open', 'Assigned', 'In Progress'].includes(c.status))) && (
                             <div className="flex items-center gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-                               {canManage && c.status === 'Open' && (
+                               {canUpdateStatus && c.status === 'Open' && (
                                   <Button className="flex-1 h-11 rounded-2xl text-xs font-black shadow-md bg-slate-800 hover:bg-slate-900 text-white" onClick={() => {
                                      setSelected(c); setIsAssignOpen(true); setIsLoadingStaff(true);
                                      api.users.getAll().then(res => { if (res.success && res.data) { setStaffList(res.data); } }).catch(() => {}).finally(() => setIsLoadingStaff(false));
@@ -824,7 +827,7 @@ const Complaints: React.FC = () => {
                                      <User className="h-4 w-4 mr-1.5" /> Assign To
                                   </Button>
                                )}
-                               {canManage && c.status !== 'Open' && c.status !== 'Closed' && c.status !== 'Resolved' && (
+                               {canUpdateStatus && c.status !== 'Open' && c.status !== 'Closed' && c.status !== 'Resolved' && (
                                   <>
                                      {c.status !== 'In Progress' && (
                                        <Button variant="outline" className="flex-1 h-11 rounded-2xl text-xs font-black border-blue-200 text-blue-600 bg-blue-50 shadow-sm" onClick={() => handleStatusUpdate(c.id, 'In Progress')}>
