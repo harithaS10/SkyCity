@@ -135,7 +135,7 @@ const CategoryManagement: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 animate-in fade-in duration-500 pt-6">
+      <div className="space-y-8 animate-in fade-in duration-500 pt-2">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Category Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage categories and sub-categories for your products.</p>

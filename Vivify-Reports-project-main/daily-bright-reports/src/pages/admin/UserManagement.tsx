@@ -337,7 +337,7 @@ const UserManagement: React.FC = () => {
     <DashboardLayout>
       <div className="animate-fade-in">
         {/* ===== DESKTOP HEADER & STATS ===== */}
-        <div className="hidden sm:block space-y-6 mb-6 pt-6">
+        <div className="hidden sm:block space-y-6 mb-6 pt-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">User Management</h1>

@@ -110,7 +110,7 @@ const AdminManagement: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in pt-6">
+      <div className="space-y-6 animate-fade-in pt-2">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

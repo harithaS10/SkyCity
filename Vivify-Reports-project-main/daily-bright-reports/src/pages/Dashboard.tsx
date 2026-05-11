@@ -1337,7 +1337,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="w-full">
       {/* ===== DESKTOP VIEW ===== */}
-      <div className="hidden lg:flex flex-col space-y-8 animate-in fade-in duration-500 pt-2">
+      <div className="hidden lg:flex flex-col space-y-8 animate-in fade-in duration-500 pt-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Admin Terminal</h1>
