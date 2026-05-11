@@ -263,8 +263,8 @@ const AdminReportsPage: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-2 flex-nowrap">
                         <Select value={filterUser} onValueChange={setFilterUser}>
-                            <SelectTrigger className="h-10 rounded-xl border border-input bg-background gap-2 px-3 min-w-[160px] text-sm font-medium shadow-sm">
-                                <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <SelectTrigger className="h-8 rounded-lg border border-input bg-background gap-1.5 px-2.5 min-w-[130px] max-w-[150px] text-xs font-medium shadow-sm">
+                                <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                 <SelectValue placeholder="All Employees" />
                             </SelectTrigger>
                             <SelectContent className="max-h-60 overflow-y-auto">
@@ -273,8 +273,8 @@ const AdminReportsPage: React.FC = () => {
                             </SelectContent>
                         </Select>
                         <Select value={filterStatus} onValueChange={setFilterStatus}>
-                            <SelectTrigger className="h-10 rounded-xl border border-input bg-background gap-2 px-3 w-[160px] text-sm font-medium shadow-sm">
-                                <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <SelectTrigger className="h-8 rounded-lg border border-input bg-background gap-1.5 px-2.5 w-[130px] text-xs font-medium shadow-sm">
+                                <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -286,8 +286,8 @@ const AdminReportsPage: React.FC = () => {
                         </Select>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className="h-10 text-sm rounded-xl gap-2 px-3 w-[145px] font-medium shadow-sm">
-                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                <Button variant="outline" className="h-8 text-xs rounded-lg gap-1.5 px-2.5 w-[120px] font-medium shadow-sm">
+                                    <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
                                     {filterFromDate ? format(new Date(filterFromDate), 'MMM dd') : 'From Date'}
                                 </Button>
                             </PopoverTrigger>
@@ -303,8 +303,8 @@ const AdminReportsPage: React.FC = () => {
                         </Popover>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" className="h-10 text-sm rounded-xl gap-2 px-3 w-[145px] font-medium shadow-sm">
-                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                <Button variant="outline" className="h-8 text-xs rounded-lg gap-1.5 px-2.5 w-[120px] font-medium shadow-sm">
+                                    <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
                                     {filterToDate ? format(new Date(filterToDate), 'MMM dd') : 'To Date'}
                                 </Button>
                             </PopoverTrigger>

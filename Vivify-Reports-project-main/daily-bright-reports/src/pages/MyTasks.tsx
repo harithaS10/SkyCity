@@ -103,11 +103,14 @@ const MyTasks: React.FC = () => {
   const fetchData = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
+      const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
+      const withTimeout = (promise: Promise<any>) => Promise.race([promise, timeout(10000)]);
+
       const [tasksRes, clientsRes, worksRes, adminTasksRes] = await Promise.all([
-        api.allocations.getMyTasks().catch(() => ({ success: true, data: [] })),
-        api.clients.getAll().catch(() => ({ success: true, data: [] })),
-        api.works.getActive().catch(() => ({ success: true, data: [] })),
-        api.tasks.getMyTasks().catch(() => ({ success: true, data: [] }))
+        withTimeout(api.allocations.getMyTasks()).catch(() => ({ success: true, data: [] })),
+        withTimeout(api.clients.getAll()).catch(() => ({ success: true, data: [] })),
+        withTimeout(api.works.getActive()).catch(() => ({ success: true, data: [] })),
+        withTimeout(api.tasks.getMyTasks()).catch(() => ({ success: true, data: [] }))
       ]);
 
       if (tasksRes.success) setAllocations(tasksRes.data || []);
