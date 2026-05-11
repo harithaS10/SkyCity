@@ -475,9 +475,14 @@ const RoleManagement: React.FC = () => {
                 <h1 className="text-2xl font-black text-white tracking-tight truncate">Roles</h1>
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Role Management</p>
               </div>
-              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0 hover:bg-white/20" onClick={() => setIsCreateOpen(true)}>
-                <Plus className="h-6 w-6" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0 hover:bg-white/20" onClick={() => setIsCreateOpen(true)} disabled={!canCreate}>
+                  <Plus className="h-6 w-6" />
+                </Button>
+                <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0 hover:bg-white/20" onClick={() => { setBulkCsvText(''); setBulkResult(null); setIsBulkDialogOpen(true); }} disabled={!canCreate}>
+                  <Upload className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 mt-4">

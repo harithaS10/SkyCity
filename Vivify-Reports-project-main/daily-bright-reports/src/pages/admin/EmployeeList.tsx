@@ -224,91 +224,124 @@ const EmployeeList: React.FC = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Employee ID</TableHead>
-                      <TableHead>Department</TableHead>
-                      <TableHead>Total Tasks</TableHead>
-                      <TableHead>Completed</TableHead>
-                      <TableHead>Pending</TableHead>
-                      <TableHead>Completion Rate</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEmployees.map((employee) => {
-                      const stats = employeeStats[employee.id] || { 
-                        totalTasks: 0, 
-                        completedTasks: 0, 
-                        pendingTasks: 0, 
-                        completionRate: 0 
-                      };
-                      
-                      return (
-                        <TableRow key={employee.id} className="hover:bg-slate-50/50">
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                                <User className="h-5 w-5 text-primary" />
-                              </div>
-                              <div>
-                                <p className="font-medium">{employee.fullName}</p>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Mail className="h-3 w-3" />
-                                  {employee.email}
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-mono">
-                              EMP-{employee.id.toString().padStart(3, '0')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Building2 className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-sm">{employee.department || 'General'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-medium">{stats.totalTasks}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-emerald-600 font-medium">{stats.completedTasks}</span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-amber-600 font-medium">{stats.pendingTasks}</span>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              className={`${
-                                stats.completionRate >= 80 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
-                                stats.completionRate >= 50 ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                                'bg-rose-100 text-rose-800 border-rose-200'
-                              }`}
-                            >
-                              {stats.completionRate}%
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              onClick={() => handleViewTasks(employee.id, employee.fullName)}
-                              size="sm"
-                              className="gap-2"
-                            >
-                              View Tasks
-                              <ArrowRight className="h-3 w-3" />
-                            </Button>
-                          </TableCell>
+                <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table className="table-fixed w-full">
+                      <colgroup>
+                        <col style={{ width: '22%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '130px' }} />
+                      </colgroup>
+                      <TableHeader className="bg-primary hover:bg-primary">
+                        <TableRow className="hover:bg-transparent border-none">
+                          <TableHead className="text-white font-semibold h-11">Employee</TableHead>
+                          <TableHead className="text-white font-semibold h-11">Employee ID</TableHead>
+                          <TableHead className="text-white font-semibold h-11">Department</TableHead>
+                          <TableHead className="text-white font-semibold h-11 text-center">Total Tasks</TableHead>
+                          <TableHead className="text-white font-semibold h-11 text-center">Completed</TableHead>
+                          <TableHead className="text-white font-semibold h-11 text-center">Pending</TableHead>
+                          <TableHead className="text-white font-semibold h-11 text-center">Completion Rate</TableHead>
+                          <TableHead className="text-white font-semibold h-11 text-right px-4">Actions</TableHead>
                         </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                      </TableHeader>
+                    </Table>
+                    <div className="overflow-y-auto" style={{ maxHeight: '420px' }}>
+                      <Table className="table-fixed w-full border-t-0">
+                        <colgroup>
+                          <col style={{ width: '22%' }} />
+                          <col style={{ width: '12%' }} />
+                          <col style={{ width: '13%' }} />
+                          <col style={{ width: '10%' }} />
+                          <col style={{ width: '10%' }} />
+                          <col style={{ width: '10%' }} />
+                          <col style={{ width: '10%' }} />
+                          <col style={{ width: '130px' }} />
+                        </colgroup>
+                        <TableBody>
+                          {filteredEmployees.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="h-32 text-center text-muted-foreground font-medium italic">
+                                No employees found.
+                              </TableCell>
+                            </TableRow>
+                          ) : filteredEmployees.map((employee) => {
+                            const stats = employeeStats[employee.id] || { 
+                              totalTasks: 0, 
+                              completedTasks: 0, 
+                              pendingTasks: 0, 
+                              completionRate: 0 
+                            };
+                            
+                            return (
+                              <TableRow key={employee.id} className="hover:bg-slate-50/50 transition-colors border-b">
+                                <TableCell className="border-r py-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 border border-primary/20 shrink-0">
+                                      <User className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="font-bold text-slate-700 truncate">{employee.fullName}</p>
+                                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                        <Mail className="h-3 w-3" />
+                                        <span className="truncate">{employee.email}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="border-r">
+                                  <Badge variant="outline" className="font-mono text-[10px] bg-slate-50">
+                                    EMP-{employee.id.toString().padStart(3, '0')}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="border-r">
+                                  <div className="flex items-center gap-1.5 text-slate-600">
+                                    <Building2 className="h-3.5 w-3.5 opacity-70" />
+                                    <span className="text-xs font-medium">{employee.department || 'General'}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center border-r">
+                                  <span className="font-bold text-slate-700">{stats.totalTasks}</span>
+                                </TableCell>
+                                <TableCell className="text-center border-r">
+                                  <span className="text-emerald-600 font-bold">{stats.completedTasks}</span>
+                                </TableCell>
+                                <TableCell className="text-center border-r">
+                                  <span className="text-amber-600 font-bold">{stats.pendingTasks}</span>
+                                </TableCell>
+                                <TableCell className="text-center border-r">
+                                  <Badge 
+                                    className={cn(
+                                      "text-[10px] font-bold h-5 px-2",
+                                      stats.completionRate >= 80 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                                      stats.completionRate >= 50 ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                                      'bg-rose-100 text-rose-800 border-rose-200'
+                                    )}
+                                  >
+                                    {stats.completionRate}%
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right px-4">
+                                  <Button
+                                    onClick={() => handleViewTasks(employee.id, employee.fullName)}
+                                    size="sm"
+                                    className="gap-2 h-8 rounded-lg bg-slate-900 hover:bg-slate-800"
+                                  >
+                                    <span className="text-[11px] font-bold">View Tasks</span>
+                                    <ArrowRight className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
