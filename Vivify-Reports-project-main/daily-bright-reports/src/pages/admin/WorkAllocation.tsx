@@ -339,9 +339,31 @@ const WorkAllocationPage: React.FC = () => {
 
   const filteredAllocations = allocations.filter((allocation) => {
     if (!allocation) return false;
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+
+    const assigneeName = users.find((u: any) => u.id === allocation.assignedTo)?.name?.toLowerCase() || '';
+
+    // Status matching: only match if query is a prefix of a status word (not substring of title)
+    const statusValue = (allocation.status?.toLowerCase() || '');
+    const statusMatchTerms: Record<string, string[]> = {
+      'pending': ['pending', 'pend'],
+      'in-progress': ['in-progress', 'in progress', 'inprogress', 'progress'],
+      'completed': ['completed', 'complete', 'done'],
+    };
+    const matchesStatusSearch = Object.entries(statusMatchTerms).some(([status, terms]) =>
+      allocation.status === status && terms.some(t => t.startsWith(q) || q === t)
+    );
+
     const matchesSearch =
-      (allocation.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (allocation.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+      (allocation.title?.toLowerCase() || '').includes(q) ||
+      (allocation.description?.toLowerCase() || '').includes(q) ||
+      (allocation.priority?.toLowerCase() || '').startsWith(q) ||
+      assigneeName.includes(q) ||
+      (allocation.workTitle?.toLowerCase() || '').includes(q) ||
+      (allocation.clientName?.toLowerCase() || '').includes(q) ||
+      matchesStatusSearch;
+
     const matchesStatus = filterStatus === 'all' || allocation.status === filterStatus;
     const matchesEmployee = filterEmployee === 'all' || String(allocation.assignedTo) === filterEmployee;
     const dueDate = allocation.dueDate ? new Date(allocation.dueDate) : null;
