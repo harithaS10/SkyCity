@@ -191,17 +191,24 @@ const Analytics: React.FC = () => {
 
   const filteredReports = (() => {
     let result = reports || [];
-    if (selectedUser !== 'all') {
-      result = result.filter(report => (report.userId || report.UserId || report.userid)?.toString() === selectedUser);
-    }
+    // userId and date filtering is already applied inside getAllReports (api.ts).
+    // Only apply work-type and text-search filters here.
     if (selectedWorks.length > 0) {
       result = result.filter(report => report.entries?.some((e: any) => selectedWorks.includes(e.workTitle || e.WorkTitle || report.workTitle || report.title || '')));
     }
     if (detailSearchQuery) {
       const q = detailSearchQuery.toLowerCase();
-      result = result.filter(report => 
-        report.userName?.toLowerCase().includes(q) || 
-        report.entries?.some((e: any) => (e.workTitle || '').toLowerCase().includes(q) || (e.description || '').toLowerCase().includes(q))
+      result = result.filter(report =>
+        report.userName?.toLowerCase().includes(q) ||
+        report.entries?.some((e: any) => {
+          const rawStatus = (e.status || e.Status || '').toLowerCase();
+          const displayedStatuses = rawStatus === 'pending' ? ['pending'] : ['completed', 'done'];
+          return (
+            (e.workTitle || e.WorkTitle || report.workTitle || report.title || '').toLowerCase().includes(q) ||
+            (e.description || e.Description || '').toLowerCase().includes(q) ||
+            displayedStatuses.some(status => status.includes(q))
+          );
+        })
       );
     }
     return result;
@@ -229,7 +236,7 @@ const Analytics: React.FC = () => {
         });
       }
     });
-    return { name: user.name.split(' ')[0], completed: completedCount, pending: pendingCount, total: totalEntries };
+    return { name: (user.name || user.fullName || 'Unknown').split(' ')[0], completed: completedCount, pending: pendingCount, total: totalEntries };
   }).filter(stat => stat.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
 
   const workTypeDistribution = (() => {
@@ -269,7 +276,7 @@ const Analytics: React.FC = () => {
         XLSX.utils.book_append_sheet(workbook, worksheet, "Reports");
         fileContent = Capacitor.isNativePlatform() ? XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' }) : new Blob([XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       } else {
-        const headers = Object.keys(rows[0]);
+        const headers = Object.keys(rows[0] || {});
         const csvText = [headers.join(','), ...rows.map(row => headers.map(h => `"${String(row[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\r\n');
         fileContent = csvText;
       }
@@ -591,7 +598,7 @@ const Analytics: React.FC = () => {
                 />
               </div>
 
-              <div className="space-y-2.5">{filteredReports.slice(0, 15).map((report) => (
+              <div className="space-y-2.5">{filteredReports.map((report) => (
                 <div key={report.id} onClick={() => setSelectedReport(report)} className="bg-white dark:bg-card rounded-[1.25rem] p-4 shadow-sm ring-1 ring-black/5 active:scale-[0.98] transition-all flex items-center justify-between">
                    <div className="flex items-center gap-3 min-w-0">
                      <div className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center font-black text-primary text-[11px] shrink-0">{report.userName?.charAt(0)}</div>

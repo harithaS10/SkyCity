@@ -460,43 +460,75 @@ export const api = {
   admin: {
     getDashboardStats: async () => (await apiClient.get('/dashboard/stats')).data,
     getAllReports: async (params: any) => {
-      const response = await apiClient.get('/reports', { params });
-      const [usersRes, complaintsRes] = await Promise.all([
+      // /reports has no backend route — use /workallocations/all as the source of truth.
+      const [allocRes, usersRes, complaintsRes] = await Promise.all([
+        apiClient.get('/workallocations/all'),
         apiClient.get('/users'),
-        apiClient.get('/complaints', { params }).catch(() => ({ data: { data: { items: [] } } })),
+        apiClient.get('/complaints').catch(() => ({ data: { data: { items: [] } } })),
       ]);
-      const raw = response.data;
-      const userList = usersRes.data?.data ?? [];
+
+      const allAllocs: any[] = allocRes.data?.data ?? [];
+      const userList: any[] = usersRes.data?.data ?? [];
       const userMap: Record<number, string> = {};
-      userList.forEach((u: any) => { userMap[u.id] = u.fullName; });
+      userList.forEach((u: any) => { userMap[u.id] = u.fullName || u.FullName || u.username || ''; });
 
-      const complaints = complaintsRes.data?.data?.items ?? complaintsRes.data?.data ?? [];
+      const complaints: any[] = complaintsRes.data?.data?.items ?? complaintsRes.data?.data ?? [];
 
-      // Group allocations by user+date so each user appears once per day
+      // Apply date-range filter — use dueDate as the work date, fall back to createdAt
+      const start = params?.startDate ? new Date(params.startDate) : null;
+      const end = params?.endDate
+        ? (() => { const d = new Date(params.endDate); d.setHours(23, 59, 59, 999); return d; })()
+        : null;
+
+      // Apply user filter
+      const userIdFilter = params?.userId ? Number(params.userId) : null;
+
+      const filtered = allAllocs.filter((a: any) => {
+        if (userIdFilter && a.assignedTo !== userIdFilter) return false;
+        if (start && end) {
+          // Check both dueDate and createdAt — include if either falls in range
+          const dates = [a.dueDate, a.createdAt].filter(Boolean).map((d: string) => new Date(d));
+          if (dates.length > 0 && !dates.some(d => d >= start! && d <= end!)) return false;
+        }
+        return true;
+      });
+
+      // Group by user + dueDate day so each employee has one row per assigned work day.
+      // Each allocation on the same day for the same user becomes an entry in that row.
       const grouped: Record<string, any> = {};
-      (raw?.data ?? []).forEach((a: any) => {
-        const day = a.createdAt ? a.createdAt.split('T')[0] : 'unknown';
+      filtered.forEach((a: any) => {
+        // Use dueDate as the display date (the day the work is assigned for).
+        // Fall back to createdAt only if dueDate is missing.
+        const workDate = a.dueDate || a.createdAt;
+        const day = workDate ? workDate.split('T')[0] : 'unknown';
         const key = `${a.assignedTo}_${day}`;
-        const userComplaints = complaints.filter((c: any) => c.residentId === a.assignedTo);
+
         if (!grouped[key]) {
           grouped[key] = {
-            id: a.id,
+            id: key,
             userId: a.assignedTo,
-            userName: userMap[a.assignedTo] || 'Unknown',
-            date: a.createdAt,
-            complaints: userComplaints,
+            userName: userMap[a.assignedTo] || a.clientName || 'Unknown',
+            date: workDate,
+            complaints: complaints.filter((c: any) => c.residentId === a.assignedTo),
             entries: [],
           };
         }
         grouped[key].entries.push({
-          workTitle: a.title,
+          workTitle: a.workTitle || a.title || 'N/A',
           description: a.description,
           status: a.status,
           hoursSpent: 0,
           dueDate: a.dueDate,
+          clientId: a.clientId,
+          quantity: a.quantity,
+          timeSpent: a.duration,
         });
       });
-      const items = Object.values(grouped);
+
+      // Sort newest first by date
+      const items = Object.values(grouped).sort(
+        (a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
+      );
       return { success: true, data: items };
     },
     getAnalytics: async (params: any): Promise<ApiResponse<any>> => {
@@ -508,13 +540,15 @@ export const api = {
         const allocs = allocRes.data?.data ?? [];
         const users = usersRes.data?.data ?? [];
 
-        // Filter by date range
+        // Filter by date range — use dueDate (actual work date) with createdAt as fallback
         const start = params.startDate ? new Date(params.startDate) : null;
-        const end = params.endDate ? new Date(params.endDate) : null;
+        const end = params.endDate
+          ? (() => { const d = new Date(params.endDate); d.setHours(23, 59, 59, 999); return d; })()
+          : null;
         const filtered = allocs.filter((a: any) => {
           if (!start || !end) return true;
-          const d = new Date(a.createdAt);
-          return d >= start && d <= end;
+          const dates = [a.dueDate, a.createdAt].filter(Boolean).map((d: string) => new Date(d));
+          return dates.length === 0 || dates.some(d => d >= start! && d <= end!);
         });
 
         // Build analytics
