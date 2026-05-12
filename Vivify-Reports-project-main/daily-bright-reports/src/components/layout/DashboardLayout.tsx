@@ -387,7 +387,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden w-full">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 w-full border-b border-white/10 bg-[#0d9488] text-white shadow-md safe-top"
+        className="fixed top-0 left-0 right-0 z-50 w-full border-b border-white/10 bg-primary text-white shadow-md safe-top"
       >
         <div className="flex h-16 sm:h-14 items-center justify-between px-3 sm:px-3 lg:px-4 xl:px-6 max-w-[1800px] mx-auto w-full gap-2">
 
@@ -722,7 +722,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                     variant="ghost"
                     className={cn(
                       'w-full justify-start h-11 sm:h-9 px-3 text-[13px] sm:text-xs font-medium transition-all',
-                      isActive ? 'bg-[#0d9488] text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      isActive ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                     )}
                     onClick={() => {
                       navigate(item.href);
@@ -751,7 +751,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   {managementItems.map((item) => (
                     <Button key={item.href} variant="ghost"
                       className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
-                        location.pathname === item.href ? 'bg-[#0d9488] text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        location.pathname === item.href ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       )}
                       onClick={() => { navigate(item.href); setIsMobileMenuOpen(false); }}
                     >
@@ -766,7 +766,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   {taskManagementItems.map((item) => (
                     <Button key={item.href} variant="ghost"
                       className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
-                        location.pathname === item.href ? 'bg-[#0d9488] text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        location.pathname === item.href ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       )}
                       onClick={() => { navigate(item.href); setIsMobileMenuOpen(false); }}
                     >
@@ -789,7 +789,7 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                   ].map((item) => (
                     <Button key={item.href} variant="ghost"
                       className={cn('w-full justify-start h-9 px-3 pl-5 text-xs font-medium transition-all',
-                        location.pathname === item.href ? 'bg-[#0d9488] text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        location.pathname === item.href ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                       )}
                       onClick={() => { navigate(item.href); setIsMobileMenuOpen(false); }}
                     >
