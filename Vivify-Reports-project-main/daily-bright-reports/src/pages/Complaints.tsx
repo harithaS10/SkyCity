@@ -286,8 +286,16 @@ const Complaints: React.FC = () => {
       if (editForm.unitId) payload.unitId = parseInt(editForm.unitId);
       if (editForm.assignedTo && editForm.assignedTo !== 'none') {
         payload.assignedTo = parseInt(editForm.assignedTo);
+        // Automatically move to Assigned if currently Open
+        if (payload.status === 'Open') {
+          payload.status = 'Assigned';
+        }
       } else if (editForm.assignedTo === 'none') {
         payload.assignedTo = null;
+        // If unassigned, move back to Open if currently Assigned
+        if (payload.status === 'Assigned') {
+          payload.status = 'Open';
+        }
       }
 
       const res = await api.complaints.update(editForm.id, payload);
@@ -1074,7 +1082,14 @@ const Complaints: React.FC = () => {
                     </div>
                     <div className="space-y-1">
                       <Label>Assign To</Label>
-                      <Select value={editForm.assignedTo} onValueChange={v => setEditForm(p => ({ ...p, assignedTo: v }))}>
+                      <Select value={editForm.assignedTo} onValueChange={v => {
+                        setEditForm(p => ({ 
+                          ...p, 
+                          assignedTo: v,
+                          status: (v !== 'none' && p.status === 'Open') ? 'Assigned' : 
+                                 (v === 'none' && p.status === 'Assigned') ? 'Open' : p.status
+                        }));
+                      }}>
                         <SelectTrigger>
                           <SelectValue placeholder={isLoadingStaff ? "Loading staff..." : "Unassigned"} />
                         </SelectTrigger>
