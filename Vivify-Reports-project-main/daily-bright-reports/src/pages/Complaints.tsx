@@ -980,7 +980,10 @@ const Complaints: React.FC = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isSubmitting}>Cancel</Button>
+              <Button variant="outline" onClick={() => {
+                setForm({ title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', assignTo: '' });
+                setCreateFiles([]);
+              }} disabled={isSubmitting}>Cancel</Button>
               <Button onClick={handleCreate} disabled={isSubmitting}>
                 {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Creating...</> : 'Create'}
               </Button>
@@ -1009,14 +1012,20 @@ const Complaints: React.FC = () => {
               </Select>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAssignOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setAssignForm({ staffId: '', managerId: '' })}>Cancel</Button>
               <Button onClick={handleAssign} disabled={!assignForm.staffId}>Assign</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Edit Dialog */}
-        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <Dialog open={isEditOpen} onOpenChange={(open) => {
+          setIsEditOpen(open);
+          if (!open) {
+            setEditForm({ id: 0, title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', status: '', assignedTo: '' });
+            setEditFiles([]);
+          }
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit Complaint</DialogTitle>
@@ -1199,7 +1208,10 @@ const Complaints: React.FC = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSubmitting}>Cancel</Button>
+              <Button variant="outline" onClick={() => {
+                setEditForm({ id: 0, title: '', description: '', priority: 'Medium', categoryId: '', unitId: '', status: '', assignedTo: '' });
+                setEditFiles([]);
+              }} disabled={isSubmitting}>Cancel</Button>
               <Button onClick={handleUpdate} disabled={isSubmitting}>
                 {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Updating...</> : 'Save Changes'}
               </Button>

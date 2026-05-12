@@ -1065,7 +1065,12 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
       </div>
 
       {/* Request Change Dialog */}
-      <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+      <Dialog open={isRequestDialogOpen} onOpenChange={(open) => {
+        setIsRequestDialogOpen(open);
+        if (!open) {
+          setRequestData({ dueDate: '', description: '' });
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Request Change</DialogTitle>
@@ -1096,7 +1101,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setRequestData({ dueDate: '', description: '' })}>Cancel</Button>
             <Button onClick={handleRequestChange}>Submit Request</Button>
           </DialogFooter>
         </DialogContent>
@@ -1239,7 +1244,17 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
             </div>
           </div>
           <DialogFooter className="shrink-0 pt-2 border-t">
-            <Button variant="outline" onClick={() => setIsSelfAssignDialogOpen(false)} disabled={isSubmittingNewWork}>Cancel</Button>
+            <Button variant="outline" onClick={() => {
+              setSelfAssignData({
+                title: '',
+                description: '',
+                workId: '',
+                clientId: '',
+                priority: 'medium',
+                dueDate: format(new Date(), 'yyyy-MM-dd')
+              });
+              setAttachments([]);
+            }} disabled={isSubmittingNewWork}>Cancel</Button>
             <Button
               onClick={handleSelfAssign}
               disabled={isSubmittingNewWork || !selfAssignData.title || !selfAssignData.workId}
@@ -1253,7 +1268,12 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
       </Dialog>
 
       {/* Progress Update Dialog */}
-      <Dialog open={isProgressDialogOpen} onOpenChange={setIsProgressDialogOpen}>
+      <Dialog open={isProgressDialogOpen} onOpenChange={(open) => {
+        setIsProgressDialogOpen(open);
+        if (!open) {
+          setProgressNote("");
+        }
+      }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Update Progress</DialogTitle>
@@ -1276,7 +1296,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsProgressDialogOpen(false)} disabled={isUpdatingProgress}>Cancel</Button>
+            <Button variant="outline" onClick={() => setProgressNote("")} disabled={isUpdatingProgress}>Cancel</Button>
             <Button onClick={handleProgressUpdate} disabled={isUpdatingProgress || !progressNote.trim()}>
               {isUpdatingProgress ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Update Status
@@ -1286,7 +1306,13 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
       </Dialog>
 
       {/* Task Completion Duration Dialog */}
-      <Dialog open={isDurationDialogOpen} onOpenChange={setIsDurationDialogOpen}>
+      <Dialog open={isDurationDialogOpen} onOpenChange={(open) => {
+        setIsDurationDialogOpen(open);
+        if (!open) {
+          setCompletionDuration({ hours: "0", minutes: "0" });
+          setCompletionAttachments([]);
+        }
+      }}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>Complete Task</DialogTitle>
@@ -1367,7 +1393,7 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
-              setIsDurationDialogOpen(false);
+              setCompletionDuration({ hours: "0", minutes: "0" });
               setCompletionAttachments([]);
             }}>Cancel</Button>
             <Button
@@ -1433,7 +1459,12 @@ clientId: selfAssignData.clientId ? selfAssignData.clientId.toString() : undefin
       </Dialog>
 
       {/* Task Detail Dialog — full screen on mobile (Screen 3) */}
-      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+      <Dialog open={isDetailDialogOpen} onOpenChange={(open) => {
+        setIsDetailDialogOpen(open);
+        if (!open) {
+          setSelectedTask(null);
+        }
+      }}>
         <DialogContent className="max-w-md p-0 overflow-hidden shadow-2xl sm:rounded-2xl rounded-none sm:max-h-[90vh] h-[100dvh] sm:h-auto flex flex-col [&>button]:hidden">
           {selectedTask && (
             <div className="flex flex-col h-full sm:max-h-[85vh]">

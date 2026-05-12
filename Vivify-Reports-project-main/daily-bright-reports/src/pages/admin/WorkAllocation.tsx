@@ -1782,7 +1782,7 @@ const WorkAllocationPage: React.FC = () => {
       )}
 
       {/* View Details Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+      <Dialog open={isViewDialogOpen} onOpenChange={(o) => { setIsViewDialogOpen(o); if (!o) setSelectedAllocation(null); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Work Allocation Details</DialogTitle>
