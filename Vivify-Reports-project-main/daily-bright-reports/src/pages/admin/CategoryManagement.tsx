@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,11 +19,16 @@ interface Category { id: number; categoryName: string; createdAt: string; isActi
 interface SubCategory { id: number; categoryId: number; categoryName: string; subCategoryName: string; description?: string; createdAt: string; isActive: boolean; productCount: number; }
 
 const CategoryManagement: React.FC = () => {
+  const { hasPermission } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubLoading, setIsSubLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canCreate = hasPermission('categories', 'create');
+  const canEdit = hasPermission('categories', 'edit');
+  const canDelete = hasPermission('categories', 'delete');
 
   // Category form
   const [categoryName, setCategoryName] = useState('');
@@ -149,25 +155,27 @@ const CategoryManagement: React.FC = () => {
 
           {/* ── CATEGORIES TAB ── */}
           <TabsContent value="categories" className="space-y-6 mt-6">
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />Add New Category</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="categoryName">Category Name</Label>
-                    <Input id="categoryName" placeholder="e.g. CCTV, Access Control" value={categoryName}
-                      onChange={e => setCategoryName(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleAddCategory()} className="mt-1" />
+            {canCreate && (
+              <Card>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />Add New Category</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="categoryName">Category Name</Label>
+                      <Input id="categoryName" placeholder="e.g. CCTV, Access Control" value={categoryName}
+                        onChange={e => setCategoryName(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAddCategory()} className="mt-1" />
+                    </div>
+                    <div className="flex items-end">
+                      <Button onClick={handleAddCategory} disabled={!categoryName.trim() || isSubmitting} className="gap-2">
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        Add Category
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-end">
-                    <Button onClick={handleAddCategory} disabled={!categoryName.trim() || isSubmitting} className="gap-2">
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      Add Category
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />Categories ({categories.length})</CardTitle></CardHeader>
@@ -202,12 +210,16 @@ const CategoryManagement: React.FC = () => {
                           <TableCell className="text-slate-600">{format(new Date(cat.createdAt), 'dd-MM-yyyy')}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <Button variant="outline" size="sm" className="gap-1" onClick={() => { setEditingCategory(cat); setEditCategoryName(cat.categoryName); setIsEditCatOpen(true); }}>
-                                <Edit className="h-3 w-3" />Edit
-                              </Button>
-                              <Button variant="outline" size="sm" className="gap-1 text-rose-600 hover:bg-rose-50" onClick={() => handleDeleteCategory(cat)} disabled={cat.productCount > 0}>
-                                <Trash2 className="h-3 w-3" />Delete
-                              </Button>
+                              {canEdit && (
+                                <Button variant="outline" size="sm" className="gap-1" onClick={() => { setEditingCategory(cat); setEditCategoryName(cat.categoryName); setIsEditCatOpen(true); }}>
+                                  <Edit className="h-3 w-3" />Edit
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button variant="outline" size="sm" className="gap-1 text-rose-600 hover:bg-rose-50" onClick={() => handleDeleteCategory(cat)} disabled={cat.productCount > 0}>
+                                  <Trash2 className="h-3 w-3" />Delete
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -222,43 +234,45 @@ const CategoryManagement: React.FC = () => {
 
           {/* ── SUB CATEGORIES TAB ── */}
           <TabsContent value="subcategories" className="space-y-6 mt-6">
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />Add New Sub Category</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {categories.length === 0 && (
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                    Please create categories first before adding sub-categories.
+            {canCreate && (
+              <Card>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Plus className="h-5 w-5" />Add New Sub Category</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  {categories.length === 0 && (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                      Please create categories first before adding sub-categories.
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Category *</Label>
+                      <Select value={subForm.categoryId} onValueChange={v => setSubForm(p => ({ ...p, categoryId: v }))} disabled={categories.length === 0}>
+                        <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
+                        <SelectContent>
+                          {categories.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.categoryName}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Sub Category Name *</Label>
+                      <Input placeholder="e.g. HD, IP, Biometric" value={subForm.subCategoryName}
+                        onChange={e => setSubForm(p => ({ ...p, subCategoryName: e.target.value }))} />
+                    </div>
                   </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Category *</Label>
-                    <Select value={subForm.categoryId} onValueChange={v => setSubForm(p => ({ ...p, categoryId: v }))} disabled={categories.length === 0}>
-                      <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-                      <SelectContent>
-                        {categories.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.categoryName}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Label>Description (Optional)</Label>
+                    <Textarea placeholder="Brief description..." value={subForm.description}
+                      onChange={e => setSubForm(p => ({ ...p, description: e.target.value }))} rows={2} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Sub Category Name *</Label>
-                    <Input placeholder="e.g. HD, IP, Biometric" value={subForm.subCategoryName}
-                      onChange={e => setSubForm(p => ({ ...p, subCategoryName: e.target.value }))} />
+                  <div className="flex justify-end">
+                    <Button onClick={handleAddSubCategory} disabled={!subForm.categoryId || !subForm.subCategoryName.trim() || isSubmitting} className="gap-2">
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Add Sub Category
+                    </Button>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Description (Optional)</Label>
-                  <Textarea placeholder="Brief description..." value={subForm.description}
-                    onChange={e => setSubForm(p => ({ ...p, description: e.target.value }))} rows={2} />
-                </div>
-                <div className="flex justify-end">
-                  <Button onClick={handleAddSubCategory} disabled={!subForm.categoryId || !subForm.subCategoryName.trim() || isSubmitting} className="gap-2">
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    Add Sub Category
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Layers className="h-5 w-5" />Sub Categories ({subCategories.length})</CardTitle></CardHeader>
@@ -297,16 +311,20 @@ const CategoryManagement: React.FC = () => {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <Button variant="outline" size="sm" className="gap-1" onClick={() => {
-                                setEditingSub(sub);
-                                setEditSubForm({ categoryId: sub.categoryId.toString(), subCategoryName: sub.subCategoryName, description: sub.description || '' });
-                                setIsEditSubOpen(true);
-                              }}>
-                                <Edit className="h-3 w-3" />Edit
-                              </Button>
-                              <Button variant="outline" size="sm" className="gap-1 text-rose-600 hover:bg-rose-50" onClick={() => handleDeleteSubCategory(sub)} disabled={sub.productCount > 0}>
-                                <Trash2 className="h-3 w-3" />Delete
-                              </Button>
+                              {canEdit && (
+                                <Button variant="outline" size="sm" className="gap-1" onClick={() => {
+                                  setEditingSub(sub);
+                                  setEditSubForm({ categoryId: sub.categoryId.toString(), subCategoryName: sub.subCategoryName, description: sub.description || '' });
+                                  setIsEditSubOpen(true);
+                                }}>
+                                  <Edit className="h-3 w-3" />Edit
+                                </Button>
+                              )}
+                              {canDelete && (
+                                <Button variant="outline" size="sm" className="gap-1 text-rose-600 hover:bg-rose-50" onClick={() => handleDeleteSubCategory(sub)} disabled={sub.productCount > 0}>
+                                  <Trash2 className="h-3 w-3" />Delete
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>

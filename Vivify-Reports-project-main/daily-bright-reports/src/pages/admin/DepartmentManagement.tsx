@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { api, Department } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import { Layers, Plus, MoreVertical, Pencil, Trash2, Search, Users } from 'lucid
 import { format, parseISO } from 'date-fns';
 
 const DepartmentManagement: React.FC = () => {
+  const { hasPermission } = useAuth();
   const [depts, setDepts] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -27,6 +29,10 @@ const DepartmentManagement: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [editTarget, setEditTarget] = useState<Department | null>(null);
   const [deptName, setDeptName] = useState('');
+
+  const canCreate = hasPermission('departments', 'create');
+  const canEdit = hasPermission('departments', 'edit');
+  const canDelete = hasPermission('departments', 'delete');
 
   const load = async () => {
     setIsLoading(true);
@@ -89,26 +95,28 @@ const DepartmentManagement: React.FC = () => {
               <p className="text-muted-foreground text-sm">Organise your workforce into departments</p>
             </div>
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="h-4 w-4" />New Department</Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card">
-              <DialogHeader><DialogTitle>Create Department</DialogTitle></DialogHeader>
-              <div className="space-y-3 py-4">
-                <Label htmlFor="newDept">Department Name *</Label>
-                <Input
-                  id="newDept" placeholder="e.g. Engineering"
-                  value={deptName} onChange={e => setDeptName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreate} disabled={isCreating}>{isCreating ? 'Creating...' : 'Create'}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          {canCreate && (
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2"><Plus className="h-4 w-4" />New Department</Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card">
+                <DialogHeader><DialogTitle>Create Department</DialogTitle></DialogHeader>
+                <div className="space-y-3 py-4">
+                  <Label htmlFor="newDept">Department Name *</Label>
+                  <Input
+                    id="newDept" placeholder="e.g. Engineering"
+                    value={deptName} onChange={e => setDeptName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCreate()}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                  <Button onClick={handleCreate} disabled={isCreating}>{isCreating ? 'Creating...' : 'Create'}</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
           {/* Edit Dialog */}
           <Dialog open={!!editTarget} onOpenChange={v => { if (!v) { setEditTarget(null); setDeptName(''); } }}>
@@ -194,12 +202,19 @@ const DepartmentManagement: React.FC = () => {
                             <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-card">
-                            <DropdownMenuItem onClick={() => { setEditTarget(d); setDeptName(d.departmentName); }} className="cursor-pointer">
-                              <Pencil className="mr-2 h-4 w-4" />Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(d.id, d.departmentName)} className="text-destructive cursor-pointer">
-                              <Trash2 className="mr-2 h-4 w-4" />Delete
-                            </DropdownMenuItem>
+                            {canEdit && (
+                              <DropdownMenuItem onClick={() => { setEditTarget(d); setDeptName(d.departmentName); }} className="cursor-pointer">
+                                <Pencil className="mr-2 h-4 w-4" />Edit
+                              </DropdownMenuItem>
+                            )}
+                            {canDelete && (
+                              <DropdownMenuItem onClick={() => handleDelete(d.id, d.departmentName)} className="text-destructive cursor-pointer">
+                                <Trash2 className="mr-2 h-4 w-4" />Delete
+                              </DropdownMenuItem>
+                            )}
+                            {!canEdit && !canDelete && (
+                              <DropdownMenuItem disabled>No Access</DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

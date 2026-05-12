@@ -202,8 +202,12 @@ async function downloadCSVTemplate() {
 // ── Component ──────────────────────────────────────────────────────────────
 
 const PropertyManagement: React.FC = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const queryClient = useQueryClient();
+
+  const canCreate = hasPermission('properties', 'create');
+  const canEdit = hasPermission('properties', 'edit');
+  const canDelete = hasPermission('properties', 'delete');
 
   // ── State ──────────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
@@ -510,14 +514,18 @@ const PropertyManagement: React.FC = () => {
               <p className="text-muted-foreground">Manage apartments, towers, and common areas for your association</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="gap-2" onClick={() => setBulkOpen(true)}>
-                <Upload className="h-4 w-4" />
-                Bulk Upload
-              </Button>
-              <Button className="gap-2" onClick={() => setAddOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Add Property
-              </Button>
+              {canCreate && (
+                <>
+                  <Button variant="outline" className="gap-2" onClick={() => setBulkOpen(true)}>
+                    <Upload className="h-4 w-4" />
+                    Bulk Upload
+                  </Button>
+                  <Button className="gap-2" onClick={() => setAddOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    Add Property
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -678,22 +686,27 @@ const PropertyManagement: React.FC = () => {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="hover:text-primary hover:bg-primary/10"
-                                  onClick={() => handleEditClick(prop)}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => setDeleteConfirmId(prop.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {canEdit && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="hover:text-primary hover:bg-primary/10"
+                                    onClick={() => handleEditClick(prop)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {canDelete && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setDeleteConfirmId(prop.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                {!canEdit && !canDelete && <span className="text-slate-400 text-xs italic">No Access</span>}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -716,12 +729,16 @@ const PropertyManagement: React.FC = () => {
                 <h1 className="text-2xl font-black text-white tracking-tight truncate">Properties</h1>
                 <p className="text-primary-foreground/60 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Manage apartments, towers, and common areas</p>
               </div>
-              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setAddOpen(true)}>
-                <Plus className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setBulkOpen(true)}>
-                <Upload className="h-5 w-5" />
-              </Button>
+              {canCreate && (
+                <>
+                  <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setAddOpen(true)}>
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" className="bg-white/10 text-white rounded-2xl h-11 w-11 p-0 shrink-0 backdrop-blur-md border-0" onClick={() => setBulkOpen(true)}>
+                    <Upload className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
             </div>
             
             <div className="grid grid-cols-3 gap-3">
@@ -782,22 +799,26 @@ const PropertyManagement: React.FC = () => {
                           </Badge>
                         </div>
                         <div className="flex gap-1 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-10 w-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600"
-                            onClick={() => handleEditClick(prop)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-10 w-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
-                            onClick={() => setDeleteConfirmId(prop.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+                              onClick={() => handleEditClick(prop)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                              onClick={() => setDeleteConfirmId(prop.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                       

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,6 +79,7 @@ interface Product {
 }
 
 const ProductManagement: React.FC = () => {
+  const { hasPermission } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -86,6 +88,10 @@ const ProductManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  const canCreate = hasPermission('products', 'create');
+  const canEdit = hasPermission('products', 'edit');
+  const canDelete = hasPermission('products', 'delete');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   
@@ -349,156 +355,158 @@ const ProductManagement: React.FC = () => {
         </div>
 
         {/* Add Product Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              Add New Product
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {categories.length === 0 && !isLoading && (
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  No categories available. Please create categories first before adding products.
-                </p>
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <Select
-                  value={formData.categoryId || ""}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value || undefined }))}
-                  disabled={categories.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.length > 0 ? (
-                      categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
-                          {category.categoryName}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="no-categories" disabled>
-                        No categories available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="subCategory">Sub Category</Label>
-                <Select
-                  value={formData.subCategoryId || "none"}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, subCategoryId: value === "none" ? "" : value }))}
-                  disabled={!formData.categoryId || filteredSubCats.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={!formData.categoryId ? "Select category first" : filteredSubCats.length === 0 ? "No sub-categories" : "Select Sub Category"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {filteredSubCats.map((sc) => (
-                      <SelectItem key={sc.id} value={sc.id.toString()}>{sc.subCategoryName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="productName">Product Name *</Label>
-                <Input
-                  id="productName"
-                  placeholder="Enter product name"
-                  value={formData.productName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="price">Price *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="Enter price"
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="image">Product Image</Label>
-                <div className="flex gap-2">
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file);
-                    }}
-                    className="flex-1"
-                  />
-                  {isUploading && <Loader2 className="h-4 w-4 animate-spin mt-2" />}
+        {canCreate && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Add New Product
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {categories.length === 0 && !isLoading && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    No categories available. Please create categories first before adding products.
+                  </p>
                 </div>
-                {imagePreview && (
-                  <div className="relative w-20 h-20 border rounded-lg overflow-hidden">
-                    <img
-                      src={getImageUrl(imagePreview)}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-1 right-1 h-6 w-6 p-0"
-                      onClick={() => {
-                        setImagePreview('');
-                        setFormData(prev => ({ ...prev, imageUrl: '' }));
-                        if (fileInputRef.current) fileInputRef.current.value = '';
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category *</Label>
+                  <Select
+                    value={formData.categoryId || ""}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value || undefined }))}
+                    disabled={categories.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.length > 0 ? (
+                        categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            {category.categoryName}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-categories" disabled>
+                          No categories available
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="subCategory">Sub Category</Label>
+                  <Select
+                    value={formData.subCategoryId || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, subCategoryId: value === "none" ? "" : value }))}
+                    disabled={!formData.categoryId || filteredSubCats.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={!formData.categoryId ? "Select category first" : filteredSubCats.length === 0 ? "No sub-categories" : "Select Sub Category"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {filteredSubCats.map((sc) => (
+                        <SelectItem key={sc.id} value={sc.id.toString()}>{sc.subCategoryName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="productName">Product Name *</Label>
+                  <Input
+                    id="productName"
+                    placeholder="Enter product name"
+                    value={formData.productName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="price">Price *</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="Enter price"
+                    value={formData.price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="image">Product Image</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
                       }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                      className="flex-1"
+                    />
+                    {isUploading && <Loader2 className="h-4 w-4 animate-spin mt-2" />}
                   </div>
-                )}
+                  {imagePreview && (
+                    <div className="relative w-20 h-20 border rounded-lg overflow-hidden">
+                      <img
+                        src={getImageUrl(imagePreview)}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0"
+                        onClick={() => {
+                          setImagePreview('');
+                          setFormData(prev => ({ ...prev, imageUrl: '' }));
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Enter product description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                rows={3}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Enter product description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                />
+              </div>
 
-            <div className="flex justify-end">
-              <Button
-                onClick={handleAddProduct}
-                disabled={!formData.categoryId || !formData.productName.trim() || !formData.price || isSubmitting || categories.length === 0 || formData.categoryId === "no-categories"}
-                className="gap-2"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                Add Product
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleAddProduct}
+                  disabled={!formData.categoryId || !formData.productName.trim() || !formData.price || isSubmitting || categories.length === 0 || formData.categoryId === "no-categories"}
+                  className="gap-2"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  Add Product
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <Card>
@@ -628,24 +636,28 @@ const ProductManagement: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditProduct(product)}
-                              className="gap-1"
-                            >
-                              <Edit className="h-3 w-3" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteProduct(product)}
-                              className="gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              Delete
-                            </Button>
+                            {canEdit && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditProduct(product)}
+                                className="gap-1"
+                              >
+                                <Edit className="h-3 w-3" />
+                                Edit
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteProduct(product)}
+                                className="gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
