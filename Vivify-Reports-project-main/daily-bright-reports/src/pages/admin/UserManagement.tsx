@@ -260,20 +260,24 @@ const UserManagement: React.FC = () => {
   };
 
   const handleRoleChange = async (userId: number, role: string) => {
-    // Optimistically update local state
+    // Snapshot previous role for rollback on failure
+    const previousRole = users.find(u => u.id === userId)?.role;
+    // Optimistically update local state immediately so the dropdown reflects the change
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, role } : u));
     try {
-      const response = await api.users.update(userId, { role });
+      const response = await api.users.update(userId, { Role: role });
       if (response.success !== false) {
         toast.success('Role updated successfully');
-        // Refetch to get the persisted custom role name from backend
-        await fetchUsers();
+        // No refetch needed — optimistic state is already correct.
+        // A refetch here would trigger isLoading and cause the dropdown to flicker/reset.
       } else {
-        await fetchUsers();
+        // Rollback to previous role on failure
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: previousRole } : u));
         toast.error(response.message || 'Failed to update role');
       }
     } catch (error: any) {
-      await fetchUsers();
+      // Rollback to previous role on error
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: previousRole } : u));
       toast.error(error.message || 'Failed to update role');
     }
   };
@@ -554,15 +558,11 @@ const UserManagement: React.FC = () => {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent position="popper" side="top" avoidCollisions={false} className="bg-card z-[200] max-h-[200px] overflow-y-auto">
-                            {customRoles.length > 0 ? (
-                              customRoles.map(r => (
-                                <SelectItem key={r.id} value={r.roleName.toLowerCase().replace(/\s+/g, '_')}>
-                                  {r.roleName}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <div className="px-2 py-2 text-xs text-slate-500">No roles available. Create roles in Role Management.</div>
-                            )}
+                            {allRoles.map(r => (
+                              <SelectItem key={r.id} value={r.roleName}>
+                                {r.roleName}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
