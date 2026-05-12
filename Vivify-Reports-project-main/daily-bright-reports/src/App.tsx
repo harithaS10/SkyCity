@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { BrandingProvider } from '@/contexts/BrandingContext';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { ScrollToTop } from '@/components/ScrollToTop';
 
 // ── Pages ────────────────────────────────────────────────────────────────────
 import Login from './pages/Login';
@@ -80,6 +81,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <HashRouter>
+              <ScrollToTop />
               <Routes>
                 {/* Public */}
                 <Route path="/" element={<RootRedirect />} />
