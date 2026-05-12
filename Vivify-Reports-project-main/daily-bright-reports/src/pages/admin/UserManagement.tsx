@@ -352,7 +352,10 @@ const UserManagement: React.FC = () => {
                 <Upload className="h-4 w-4" />
                 Bulk Upload
               </Button>
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <Dialog open={isCreateDialogOpen} onOpenChange={(o) => {
+                setIsCreateDialogOpen(o);
+                if (!o) setNewUser({ name: '', username: '', email: '', password: '', role: 'staff', departmentId: '', roleId: '' });
+              }}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <UserPlus className="h-4 w-4" />
@@ -471,7 +474,9 @@ const UserManagement: React.FC = () => {
 
                   {/* Footer inside scroll area so Custom Role is never at the very bottom */}
                   <div className="flex justify-end gap-2 pt-2 border-t">
-                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    <Button variant="outline" onClick={() => {
+                      setNewUser({ name: '', username: '', email: '', password: '', role: 'staff', departmentId: '', roleId: '' });
+                    }}>
                       Cancel
                     </Button>
                     <Button onClick={handleCreateUser}>Create User</Button>
@@ -481,7 +486,10 @@ const UserManagement: React.FC = () => {
             </Dialog>
 
             {/* Edit User Dialog */}
-            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <Dialog open={isEditDialogOpen} onOpenChange={(o) => {
+              setIsEditDialogOpen(o);
+              if (!o) setEditingUser((prev: any) => prev ? { ...prev, name: '', username: '', email: '', password: '', phone: '', address: '' } : null);
+            }}>
               <DialogContent className="bg-card max-h-[90vh] flex flex-col">
                 <DialogHeader className="shrink-0">
                   <DialogTitle>Edit User</DialogTitle>
@@ -568,7 +576,9 @@ const UserManagement: React.FC = () => {
                       </div>
 
                       <div className="flex justify-end gap-2 pt-2 border-t">
-                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                        <Button variant="outline" onClick={() => {
+                          setEditingUser((prev: any) => ({ ...prev, name: '', username: '', email: '', password: '', phone: '', address: '' }));
+                        }}>
                           Cancel
                         </Button>
                         <Button onClick={handleEditUser}>Update User</Button>
@@ -927,7 +937,10 @@ const UserManagement: React.FC = () => {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => {
+              setBulkCsvText('');
+              setBulkResult(null);
+            }}>Cancel</Button>
             {!bulkResult && (
               <Button onClick={handleBulkUpload} disabled={isBulkUploading || !bulkCsvText.trim()} className="gap-2">
                 {isBulkUploading ? <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Uploading...</> : <><Upload className="h-4 w-4" />Upload Users</>}

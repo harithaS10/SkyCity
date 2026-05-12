@@ -1046,7 +1046,9 @@ const PropertyManagement: React.FC = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setAddOpen(false); setForm(EMPTY_FORM); }} disabled={createMutation.isPending}>
+            <Button variant="outline" onClick={() => {
+              setForm(EMPTY_FORM);
+            }} disabled={createMutation.isPending}>
               Cancel
             </Button>
             <Button onClick={handleAddSubmit} disabled={!form.propertyName.trim() || createMutation.isPending}>
@@ -1187,7 +1189,9 @@ const PropertyManagement: React.FC = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditOpen(false); setEditingProperty(null); setForm(EMPTY_FORM); }} disabled={updateMutation.isPending}>
+            <Button variant="outline" onClick={() => {
+              setForm(EMPTY_FORM);
+            }} disabled={updateMutation.isPending}>
               Cancel
             </Button>
             <Button onClick={handleEditSubmit} disabled={!form.propertyName.trim() || updateMutation.isPending}>
@@ -1281,7 +1285,13 @@ const PropertyManagement: React.FC = () => {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={handleBulkClose}>Close</Button>
+            <Button variant="outline" onClick={() => {
+              setBulkText('');
+              setBulkFile(null);
+              setBulkRows([]);
+              setBulkResult(null);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }}>Cancel</Button>
             {!bulkResult && (
               <Button
                 onClick={handleBulkUpload}

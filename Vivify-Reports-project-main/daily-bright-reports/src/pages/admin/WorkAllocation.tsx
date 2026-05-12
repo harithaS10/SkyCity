@@ -613,7 +613,16 @@ const WorkAllocationPage: React.FC = () => {
   };
 
   const CreateAllocationDialog = (
-    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+    <Dialog open={isCreateDialogOpen} onOpenChange={(o) => {
+      setIsCreateDialogOpen(o);
+      if (!o) {
+        setNewAllocation({ title: '', description: '', assignedToIds: [], workId: '', dueDate: '', priority: 'medium' });
+        setUserDescriptions({});
+        setSelectedLocationType('');
+        setSelectedPropertyId('');
+        setAttachments([]);
+      }
+    }}>
       <DialogTrigger asChild>
         {/* Trigger for Desktop Header */}
         <Button className="hidden lg:flex gap-2 shadow-lg shadow-primary/20" onClick={(e) => {
@@ -895,7 +904,13 @@ const WorkAllocationPage: React.FC = () => {
           </div>
         </div>
         <DialogFooter className="flex-shrink-0 pt-2 border-t mt-4">
-          <Button variant="outline" className="rounded-xl" onClick={() => setIsCreateDialogOpen(false)} disabled={isAllocating}>
+          <Button variant="outline" className="rounded-xl" onClick={() => {
+            setNewAllocation({ title: '', description: '', assignedToIds: [], workId: '', dueDate: '', priority: 'medium' });
+            setUserDescriptions({});
+            setSelectedLocationType('');
+            setSelectedPropertyId('');
+            setAttachments([]);
+          }} disabled={isAllocating}>
             Cancel
           </Button>
           <Button className="rounded-xl" onClick={handleCreateAllocation} disabled={isAllocating}>
@@ -998,7 +1013,12 @@ const WorkAllocationPage: React.FC = () => {
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleBulkClose}>Close</Button>
+          <Button variant="outline" onClick={() => {
+            setBulkFile(null);
+            setBulkRows([]);
+            setBulkResult(null);
+            if (bulkFileRef.current) bulkFileRef.current.value = '';
+          }}>Cancel</Button>
           {!bulkResult && (
             <Button
               onClick={handleBulkUpload}
@@ -1664,7 +1684,13 @@ const WorkAllocationPage: React.FC = () => {
       {/* Shared Modals */}
       
       {/* Shared Reassign Dialog */}
-      <Dialog open={isReassignDialogOpen} onOpenChange={setIsReassignDialogOpen}>
+      <Dialog open={isReassignDialogOpen} onOpenChange={(o) => {
+        setIsReassignDialogOpen(o);
+        if (!o) {
+          setReassignTargetId('');
+          setReassignReason('');
+        }
+      }}>
         <DialogContent className="sm:max-w-[400px] rounded-[2rem] p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tight">Reassign Task</DialogTitle>
@@ -1708,7 +1734,14 @@ const WorkAllocationPage: React.FC = () => {
           </div>
 
           <DialogFooter className="flex-row gap-2">
-            <Button variant="outline" className="flex-1 rounded-2xl font-black text-xs uppercase tracking-widest" onClick={() => setIsReassignDialogOpen(false)}>
+            <Button 
+              variant="outline" 
+              className="flex-1 rounded-2xl font-black text-xs uppercase tracking-widest" 
+              onClick={() => {
+                setReassignTargetId('');
+                setReassignReason('');
+              }}
+            >
               Cancel
             </Button>
             <Button 

@@ -96,7 +96,10 @@ const DepartmentManagement: React.FC = () => {
             </div>
           </div>
           {canCreate && (
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <Dialog open={isCreateOpen} onOpenChange={(o) => {
+              setIsCreateOpen(o);
+              if (!o) setDeptName('');
+            }}>
               <DialogTrigger asChild>
                 <Button className="gap-2"><Plus className="h-4 w-4" />New Department</Button>
               </DialogTrigger>
@@ -111,7 +114,9 @@ const DepartmentManagement: React.FC = () => {
                   />
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                  <Button variant="outline" onClick={() => {
+                    setDeptName('');
+                  }}>Cancel</Button>
                   <Button onClick={handleCreate} disabled={isCreating}>{isCreating ? 'Creating...' : 'Create'}</Button>
                 </DialogFooter>
               </DialogContent>
@@ -131,7 +136,9 @@ const DepartmentManagement: React.FC = () => {
                 />
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => { setEditTarget(null); setDeptName(''); }}>Cancel</Button>
+                <Button variant="outline" onClick={() => {
+                  setDeptName('');
+                }}>Cancel</Button>
                 <Button onClick={handleUpdate}>Save</Button>
               </DialogFooter>
             </DialogContent>

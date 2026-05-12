@@ -494,14 +494,33 @@ const EmployeeTaskAssignment: React.FC = () => {
                     />
                   </div>
                 </div>
-                <Button
-                  onClick={() => handleCreateTask('daily')}
-                  disabled={isSubmitting || !dailyTaskForm.taskName}
-                  className="w-full gap-2"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Daily Task
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDailyTaskForm({
+                        taskName: '',
+                        description: '',
+                        priority: 'medium',
+                        dueDate: format(new Date(), 'yyyy-MM-dd'),
+                        dueTime: '17:00',
+                        taskType: 'daily'
+                      });
+                    }}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => handleCreateTask('daily')}
+                    disabled={isSubmitting || !dailyTaskForm.taskName}
+                    className="flex-[2] gap-2"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save Daily Task
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -553,14 +572,33 @@ const EmployeeTaskAssignment: React.FC = () => {
                     />
                   </div>
                 </div>
-                <Button
-                  onClick={() => handleCreateTask('monthly')}
-                  disabled={isSubmitting || !monthlyTaskForm.taskName}
-                  className="w-full gap-2"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Monthly Task
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setMonthlyTaskForm({
+                        taskName: '',
+                        description: '',
+                        priority: 'medium',
+                        dueDate: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd'),
+                        month: format(new Date(), 'yyyy-MM'),
+                        taskType: 'monthly'
+                      });
+                    }}
+                    disabled={isSubmitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => handleCreateTask('monthly')}
+                    disabled={isSubmitting || !monthlyTaskForm.taskName}
+                    className="flex-[2] gap-2"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save Monthly Task
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1069,7 +1107,7 @@ const EmployeeTaskAssignment: React.FC = () => {
       </Dialog>
 
       {/* ── Edit Task Dialog ───────────────────────────────────────── */}
-      <Dialog open={isEditDialogOpen} onOpenChange={(o) => { if (!o) { setIsEditDialogOpen(false); setEditingTask(null); } }}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(o) => { if (!o) { setIsEditDialogOpen(false); setEditingTask(null); setEditForm({ taskName: '', description: '', priority: 'medium', dueDate: '' }); } }}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
@@ -1103,7 +1141,9 @@ const EmployeeTaskAssignment: React.FC = () => {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setEditingTask(null); }} disabled={isSubmitting}>Cancel</Button>
+            <Button variant="outline" onClick={() => {
+              setEditForm({ taskName: '', description: '', priority: 'medium', dueDate: '' });
+            }} disabled={isSubmitting}>Cancel</Button>
             <Button onClick={handleEditTask} disabled={isSubmitting || !editForm.taskName.trim()}>
               {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</> : 'Save Changes'}
             </Button>

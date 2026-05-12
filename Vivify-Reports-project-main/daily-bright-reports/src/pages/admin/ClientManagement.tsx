@@ -601,7 +601,10 @@ const ClientManagement: React.FC = () => {
         </div>
 
         {/* ===== SHARED CREATE DIALOG ===== */}
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={(o) => {
+          setIsCreateDialogOpen(o);
+          if (!o) setNewClient({ name: '', email: '', phone: '', company: '', logoUrl: '', isActive: true });
+        }}>
           <DialogContent className="bg-card animate-scale-in max-h-[90vh] overflow-y-auto sm:max-w-lg rounded-3xl sm:rounded-lg">
             <DialogHeader>
               <DialogTitle>Add New Client</DialogTitle>
@@ -681,7 +684,9 @@ const ClientManagement: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="mt-2">
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="rounded-xl">
+              <Button variant="outline" onClick={() => {
+                setNewClient({ name: '', email: '', phone: '', company: '', logoUrl: '', isActive: true });
+              }} className="rounded-xl">
                 Cancel
               </Button>
               <Button onClick={handleCreateClient} className="rounded-xl">Create Client</Button>
@@ -690,7 +695,10 @@ const ClientManagement: React.FC = () => {
         </Dialog>
 
         {/* ===== SHARED EDIT DIALOG ===== */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog open={isEditDialogOpen} onOpenChange={(o) => {
+          setIsEditDialogOpen(o);
+          if (!o) setEditingClient((prev: any) => prev ? { ...prev, name: '', email: '', phone: '', company: '', logoUrl: '' } : null);
+        }}>
           <DialogContent className="bg-card animate-scale-in max-h-[90vh] overflow-y-auto sm:max-w-lg rounded-3xl sm:rounded-lg">
             <DialogHeader>
               <DialogTitle>Edit Client</DialogTitle>
@@ -767,7 +775,9 @@ const ClientManagement: React.FC = () => {
               </div>
             )}
             <DialogFooter className="mt-2">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl">
+              <Button variant="outline" onClick={() => {
+                setEditingClient((prev: any) => prev ? { ...prev, name: '', email: '', phone: '', company: '', logoUrl: '' } : null);
+              }} className="rounded-xl">
                 Cancel
               </Button>
               <Button onClick={handleEditClient} className="rounded-xl">Save Changes</Button>
@@ -828,7 +838,10 @@ const ClientManagement: React.FC = () => {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>Close</Button>
+              <Button variant="outline" onClick={() => {
+                setBulkCsvText('');
+                setBulkResult(null);
+              }}>Cancel</Button>
               {!bulkResult && (
                 <Button onClick={handleBulkUpload} disabled={isBulkUploading || !bulkCsvText.trim()} className="gap-2">
                   {isBulkUploading ? <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Uploading...</> : <><Upload className="h-4 w-4" />Upload Clients</>}

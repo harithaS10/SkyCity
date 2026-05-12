@@ -113,7 +113,7 @@ export default function TermsManagement() {
                     className="text-destructive hover:bg-destructive/10 border-destructive/20 dark:border-destructive/30 dark:hover:bg-destructive/20"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Clear All
+                    Cancel
                   </Button>
                   <Button 
                     onClick={handleSave} 
@@ -179,7 +179,7 @@ export default function TermsManagement() {
                     className="h-12 rounded-2xl bg-rose-50 dark:bg-rose-950 text-rose-600 dark:text-rose-400 font-black text-[11px] uppercase tracking-widest hover:bg-rose-100 dark:hover:bg-rose-900"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Clear
+                    Cancel
                   </Button>
                   <Button 
                     onClick={handleSave} 

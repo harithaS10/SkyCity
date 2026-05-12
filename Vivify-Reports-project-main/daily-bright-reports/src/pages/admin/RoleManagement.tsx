@@ -591,7 +591,9 @@ const RoleManagement: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="mt-2">
-              <Button variant="outline" className="rounded-xl" onClick={() => { setIsCreateOpen(false); resetForm(); }}>Cancel</Button>
+              <Button variant="outline" className="rounded-xl" onClick={() => {
+                resetForm();
+              }}>Cancel</Button>
               <Button className="rounded-xl" onClick={handleCreate} disabled={isCreating}>{isCreating ? 'Creating...' : 'Create Role'}</Button>
             </DialogFooter>
           </DialogContent>
@@ -612,7 +614,9 @@ const RoleManagement: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="mt-2">
-              <Button variant="outline" className="rounded-xl" onClick={() => { setEditTarget(null); resetForm(); }}>Cancel</Button>
+              <Button variant="outline" className="rounded-xl" onClick={() => {
+                resetForm();
+              }}>Cancel</Button>
               <Button className="rounded-xl" onClick={handleUpdate}>Save Changes</Button>
             </DialogFooter>
           </DialogContent>
@@ -685,7 +689,10 @@ const RoleManagement: React.FC = () => {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>Close</Button>
+              <Button variant="outline" onClick={() => {
+                setBulkCsvText('');
+                setBulkResult(null);
+              }}>Cancel</Button>
               {!bulkResult && (
                 <Button onClick={handleBulkUpload} disabled={isBulkUploading || !bulkCsvText.trim()} className="gap-2">
                   {isBulkUploading ? <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Uploading...</> : <><Upload className="h-4 w-4" />Upload</>}

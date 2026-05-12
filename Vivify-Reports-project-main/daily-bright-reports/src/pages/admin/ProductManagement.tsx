@@ -490,7 +490,18 @@ const ProductManagement: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setFormData({ categoryId: '', subCategoryId: '', productName: '', price: '', description: '', imageUrl: '' });
+                    setImagePreview('');
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
                 <Button
                   onClick={handleAddProduct}
                   disabled={!formData.categoryId || !formData.productName.trim() || !formData.price || isSubmitting || categories.length === 0 || formData.categoryId === "no-categories"}
@@ -671,7 +682,13 @@ const ProductManagement: React.FC = () => {
       </div>
 
       {/* Edit Product Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(o) => {
+        setIsEditDialogOpen(o);
+        if (!o) {
+          setEditFormData({ categoryId: '', subCategoryId: '', productName: '', price: '', description: '', imageUrl: '' });
+          setEditImagePreview('');
+        }
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
@@ -795,7 +812,10 @@ const ProductManagement: React.FC = () => {
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setIsEditDialogOpen(false)}
+              onClick={() => {
+                setEditFormData({ categoryId: '', subCategoryId: '', productName: '', price: '', description: '', imageUrl: '' });
+                setEditImagePreview('');
+              }}
               disabled={isSubmitting}
             >
               Cancel

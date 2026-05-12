@@ -496,7 +496,7 @@ const WorkManagement: React.FC = () => {
         </div>
 
         {/* ===== SHARED CREATE DIALOG ===== */}
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={(o) => { setIsCreateDialogOpen(o); if (!o) setNewWork({ workCode: '', workTitle: '', workType: 'Standard' }); }}>
           <DialogContent className="bg-card animate-scale-in sm:max-w-lg rounded-3xl sm:rounded-lg">
             <DialogHeader>
               <DialogTitle>Create New Work Type</DialogTitle>
@@ -548,7 +548,9 @@ const WorkManagement: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="mt-2">
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="rounded-xl">
+              <Button variant="outline" onClick={() => {
+                setNewWork({ workCode: '', workTitle: '', workType: 'Standard' });
+              }} className="rounded-xl">
                 Cancel
               </Button>
               <Button onClick={handleCreateWork} disabled={isCreating} className="rounded-xl">
@@ -559,7 +561,7 @@ const WorkManagement: React.FC = () => {
         </Dialog>
 
         {/* ===== SHARED EDIT DIALOG ===== */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog open={isEditDialogOpen} onOpenChange={(o) => { setIsEditDialogOpen(o); if (!o) setSelectedWork(null); }}>
           <DialogContent className="bg-card animate-scale-in sm:max-w-lg rounded-3xl sm:rounded-lg">
             <DialogHeader>
               <DialogTitle>Edit Work Type</DialogTitle>
@@ -615,7 +617,9 @@ const WorkManagement: React.FC = () => {
               </div>
             )}
             <DialogFooter className="mt-2">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl">
+              <Button variant="outline" onClick={() => {
+                setSelectedWork((prev: any) => prev ? { ...prev, workTitle: '', workType: 'Standard' } : null);
+              }} className="rounded-xl">
                 Cancel
               </Button>
               <Button onClick={handleEditWork} className="rounded-xl">Save Changes</Button>
@@ -692,7 +696,10 @@ const WorkManagement: React.FC = () => {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsBulkDialogOpen(false)}>Close</Button>
+              <Button variant="outline" onClick={() => {
+                setBulkCsvText('');
+                setBulkResult(null);
+              }}>Cancel</Button>
               {!bulkResult && (
                 <Button onClick={handleBulkUpload} disabled={isBulkUploading || !bulkCsvText.trim()} className="gap-2">
                   {isBulkUploading ? <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Uploading...</> : <><Upload className="h-4 w-4" />Upload</>}

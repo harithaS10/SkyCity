@@ -340,7 +340,10 @@ const CategoryManagement: React.FC = () => {
       </div>
 
       {/* Edit Category Dialog */}
-      <Dialog open={isEditCatOpen} onOpenChange={setIsEditCatOpen}>
+      <Dialog open={isEditCatOpen} onOpenChange={(o) => {
+        setIsEditCatOpen(o);
+        if (!o) setEditCategoryName('');
+      }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Edit Category</DialogTitle><DialogDescription>Update the category name.</DialogDescription></DialogHeader>
           <div className="grid gap-4 py-4">
@@ -350,7 +353,9 @@ const CategoryManagement: React.FC = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditCatOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button variant="outline" onClick={() => {
+              setEditCategoryName('');
+            }} disabled={isSubmitting}>Cancel</Button>
             <Button onClick={handleUpdateCategory} disabled={!editCategoryName.trim() || isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Update
             </Button>
@@ -359,7 +364,10 @@ const CategoryManagement: React.FC = () => {
       </Dialog>
 
       {/* Edit SubCategory Dialog */}
-      <Dialog open={isEditSubOpen} onOpenChange={setIsEditSubOpen}>
+      <Dialog open={isEditSubOpen} onOpenChange={(o) => {
+        setIsEditSubOpen(o);
+        if (!o) setEditSubForm({ categoryId: '', subCategoryName: '', description: '' });
+      }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Edit Sub Category</DialogTitle><DialogDescription>Update sub-category details.</DialogDescription></DialogHeader>
           <div className="grid gap-4 py-4">
@@ -382,7 +390,9 @@ const CategoryManagement: React.FC = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditSubOpen(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button variant="outline" onClick={() => {
+              setEditSubForm({ categoryId: '', subCategoryName: '', description: '' });
+            }} disabled={isSubmitting}>Cancel</Button>
             <Button onClick={handleUpdateSubCategory} disabled={!editSubForm.subCategoryName.trim() || isSubmitting}>
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Update
             </Button>
