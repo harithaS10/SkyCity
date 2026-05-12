@@ -348,7 +348,7 @@ const AdminReportsPage: React.FC = () => {
                     <div className="hidden sm:block">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <div className="overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
-                            <TabsList className="inline-flex w-auto min-w-full lg:min-w-[600px] h-11 bg-muted/50 p-1">
+                            <TabsList className="inline-flex w-auto min-w-full lg:min-w-[600px] h-11 bg-muted/80 dark:bg-slate-800/90 p-1 backdrop-blur-sm">
                                 <TabsTrigger value="all" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">All</TabsTrigger>
                                 <TabsTrigger value="pending" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">Standing Pending</TabsTrigger>
                                 <TabsTrigger value="completed" className="flex-1 whitespace-nowrap px-4 py-2 text-xs sm:text-sm font-medium transition-all">Pending to Completed</TabsTrigger>
@@ -366,12 +366,12 @@ const AdminReportsPage: React.FC = () => {
                                     <Table className="border-x">
                                         <TableHeader>
                                             <TableRow className="bg-primary hover:bg-primary h-9">
-                                                <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
-                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Title</TableHead>
-                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Assigned To</TableHead>
-                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Status</TableHead>
-                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Priority</TableHead>
-                                                <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Date</TableHead>
+                                                <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">S.No</TableHead>
+                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Title</TableHead>
+                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Assigned To</TableHead>
+                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Status</TableHead>
+                                                <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Priority</TableHead>
+                                                <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Date</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -416,12 +416,12 @@ const AdminReportsPage: React.FC = () => {
                                     <Table className="border-x">
                                             <TableHeader>
                                                 <TableRow className="bg-primary hover:bg-primary h-9">
-                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Title</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Assigned To</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Status</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Priority</TableHead>
-                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Due Date</TableHead>
+                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">S.No</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Title</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Assigned To</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Status</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Priority</TableHead>
+                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Due Date</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -462,11 +462,11 @@ const AdminReportsPage: React.FC = () => {
                                     <Table className="border-x">
                                             <TableHeader>
                                                 <TableRow className="bg-primary hover:bg-primary h-9">
-                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Title</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Completed By</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Completion Date</TableHead>
-                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Duration</TableHead>
+                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">S.No</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Title</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Completed By</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Completion Date</TableHead>
+                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Duration</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -498,12 +498,12 @@ const AdminReportsPage: React.FC = () => {
                                     <Table className="border-x">
                                             <TableHeader>
                                                 <TableRow className="bg-primary hover:bg-primary h-9">
-                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary z-10">S.No</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Work Title</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">From User</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">To User</TableHead>
-                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary z-10">Timeline</TableHead>
-                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary z-10">Reason</TableHead>
+                                                    <TableHead className="sticky top-0 border-r w-12 text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">S.No</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Work Title</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">From User</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">To User</TableHead>
+                                                    <TableHead className="sticky top-0 border-r text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Timeline</TableHead>
+                                                    <TableHead className="sticky top-0 text-white font-bold py-2 text-xs bg-primary dark:bg-[#0d9488] z-20">Reason</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>

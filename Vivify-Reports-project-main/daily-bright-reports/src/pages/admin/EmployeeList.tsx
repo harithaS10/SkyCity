@@ -224,7 +224,7 @@ const EmployeeList: React.FC = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="rounded-md border border-slate-200 m-6 mt-0 overflow-hidden">
+                <div className="rounded-md border border-slate-200 dark:border-slate-700 m-6 mt-0 overflow-hidden">
                   <div className="overflow-x-auto">
                     <Table className="table-fixed w-full">
                       <colgroup>
@@ -278,14 +278,14 @@ const EmployeeList: React.FC = () => {
                             };
                             
                             return (
-                              <TableRow key={employee.id} className="hover:bg-slate-50/50 transition-colors border-b">
+                              <TableRow key={employee.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors border-b dark:border-slate-700">
                                 <TableCell className="border-r py-3">
                                   <div className="flex items-center gap-3">
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 border border-primary/20 shrink-0">
                                       <User className="h-5 w-5 text-primary" />
                                     </div>
                                     <div className="min-w-0">
-                                      <p className="font-bold text-slate-700 truncate">{employee.fullName}</p>
+                                      <p className="font-bold text-slate-700 dark:text-slate-200 truncate">{employee.fullName}</p>
                                       <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                                         <Mail className="h-3 w-3" />
                                         <span className="truncate">{employee.email}</span>
@@ -299,13 +299,13 @@ const EmployeeList: React.FC = () => {
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="border-r">
-                                  <div className="flex items-center gap-1.5 text-slate-600">
+                                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                                     <Building2 className="h-3.5 w-3.5 opacity-70" />
                                     <span className="text-xs font-medium">{employee.department || 'General'}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-center border-r">
-                                  <span className="font-bold text-slate-700">{stats.totalTasks}</span>
+                                  <span className="font-bold text-slate-700 dark:text-slate-200">{stats.totalTasks}</span>
                                 </TableCell>
                                 <TableCell className="text-center border-r">
                                   <span className="text-emerald-600 font-bold">{stats.completedTasks}</span>
@@ -329,7 +329,7 @@ const EmployeeList: React.FC = () => {
                                   <Button
                                     onClick={() => handleViewTasks(employee.id, employee.fullName)}
                                     size="sm"
-                                    className="gap-2 h-8 rounded-lg bg-slate-900 hover:bg-slate-800"
+                                    className="gap-2 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white"
                                   >
                                     <span className="text-[11px] font-bold">View Tasks</span>
                                     <ArrowRight className="h-3.5 w-3.5" />

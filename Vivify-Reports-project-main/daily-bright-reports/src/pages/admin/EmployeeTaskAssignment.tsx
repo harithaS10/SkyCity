@@ -384,7 +384,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                 Back to Employees
               </Button>
               <div className="space-y-0.5">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-tight">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
                   Task Assignment - {employeeName}
                 </h1>
                 <p className="text-xs text-muted-foreground">
@@ -410,7 +410,7 @@ const EmployeeTaskAssignment: React.FC = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-slate-50 rounded-lg">
-                  <div className="text-2xl font-bold text-slate-900">{tasks.length}</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{tasks.length}</div>
                   <div className="text-sm text-muted-foreground">Total Tasks</div>
                 </div>
                 <div className="text-center p-4 bg-emerald-50 rounded-lg">
@@ -419,13 +419,13 @@ const EmployeeTaskAssignment: React.FC = () => {
                   </div>
                   <div className="text-sm text-muted-foreground">Completed</div>
                 </div>
-                <div className="text-center p-4 bg-amber-50 rounded-lg">
+                <div className="text-center p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg">
                   <div className="text-2xl font-bold text-amber-600">
                     {tasks.filter(t => t.status === 'pending').length}
                   </div>
                   <div className="text-sm text-muted-foreground">Pending</div>
                 </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600">
                     {tasks.filter(t => t.status === 'in_progress').length}
                   </div>
@@ -583,7 +583,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                   </TabsList>
 
                   <TabsContent value="daily" className="mt-6">
-                    <div className="rounded-md border border-slate-200 overflow-hidden">
+                    <div className="rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
                       <div className="overflow-x-auto">
                         <Table className="table-fixed w-full">
                           <colgroup>
@@ -620,7 +620,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                                   </TableCell>
                                 </TableRow>
                               ) : dailyTasks.map((task) => (
-                                <TableRow key={task.id} className="hover:bg-slate-50/50 transition-colors border-b">
+                                <TableRow key={task.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors border-b dark:border-slate-700">
                                   <TableCell className="font-medium border-r py-3">
                                     <div className="flex items-center flex-wrap gap-1.5">
                                       <span className="truncate">{task.taskName}</span>
@@ -672,7 +672,7 @@ const EmployeeTaskAssignment: React.FC = () => {
                   </TabsContent>
 
                   <TabsContent value="monthly" className="mt-6">
-                    <div className="rounded-md border border-slate-200 overflow-hidden">
+                    <div className="rounded-md border border-slate-200 dark:border-slate-700 overflow-hidden">
                       <div className="overflow-x-auto">
                         <Table className="table-fixed w-full">
                           <colgroup>
