@@ -348,35 +348,29 @@ const WorkAllocationPage: React.FC = () => {
   const filteredAllocations = allocations.filter((allocation) => {
     if (!allocation) return false;
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-
+    
+    // 1. Search Match
     const assigneeName = users.find((u: any) => u.id === allocation.assignedTo)?.name?.toLowerCase() || '';
-
-    // Status matching: only match if query is a prefix of a status word (not substring of title)
-    const statusValue = (allocation.status?.toLowerCase() || '');
-    const statusMatchTerms: Record<string, string[]> = {
-      'pending': ['pending', 'pend'],
-      'in-progress': ['in-progress', 'in progress', 'inprogress', 'progress'],
-      'completed': ['completed', 'complete', 'done'],
-    };
-    const matchesStatusSearch = Object.entries(statusMatchTerms).some(([status, terms]) =>
-      allocation.status === status && terms.some(t => t.startsWith(q) || q === t)
-    );
-
-    const matchesSearch =
+    const matchesSearch = !q || 
       (allocation.title?.toLowerCase() || '').includes(q) ||
       (allocation.description?.toLowerCase() || '').includes(q) ||
-      (allocation.priority?.toLowerCase() || '').startsWith(q) ||
-      assigneeName.includes(q) ||
+      (allocation.status?.toLowerCase() || '').replace('-', ' ').includes(q) ||
       (allocation.workTitle?.toLowerCase() || '').includes(q) ||
+      (allocation.priority?.toLowerCase() || '').includes(q) ||
       (allocation.clientName?.toLowerCase() || '').includes(q) ||
-      matchesStatusSearch;
+      assigneeName.includes(q);
 
-    const matchesStatus = filterStatus === 'all' || allocation.status === filterStatus;
+    // 2. Status Filter
+    const matchesStatus = filterStatus === 'all' || allocation.status?.toLowerCase() === filterStatus;
+    
+    // 3. Employee Filter
     const matchesEmployee = filterEmployee === 'all' || String(allocation.assignedTo) === filterEmployee;
+    
+    // 4. Date Filter
     const dueDate = allocation.dueDate ? new Date(allocation.dueDate) : null;
     const matchesFrom = !filterDateFrom || (dueDate && dueDate >= new Date(filterDateFrom));
     const matchesTo = !filterDateTo || (dueDate && dueDate <= new Date(filterDateTo + 'T23:59:59'));
+    
     return matchesSearch && matchesStatus && matchesEmployee && matchesFrom && matchesTo;
   }).sort((a: any, b: any) => (b.id || 0) - (a.id || 0));
 
@@ -603,9 +597,9 @@ const WorkAllocationPage: React.FC = () => {
     if (bulkFileRef.current) bulkFileRef.current.value = '';
   };
 
-  const pendingCount = allocations.filter((a) => a && a.status === 'pending').length;
-  const inProgressCount = allocations.filter((a) => a && a.status === 'in-progress').length;
-  const completedCount = allocations.filter((a) => a && a.status === 'completed').length;
+  const pendingCount = allocations.filter((a) => a && a.status?.toLowerCase() === 'pending').length;
+  const inProgressCount = allocations.filter((a) => a && a.status?.toLowerCase() === 'in-progress').length;
+  const completedCount = allocations.filter((a) => a && a.status?.toLowerCase() === 'completed').length;
 
   const getUserName = (userId: number, allocation?: any) => {
     // Prefer the pre-resolved name already returned by the backend
@@ -1283,7 +1277,7 @@ const WorkAllocationPage: React.FC = () => {
                                 ) : (
                                   <span className="text-xs text-muted-foreground/50 italic">No instruction given</span>
                                 )}
-                                {allocation.progressNote && allocation.status === 'in-progress' && (
+                                {allocation.progressNote && allocation.status?.toLowerCase() === 'in-progress' && (
                                   <div className="mt-1.5 flex items-start gap-1.5 bg-blue-50 border border-blue-200 rounded px-2 py-1">
                                     <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wide shrink-0 mt-0.5">Live</span>
                                     <span className="text-[11px] text-blue-800 italic leading-tight">{allocation.progressNote}</span>
@@ -1328,9 +1322,9 @@ const WorkAllocationPage: React.FC = () => {
                               </TableCell>
                               <TableCell className="align-top border-r border-slate-200">
                                 <div className="flex flex-col gap-1.5">
-                                  <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold w-fit border", statusColors[allocation.status])}>
-                                    {statusIcons[allocation.status]}
-                                    <span className="capitalize">{allocation.status.replace('-', ' ')}</span>
+                                  <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold w-fit border", statusColors[allocation.status?.toLowerCase() as keyof typeof statusColors] || statusColors.pending)}>
+                                    {statusIcons[allocation.status?.toLowerCase() as keyof typeof statusIcons] || statusIcons.pending}
+                                    <span className="capitalize">{(allocation.status || '').toLowerCase().replace('-', ' ')}</span>
                                   </div>
                                   <span className={cn("text-xs font-semibold", isOverdue(allocation.dueDate, allocation.status) ? 'text-destructive' : 'text-slate-600')}>
                                     Due: {format(new Date(allocation.dueDate), 'MMM dd')}
@@ -1466,23 +1460,7 @@ const WorkAllocationPage: React.FC = () => {
               />
             </div>
 
-            {/* Mobile Filter Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-              {['all', 'pending', 'in-progress', 'completed'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setFilterStatus(tab as any)}
-                  className={cn(
-                    "shrink-0 px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all active:scale-95",
-                    filterStatus === tab
-                      ? "bg-slate-800 text-white shadow-md"
-                      : "bg-white dark:bg-slate-800 text-slate-500 ring-1 ring-slate-100 dark:ring-slate-700"
-                  )}
-                >
-                  {tab === 'all' ? 'All' : tab.replace('-', ' ')}
-                </button>
-              ))}
-            </div>
+            {/* Mobile Filter Tabs removed as stats cards serve as filters */}
 
             {isLoading ? (
               <div className="py-16 flex flex-col items-center justify-center">
